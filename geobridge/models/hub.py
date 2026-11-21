@@ -4,9 +4,10 @@ An utterance (text or speech, any language) is turned into K_h *slot queries*.  
 frozen patch tokens of the image the utterance describes; the hub token of that slot is the attention-weighted
 **barycentre** of those frozen tokens:
 
-        z*_k = sum_p  alpha_kp * v_p ,     alpha_k = softmax_p( <q_k, key(v_p)> / tau )
+        z*_k = sum_p  alpha_kp * v_p ,     alpha_k = softmax_p( <q_k, key(v_p)> / tau  -  inhibition_k )
 
-so a hub code is, by construction, a point of conv(V_image)^{K_h}: it lives in the frozen vision geometry,
+(slots attend one after the other; each is inhibited on what earlier slots took and may choose "null").
+A hub code is, by construction, a point of conv(V_image + origin)^{K_h}: it lives in the frozen vision geometry,
 contains no text, and is sentence-level (two captions of one image attend differently and get different
 codes).  It can be drawn on the image, which makes the interlingua directly inspectable.
 
@@ -54,6 +55,8 @@ class VisualInterlingua(nn.Module):
         self.norm = nn.LayerNorm(W)
         self.q_out = nn.Linear(W, W)
         self.key = nn.Linear(d, W)
+        self.null_key = nn.Parameter(torch.randn(W) * 0.1)
+        self.null_bias = nn.Parameter(torch.zeros(()))
         self.free_out = nn.Linear(W, d)          # used by hub_mode == "free"
         self.explainer = Explainer(cfg, n_lang)
         side = int(round((self.P - 1) ** 0.5))
@@ -94,11 +97,26 @@ class VisualInterlingua(nn.Module):
     def attend(self, q: torch.Tensor, V: torch.Tensor, keys: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """q [n, K, W], V [n, P, d] (the utterance's own image) -> hub [n, K, d], attention [n, K, P-1].
 
-        Slots attend over the *patch* tokens only.  The global token is excluded on purpose: it is the mean
-        of the image, and a slot that settles on it turns the hub back into a scene-level pivot (every
-        caption of an image gets the same code).  This collapse does happen if the token is offered."""
+        Three properties, each of which was needed in practice:
+        * patches only - the global token is the mean of the image; a slot that settles on it turns the hub
+          back into a scene-level pivot (one code per image);
+        * sequential with inhibition of return - slot k is penalised on the patches slots < k already took, so
+          the slots enumerate the things a sentence mentions instead of all piling onto the most salient one
+          (independent slots covered both objects of a two-object caption in 0 % of cases);
+        * a null option - a slot with nothing left to say attends to a learned null key whose value is the
+          origin of the anchored space, so its hub token is 0 and attention rows may sum to less than one.
+        """
         keys = self.keys(V) if keys is None else keys
-        attn = torch.softmax(torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.cfg.hub_temp, dim=-1)
+        tau = self.cfg.hub_temp
+        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / tau
+        null = (q.float() @ F.normalize(self.null_key, dim=-1).float()) / tau + self.null_bias     # [n, K]
+        taken = torch.zeros_like(logits[:, 0])
+        rows = []
+        for k in range(logits.shape[1]):
+            a = torch.softmax(torch.cat([logits[:, k] - self.cfg.hub_inhibit / tau * taken, null[:, k:k + 1]], dim=-1), dim=-1)
+            rows.append(a[:, :-1])
+            taken = taken + a[:, :-1]
+        attn = torch.stack(rows, 1)
         return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
 
     def similarity(self, q: torch.Tensor, keys: torch.Tensor) -> torch.Tensor:

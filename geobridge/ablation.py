@@ -31,7 +31,8 @@ GROUPS: Dict[str, Dict] = {
         "question": "What should the hub be anchored to?  (N1: barycentric visual interlingua)",
         "variants": [
             ("bary (ours)", {}),
-            ("bary, contrastive grounding only (no explanatory term)", {"w_expl": 0.0, "w_slot_div": 0.1}),
+            ("bary, contrastive grounding only (no explanatory term)", {"w_expl": 0.0}),
+            ("bary, independent slots (no inhibition of return)", {"hub_inhibit": 0.0}),
             ("global visual pivot", {"hub_mode": "global"}),
             ("free learned anchor (FlowBind-style)", {"hub_mode": "free"}),
             ("text anchor (image-pivoted)", {"hub_mode": "text"}),
