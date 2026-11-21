@@ -54,8 +54,8 @@ q_k   = Grounder(z, m, ℓ)_k                                   k = 1..K_h      
 z*_k  = Σ_p α_kp v_p                                           ∈ conv({v_p} ∪ {0})
 ```
 
-A hub code is therefore a point of `conv(V_image ∪ {0})^{K_h}` inside the frozen vision geometry. Four properties
-were each needed in practice, and each is an ablation:
+A hub code is therefore a point of `conv(V_image ∪ {0})^{K_h}` inside the frozen vision geometry. Five properties
+were each needed in practice (the numbers are from the controlled benchmark), and each can be switched off:
 
 1. **Patches only.** The global token is the mean of the image; when it was offered, every slot settled on it and
    the hub collapsed to one code per image (grounding stuck at 14 % where it otherwise reaches 55–70 %).
@@ -65,7 +65,11 @@ were each needed in practice, and each is an ablation:
 3. **A null option.** A slot with nothing left to say attends to a learned null key whose value is the origin of
    the anchored space. It is offered only in the second half of phase A and attention is then charged a small
    price (`w_null`); offered from the start, later slots retreat to null and, being saturated, never come back.
-4. **A contrastive score that uses the same attention** (below).
+4. **Soft-to-sharp attention.** The temperature starts at `hub_temp_start × τ` and is annealed geometrically to
+   `τ` during the first half of phase A. A sharp softmax gives the explanatory loss no gradient towards a patch
+   the slot is not already on; with the anneal, both objects of a two-object caption get their own slot in
+   75–81 % of cases (7–16 % without).
+5. **A contrastive score that uses the same attention** (below).
 
 Training:
 
