@@ -1,0 +1,117 @@
+"""Hub (+) private bidirectional flow spokes.
+
+One spoke per modality.  Its state is N = K_h + K_p tokens of width d:
+
+    t = 0   x_0 = [ z* (K_h hub tokens) ; xi (K_p private tokens, xi ~ N(0, I)) ]
+    t = 1   x_1 = z_m  (the modality latent)
+    path    x_t = (1 - t) x_0 + t x_1 ,   target velocity  u = x_1 - x_0
+
+Forward integration (0 -> 1) *generates* the modality from a hub code; the private tokens absorb everything
+the hub does not determine (wording, speaker, phrasing), so one hub code maps to many valid outputs.
+Backward integration (1 -> 0) *reads* a modality sample and returns both its hub code (first K_h tokens) and
+its private code.  The velocity field is a shared transformer per modality whose linear maps carry a
+rank-r LoRA pair per language.
+"""
+from __future__ import annotations
+
+from typing import List, Optional, Tuple
+
+import torch
+import torch.nn as nn
+
+from .layers import Block, sincos
+
+
+class VelocityNet(nn.Module):
+    def __init__(self, cfg, n_lang: int):
+        super().__init__()
+        W, d, N = cfg.flow_width, cfg.latent_dim, cfg.n_tokens
+        self.W = W
+        self.inp = nn.Linear(d, W)
+        self.pos = nn.Parameter(torch.randn(N, W) * 0.02)
+        self.kind = nn.Parameter(torch.randn(2, W) * 0.02)  # hub slot vs private slot
+        self.register_buffer("kind_idx", torch.cat([torch.zeros(cfg.hub_slots), torch.ones(cfg.private_slots)]).long())
+        self.time = nn.Sequential(nn.Linear(W, W), nn.SiLU(), nn.Linear(W, W))
+        self.lang_emb = nn.Embedding(max(1, n_lang), W)
+        rank = cfg.lora_rank if n_lang > 0 else 0
+        self.blocks = nn.ModuleList([Block(W, cfg.flow_heads, n_lang=n_lang, rank=rank, alpha=cfg.lora_alpha, cond_dim=W)
+                                     for _ in range(cfg.flow_layers)])
+        self.out_norm = nn.LayerNorm(W)
+        self.out = nn.Linear(W, d)
+        nn.init.zeros_(self.out.weight)
+        nn.init.zeros_(self.out.bias)
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor, lang: torch.Tensor) -> torch.Tensor:
+        cond = self.time(sincos(t * 1000.0, self.W)) + self.lang_emb(lang)
+        h = self.inp(x) + self.pos + self.kind[self.kind_idx]
+        for blk in self.blocks:
+            h = blk(h, lang=lang, cond=cond)
+        return self.out(self.out_norm(h))
+
+
+class Spoke(nn.Module):
+    def __init__(self, cfg, n_lang: int):
+        super().__init__()
+        self.cfg, self.K = cfg, cfg.hub_slots
+        self.vel = VelocityNet(cfg, n_lang)
+
+    # ------------------------------------------------------------------ source construction
+    def source(self, hub: torch.Tensor, temp: float = 1.0, private: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """[hub ; private].  ``private`` given -> reuse it; otherwise draw N(0, temp^2) (zeros if disabled)."""
+        B, _, d = hub.shape
+        if private is None:
+            private = torch.randn(B, self.cfg.private_slots, d, device=hub.device, dtype=hub.dtype) * temp
+            if not self.cfg.private_noise:
+                private = torch.zeros_like(private)
+        return torch.cat([hub, private], 1)
+
+    # ------------------------------------------------------------------ conditional flow matching
+    def cfm_loss(self, x0: torch.Tensor, x1: torch.Tensor, lang: torch.Tensor,
+                 weight: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        B = x0.shape[0]
+        if self.cfg.t_sampling == "logit_normal":
+            t = torch.sigmoid(torch.randn(B, device=x0.device))
+        else:
+            t = torch.rand(B, device=x0.device)
+        tt = t.view(B, 1, 1).to(x0.dtype)
+        xt = (1 - tt) * x0 + tt * x1
+        v = self.vel(xt, t, lang)
+        per = ((v.float() - (x1 - x0).float()) ** 2).mean(dim=(1, 2))
+        if weight is not None:
+            return (per * weight).sum() / weight.sum().clamp_min(1e-6), per.detach()
+        return per.mean(), per.detach()
+
+    # ------------------------------------------------------------------ ODE integration
+    def solve(self, x: torch.Tensor, lang: torch.Tensor, direction: int, steps: Optional[int] = None,
+              solver: Optional[str] = None, grad: bool = False, return_path: bool = False):
+        """direction = +1: t 0 -> 1 (hub -> modality);  -1: t 1 -> 0 (modality -> hub)."""
+        steps, solver = steps or self.cfg.ode_steps, solver or self.cfg.ode_solver
+        h = direction / steps
+        t = torch.full((x.shape[0],), 0.0 if direction > 0 else 1.0, device=x.device)
+        path: List[torch.Tensor] = [x]
+        with torch.set_grad_enabled(grad):
+            for _ in range(steps):
+                if solver == "euler":
+                    x = x + h * self.vel(x, t, lang)
+                elif solver == "heun":
+                    k1 = self.vel(x, t, lang)
+                    k2 = self.vel(x + h * k1, t + h, lang)
+                    x = x + h * 0.5 * (k1 + k2)
+                else:  # midpoint
+                    k1 = self.vel(x, t, lang)
+                    x = x + h * self.vel(x + 0.5 * h * k1, t + 0.5 * h, lang)
+                t = t + h
+                if return_path:
+                    path.append(x)
+        return (x, path) if return_path else x
+
+    def read(self, z: torch.Tensor, lang: torch.Tensor, grad: bool = False, steps: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """modality latent -> (hub estimate [B, K_h, d], private code [B, K_p, d])."""
+        x0 = self.solve(z, lang, -1, steps=steps, grad=grad)
+        return x0[:, : self.K], x0[:, self.K:]
+
+    def write(self, hub: torch.Tensor, lang: torch.Tensor, temp: Optional[float] = None,
+              private: Optional[torch.Tensor] = None, grad: bool = False, steps: Optional[int] = None) -> torch.Tensor:
+        """hub code -> modality latent."""
+        temp = self.cfg.sample_temp if temp is None else temp
+        return self.solve(self.source(hub, temp, private), lang, +1, steps=steps, grad=grad)

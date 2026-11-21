@@ -1,0 +1,16 @@
+torch>=2.2
+torchaudio>=2.2
+numpy>=1.26
+matplotlib>=3.8
+tqdm>=4.66
+regex>=2023.10
+sacrebleu>=2.4
+scikit-learn>=1.4        # t-SNE in the inferencer (falls back to PCA if missing)
+# real benchmark only (not needed for SynthWorld):
+transformers>=4.44
+huggingface_hub>=0.24
+pyarrow>=15
+soundfile>=0.12
+pillow>=10
+tokenizers>=0.19         # BPE baseline of the text-unit ablation
+pytest>=8                # tests
