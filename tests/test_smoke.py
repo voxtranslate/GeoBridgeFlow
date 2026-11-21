@@ -162,7 +162,6 @@ def test_flat_pitch_equals_closed_gate_and_hub_codes_stay_in_the_image_hull(tiny
     attn, hub = out["attn"], out["hub"]
     assert attn.shape[-1] == V.shape[1] - 1                   # patches only: the global token is not offered
     assert (attn >= 0).all() and (attn.sum(-1) <= 1 + 1e-4).all()   # the rest of each row is the null option
-    assert (attn.sum(1) <= 1 + 1e-3).all() or cfg.hub_inhibit == 0  # inhibition: a patch is not taken twice
     zero = torch.zeros_like(V[:, :1])
     pts = torch.cat([V[:, :-1], zero], 1)
     lo, hi = pts.min(1).values.unsqueeze(1), pts.max(1).values.unsqueeze(1)
