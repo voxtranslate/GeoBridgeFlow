@@ -156,8 +156,18 @@ class Inferencer:
         return attn.reshape(self.model.hub.grid)
 
     def _examples(self, n: int, need: List[Tuple[str, str]]) -> List[Dict]:
+        """Up to n caption groups that have all the needed views, from n different images (and, where the
+        benchmark has ground truth, the longest captions first, so multi-object sentences are shown)."""
         gs = [g for g in self.groups if all(self._view_utt(g, m, l) is not None for m, l in need)]
-        return gs[:n]
+        gs = sorted(gs, key=lambda g: -len(self.evaluator._ref(g, self.hub_lang) or ""))
+        out, seen = [], set()
+        for g in gs[::max(1, len(gs) // (4 * n) or 1)] + gs:
+            if g["img"] not in seen:
+                out.append(g)
+                seen.add(g["img"])
+            if len(out) == n:
+                break
+        return out
 
     @torch.no_grad()
     def _ground(self, g: Dict, mod: str, lang: str):
