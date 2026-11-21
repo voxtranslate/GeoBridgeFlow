@@ -49,29 +49,42 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
 For a view with latent `z` and paired image tokens `{v_p}`:
 
 ```
-q_k   = Grounder(z, m, ℓ)_k                  k = 1..K_h      (slot queries)
-α_kp  = softmax_p( ⟨q_k, key(v_p)⟩ / τ )
-z*_k  = Σ_p α_kp v_p                          ∈ conv{v_p}
+q_k   = Grounder(z, m, ℓ)_k                                   k = 1..K_h      (slot queries)
+α_k   = softmax_{p ∪ null}( ⟨q_k, key(v_p)⟩/τ − (λ/τ) Σ_{j<k} α_jp )          (sequential, inhibited)
+z*_k  = Σ_p α_kp v_p                                           ∈ conv({v_p} ∪ {0})
 ```
 
-A hub code is therefore a point of `conv(V_image)^{K_h}` inside the frozen vision geometry. Slots attend over the
-**patch tokens only** and start from distinct (unit-scale) queries: when the global token was offered, every slot
-settled on it and the hub collapsed to one code per image (slot-diversity ≈ 1, text–speech agreement ≈ 0,
-grounding stuck at 14 % where it otherwise reaches 60–70 %). Training:
+A hub code is therefore a point of `conv(V_image ∪ {0})^{K_h}` inside the frozen vision geometry. Four properties
+were each needed in practice, and each is an ablation:
+
+1. **Patches only.** The global token is the mean of the image; when it was offered, every slot settled on it and
+   the hub collapsed to one code per image (grounding stuck at 14 % where it otherwise reaches 55–70 %).
+2. **Sequential attention with inhibition of return.** Slot `k` is penalised on the patches slots `< k` took, so
+   the slots enumerate what a sentence mentions. Independent slots all pile onto the most salient mentioned
+   object.
+3. **A null option.** A slot with nothing left to say attends to a learned null key whose value is the origin of
+   the anchored space. It is offered only in the second half of phase A and attention is then charged a small
+   price (`w_null`); offered from the start, later slots retreat to null and, being saturated, never come back.
+4. **A contrastive score that uses the same attention** (below).
+
+Training:
 
 ```
-L_ground = InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k max_p ⟨q_k(u), key(v_p(I))⟩     (both directions,
-           same-image duplicates masked)
+L_ground = InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k Σ_p α_kp(u, I) ⟨q_k(u), key(v_p(I))⟩
+           where α(u, I) is the sequential, inhibited attention of u on image I (both directions, same-image
+           duplicates masked).  Each slot is credited with the match it finds among the patches earlier slots
+           left free.  The usual "best patch per slot, independently" score gives every slot full credit for
+           re-finding the same object, so nothing rewards a second slot for the second thing a sentence says.
 L_expl   = ‖ P(z*, m, ℓ) − stopgrad(z) ‖²      a small predictor P must reconstruct the utterance latent from the
            hub code alone; latents are unit-variance, so the value is the share of variance the hub leaves
            unexplained (1 − R²)
 L_agree  = ‖ z*(text) − z*(speech) ‖²   for text and speech of the SAME caption in the SAME language
 ```
 
-`L_expl` is what makes the hub sentence-level. The contrastive term is satisfied as soon as one slot finds one
-matching patch, and with it alone the hub described a single object per sentence: in the controlled benchmark
-none of the two-object captions had both objects covered, and text → hub → text reached 46 % with the image in
-hand. `L_expl` is the `t = 0` view of flow matching (what the hub does not determine is unexplained variance of
+`L_expl` asks the hub code to be sufficient for the sentence. With independent slots and the independent
+contrastive score, the hub described a single object per sentence: in the controlled benchmark none of the
+two-object captions had both objects covered and text → hub → text reached 46 % with the image in hand.
+`L_expl` is the `t = 0` view of flow matching (what the hub does not determine is unexplained variance of
 the latent, cf. FlowBind's Prop. 1), restricted here to hub codes that are barycentres of frozen patches. `P` is
 discarded after phase A. An optional slot-diversity term (`w_slot_div`, off by default) is kept for the
 ablation; it pushes spare slots onto patches the sentence does not mention.
