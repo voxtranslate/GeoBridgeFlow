@@ -94,6 +94,21 @@ class VisualInterlingua(nn.Module):
     def keys(self, V: torch.Tensor) -> torch.Tensor:
         return F.normalize(self.key(V), dim=-1)
 
+    def _sequential(self, logits: torch.Tensor, null: torch.Tensor) -> torch.Tensor:
+        """Sequential attention with inhibition of return.  logits [..., K, P], null [..., K] -> [..., K, P]
+        (rows sum to at most one; the remainder is the mass on the null option)."""
+        taken = torch.zeros_like(logits[..., 0, :])
+        rows = []
+        for k in range(logits.shape[-2]):
+            a = torch.softmax(torch.cat([logits[..., k, :] - self.cfg.hub_inhibit / self.cfg.hub_temp * taken,
+                                         null[..., k:k + 1]], dim=-1), dim=-1)[..., :-1]
+            rows.append(a)
+            taken = taken + a
+        return torch.stack(rows, -2)
+
+    def _null_logits(self, q: torch.Tensor) -> torch.Tensor:
+        return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.cfg.hub_temp + self.null_bias
+
     def attend(self, q: torch.Tensor, V: torch.Tensor, keys: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """q [n, K, W], V [n, P, d] (the utterance's own image) -> hub [n, K, d], attention [n, K, P-1].
 
@@ -107,22 +122,20 @@ class VisualInterlingua(nn.Module):
           origin of the anchored space, so its hub token is 0 and attention rows may sum to less than one.
         """
         keys = self.keys(V) if keys is None else keys
-        tau = self.cfg.hub_temp
-        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / tau
-        null = (q.float() @ F.normalize(self.null_key, dim=-1).float()) / tau + self.null_bias     # [n, K]
-        taken = torch.zeros_like(logits[:, 0])
-        rows = []
-        for k in range(logits.shape[1]):
-            a = torch.softmax(torch.cat([logits[:, k] - self.cfg.hub_inhibit / tau * taken, null[:, k:k + 1]], dim=-1), dim=-1)
-            rows.append(a[:, :-1])
-            taken = taken + a[:, :-1]
-        attn = torch.stack(rows, 1)
+        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.cfg.hub_temp
+        attn = self._sequential(logits, self._null_logits(q))
         return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
 
     def similarity(self, q: torch.Tensor, keys: torch.Tensor) -> torch.Tensor:
-        """Late-interaction score between every utterance and every image: mean over slots of the best patch.
-        q [n, K, W], keys [B, P, W] -> [n, B]"""
-        return torch.einsum("nkw,bpw->nbkp", q, keys[:, :-1]).amax(-1).mean(-1)
+        """Score of every utterance against every image, under the SAME sequential, inhibited attention that
+        builds the hub code: each slot is credited with the match it finds among the patches earlier slots
+        left free (a null slot contributes nothing).  With the usual "best patch per slot, independently" score
+        every slot gets full credit for re-finding the same object, and nothing rewards a second slot for
+        finding the second thing a sentence mentions.   q [n, K, W], keys [B, P, W] -> [n, B]"""
+        cos = torch.einsum("nkw,bpw->nbkp", q, keys[:, :-1]).float()
+        null = self._null_logits(q).unsqueeze(1).expand(-1, keys.shape[0], -1)
+        attn = self._sequential(cos / self.cfg.hub_temp, null)
+        return (attn * cos).sum(-1).mean(-1)
 
     def free_code(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:
         return self.free_out(self.slot_features(z, mod, lang))
@@ -133,7 +146,9 @@ class VisualInterlingua(nn.Module):
         """How well each hub code [n, K, d] is explained by the patches of each gallery image [G, P, d].
         Grounder-free: used to score hub estimates that came out of a backward ODE.  -> [n, G]"""
         h, v = F.normalize(hub.float(), dim=-1), F.normalize(V[:, :-1].float(), dim=-1)
-        return torch.einsum("nkd,gpd->ngkp", h, v).amax(-1).mean(-1)
+        best = torch.einsum("nkd,gpd->ngkp", h, v).amax(-1)                 # [n, G, K]
+        w = hub.float().norm(dim=-1)                                        # empty (null) slots weigh ~0
+        return (best * w.unsqueeze(1)).sum(-1) / w.sum(-1, keepdim=True).clamp_min(1e-6)
 
 
 class Explainer(nn.Module):
