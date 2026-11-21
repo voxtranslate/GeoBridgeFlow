@@ -89,8 +89,11 @@ it stopped. Train-versus-valid curves are saved to `runs/<exp>/curves/` at every
 **`eval`** scores every direction on the test split and writes `runs/<exp>/eval_test.json` with metrics and
 sample outputs.
 
-**`infer`** writes translations, synthesised speech (`.wav`), and eleven interpretability figures to
-`runs/<exp>/inference/` (see the docstring of `geobridge/inferencer.py`).
+**`infer`** writes translations, synthesised speech (`.wav`), and fourteen interpretability figures to
+`runs/<exp>/inference/`: slot attention on the image, ODE trajectories, the hub manifold, transport plans against
+the true partners, tonality gates and pitch-scaling response, frame- and grapheme-level attribution, retrieval
+galleries, quality against ODE steps, script fertility, hub agreement, per-language LoRA magnitudes, probes of
+hub versus private tokens, and codec reconstructions (see the docstring of `geobridge/inferencer.py`).
 
 **`ablate`** trains and evaluates every variant of every ablation group, sharing the representation phase
 between variants that do not change it, and writes Markdown, CSV and LaTeX tables and bar charts to
@@ -113,6 +116,9 @@ between variants that do not change it, and writes Markdown, CSV and LaTeX table
 | `geobridge/inferencer.py` | `Inferencer`: conversion API, saved outputs, figures |
 | `geobridge/ablation.py` | `AblationRunner`: groups, tables, plots |
 | `tests/` | fast checks on SynthWorld (`pytest -q tests`) |
+| `scripts/paper_experiments.sh` | the complete GPU study (main table, DINOv2 anchor, all ablations, 3 seeds) |
+| `scripts/cpu_ablation_queue.sh` | the reduced single-seed ablation that produced `docs/RESULTS.md` |
+| `scripts/make_results.py` | rebuilds `docs/RESULTS.md` from the JSON files under `runs/` |
 
 ## Using a trained model
 

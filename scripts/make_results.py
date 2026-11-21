@@ -121,6 +121,18 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
         if "fertility" in rep:
             for name, per in rep["fertility"].items():
                 md.append(f"- Units per word, {name}: " + ", ".join(f"{l} {v['units_per_word']:.2f}" for l, v in per.items()) + ".")
+        if "hub_vs_private_probe" in rep:
+            for k, v in rep["hub_vs_private_probe"].items():
+                if isinstance(v, dict):
+                    md.append(f"- Linear probe for {k}: hub tokens {v['hub']:.1f} %, private tokens {v['private']:.1f} % "
+                              f"(majority class {v['majority_class']:.1f} %).")
+        if "lora_relative_norm" in rep:
+            for sp, per in rep["lora_relative_norm"].items():
+                md.append(f"- Relative size of the language LoRA in the {sp} spoke (‖BA‖/‖W‖, mean over layers): " +
+                          ", ".join(f"{l} {v:.3f}" for l, v in per.items()) + ".")
+        if "codec_reconstruction" in rep:
+            md.append("- Speech codec, frame cosine between natural and reconstructed segmental stream (one utterance): " +
+                      ", ".join(f"{l} {v['segmental_cosine']:.3f}" for l, v in rep["codec_reconstruction"].items()) + ".")
         if rep.get("failed"):
             md.append(f"- Figures that failed: {rep['failed']}")
         md.append("")

@@ -30,13 +30,17 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   bytes (mean ⊕ max pooling) → transformer → Perceiver resampler → `z_txt ∈ R^{N×d}`. A byte-level
   autoregressive decoder reconstructs the string. Sequence length is the number of written symbols for every
   script.
-- **Speech codec** (`models/audio_codec.py`): `h = Linear(S)`, then the tone FiLM
+- **Speech codec** (`models/audio_codec.py`): `h = Linear(S) + Linear(voicing, energy)`, then the pitch FiLM
 
-  `h ← h ⊙ (1 + γ_ℓ · tanh(W_s τ)) + γ_ℓ · W_b τ`, with `τ = Conv(F)` and `γ_ℓ = σ(a_ℓ)`,
+  `h ← h ⊙ (1 + γ_ℓ · tanh(W_s τ)) + γ_ℓ · tanh(W_b τ)`, with `τ = Conv(z-log-F0, Δlog-F0)` and `γ_ℓ = σ(a_ℓ)`,
 
-  then transformer → resampler → `z_aud ∈ R^{N×d}`. The decoder reconstructs **only the segmental stream** from
-  `z_aud` and the bypass code `p = MLP(speaker vector, register)`. A prosody head predicts the contour from
-  `stopgrad(z_aud)`; a frame-synchronous renderer maps (segmental, contour, `p`) to a mel-spectrogram.
+  then transformer → resampler → `z_aud ∈ R^{N×d}`. Three details matter and were found empirically:
+  (i) only the **pitch contour** is gated; voicing and energy mark syllable structure in every language, and
+  when they shared the gated path the gate stayed open everywhere; (ii) both FiLM terms are bounded and
+  bias-free, so `γ_ℓ` is an upper bound on what pitch can contribute and a flat contour is exactly a closed gate;
+  (iii) the decoder reconstructs **only the segmental stream** from `z_aud` and the bypass code
+  `p = MLP(speaker vector, register)`, so no reconstruction term asks for pitch. A prosody head predicts the
+  contour from `stopgrad(z_aud)`; a frame-synchronous renderer maps (segmental, contour, `p`) to a mel-spectrogram.
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
 
@@ -50,7 +54,10 @@ q_k   = Grounder(z, m, ℓ)_k                  k = 1..K_h      (slot queries)
 z*_k  = Σ_p α_kp v_p                          ∈ conv{v_p}
 ```
 
-A hub code is therefore a point of `conv(V_image)^{K_h}` inside the frozen vision geometry. Training:
+A hub code is therefore a point of `conv(V_image)^{K_h}` inside the frozen vision geometry. Slots attend over the
+**patch tokens only** and start from distinct (unit-scale) queries: when the global token was offered, every slot
+settled on it and the hub collapsed to one code per image (slot-diversity ≈ 1, text–speech agreement ≈ 0,
+grounding stuck at 14 % where it otherwise reaches 60–70 %). Training:
 
 ```
 L_ground = InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k max_p ⟨q_k(u), key(v_p(I))⟩     (both directions,
@@ -105,10 +112,17 @@ parts, keeps each view's private code, writes back and penalises the reconstruct
 + (through L_ground and the flows)     the benefit, present only if pitch helps identify what is said
 ```
 
-Because the codec reconstructs only the segmental stream, nothing else rewards pitch. The gate therefore opens
-for a language iff its contour is informative about meaning. Reported per language: the gate value, the
-**tone-reliance index** `E‖ĥ − ĥ_flat‖² / E‖ĥ_i − ĥ_j‖²` (how far the hub code moves when the contour is removed,
-in units of the distance between two utterances), and the translation score with the contour removed.
+Because the codec reconstructs only the segmental stream, nothing else rewards pitch. The gate therefore stays
+open for a language iff its contour is informative about meaning.
+
+Schedule (dense, then sparsify): for the first `gate_release_frac` of phase A all gates are held at 1 and no price
+is charged; then they are released at `σ(tone_gate_init)` and priced. The gates are scalars, so they use their own
+constant step size `lr_gate`. Pricing from step 0 closed every gate within ~400 steps, before grounding had
+learned whether pitch is useful, and a closed sigmoid gate has no gradient left to reopen.
+
+Reported per language: the gate value, the **tone-reliance index** `E‖ĥ − ĥ_flat‖² / E‖ĥ_i − ĥ_j‖²` (how far the
+hub code moves when the contour is removed, in units of the distance between two utterances), and the
+translation score with the contour removed.
 `L_orth` is the mean squared entry of the batch cross-correlation between the pooled latent and the bypass code.
 
 ## 6. N3 — Gromov→Wasserstein docking (`losses.py:dock`, `models/ot.py`)
@@ -126,7 +140,9 @@ bank**, a FIFO memory of hub codes produced from image-paired views. With centre
 - `R` pins the bridge pairs present in the batch to their true hub codes (cost 0 on the true partner, `c_pin`
   elsewhere); through the GW term the pinned rows also constrain the unpaired rows.
 - Solver: entropic mirror descent; the inner step is a row-softmax (semi-relaxed) or log-domain Sinkhorn
-  (balanced). float32, outside autocast, products and logsumexp only.
+  (balanced). float32, outside autocast, products and logsumexp only. The iteration is **warm-started from the
+  model-induced plan** `softmax(−(M + R)/ε)`: the uniform plan is a stationary point of the GW iteration (every
+  row then prefers the same central columns), and from a uniform start the plan stayed at 98 % of maximal entropy.
 - `L_dock` is the objective at the fixed plan (envelope theorem), differentiable through `ĥ_u`.
 - `L_pseudo`: sample `j ~ Π(i, ·)` and train `CFM_aud([y_j ; ξ] → z_u,i)` weighted by `1 − H(Π_i)/log m`.
 
@@ -139,6 +155,8 @@ Phase B   L_B = Σ_m L_cfm^m + w_swap·L_swap + w_dock·L_dock + w_pseudo·L_pse
 ```
 
 Phase B freezes the codecs and the grounder, keeps an EMA of the spokes, and evaluates with the EMA weights.
+Bridge pairs are few, so every paired batch is guaranteed `bridge_per_batch` of them (drawn by a generator seeded
+with the stream position, which keeps resumption exact).
 
 ## 8. Evaluation (`metrics.py`)
 

@@ -16,6 +16,9 @@
   09_ode_steps.png                 quality vs number of ODE steps; the plain ODE cycle is solver error
   10_fertility.png                 units per word / per grapheme for each script and text unit
   11_hub_agreement.png             same-caption vs different-caption hub distance across modalities
+  12_language_lora.png             how far each language moves each layer of the shared velocity fields
+  13_hub_vs_private.png            what the hub tokens and the private tokens of a speech read-out encode
+  14_codec_reconstruction.png      speech codec: natural vs reconstructed streams and rendered mel
   report.json                      every number behind the figures
 """
 from __future__ import annotations
@@ -122,7 +125,8 @@ class Inferencer:
         self.store = self.evaluator.collect(self.model, split, 400)
         steps = [self.save_outputs, self.fig_slot_attention, self.fig_flow_trajectories, self.fig_hub_manifold,
                  self.fig_docking_coupling, self.fig_tone, self.fig_speech_attribution, self.fig_text_attribution,
-                 self.fig_retrieval, self.fig_ode_steps, self.fig_fertility, self.fig_hub_agreement]
+                 self.fig_retrieval, self.fig_ode_steps, self.fig_fertility, self.fig_hub_agreement,
+                 self.fig_language_lora, self.fig_hub_vs_private, self.fig_codec_reconstruction]
         for fn in steps:
             try:
                 fn()
@@ -762,6 +766,149 @@ class Inferencer:
         fig.savefig(os.path.join(self.out, "11_hub_agreement.png"), dpi=120)
         plt.close(fig)
         self.report["hub_agreement"] = res
+
+
+    # ================================================================== 12 language LoRA
+    @torch.no_grad()
+    def fig_language_lora(self) -> None:
+        import matplotlib.pyplot as plt
+
+        model = self.model
+        spokes = [(n, sp) for n, sp in model.spokes.items() if n != "img"]
+        if self.cfg.lora_rank <= 0 or not spokes:
+            return
+        fig, axes = plt.subplots(1, len(spokes), figsize=(7 * len(spokes), 4.6), squeeze=False)
+        res = {}
+        for ax, (name, sp) in zip(axes[0], spokes):
+            rows = []
+            for blk in sp.vel.blocks:
+                per_lang = torch.zeros(len(model.langs))
+                base = 0.0
+                for mod in blk.modules():
+                    if hasattr(mod, "lora_A") and getattr(mod, "rank", 0) > 0:
+                        delta = torch.einsum("lor,lri->loi", mod.lora_B, mod.lora_A) * mod.scale   # [lang, out, in]
+                        per_lang += delta.flatten(1).norm(dim=1).cpu() ** 2
+                        base += float(mod.lin.weight.norm() ** 2)
+                rows.append((per_lang.sqrt() / max(base, 1e-12) ** 0.5).detach().numpy())
+            M = np.stack(rows)                                                                      # [layer, lang]
+            im = ax.imshow(M, cmap="YlOrRd", aspect="auto")
+            ax.set_xticks(range(len(model.langs)), model.langs)
+            ax.set_ylabel("flow layer")
+            ax.set_title(f"{name} spoke: ||B_l A_l|| / ||W||  per layer and language\n"
+                         "(how far a language moves the shared velocity field)", fontsize=9)
+            for i in range(M.shape[0]):
+                for j in range(M.shape[1]):
+                    ax.text(j, i, f"{M[i, j]:.3f}", ha="center", va="center", fontsize=7)
+            fig.colorbar(im, ax=ax, fraction=0.046)
+            res[name] = {l: float(M[:, j].mean()) for j, l in enumerate(model.langs)}
+        fig.tight_layout()
+        fig.savefig(os.path.join(self.out, "12_language_lora.png"), dpi=120)
+        plt.close(fig)
+        self.report["lora_relative_norm"] = res
+
+    # ================================================================== 13 hub vs private
+    @torch.no_grad()
+    def fig_hub_vs_private(self) -> None:
+        """Linear probes on the two halves of a speech read-out: the hub tokens should carry what is said,
+        the private tokens who says it (speaker labels exist on SynthWorld)."""
+        import matplotlib.pyplot as plt
+        from sklearn.linear_model import LogisticRegression
+
+        model, data = self.model, self.data
+        res: Dict = {}
+        fig, axes = plt.subplots(1, 2, figsize=(13, 4.6))
+        bars, labels = [], []
+        for lang in [l for l in model.langs if ("aud", l) in self.store["views"]]:
+            rec = self.store["views"][("aud", lang)]
+            utts = rec["utt"].tolist()
+            spk = [data.utts[u].get("spk", "") for u in utts]
+            z = rec["z"].to(self.device)
+            lid = torch.full((len(z),), model.lang2id[lang], dtype=torch.long, device=self.device)
+            parts = [model.spokes["aud"].read(z[i:i + 128], lid[i:i + 128]) for i in range(0, len(z), 128)]
+            hub = torch.cat([p[0] for p in parts]).flatten(1).cpu().numpy()
+            priv = torch.cat([p[1] for p in parts]).flatten(1).cpu().numpy()
+            targets = {}
+            if len(set(spk)) > 1:
+                targets["speaker"] = np.array([sorted(set(spk)).index(x) for x in spk])
+            if self.cfg.dataset == "synthworld":
+                targets["first colour"] = np.array([data.utts[u]["content"][0][0] for u in utts])
+                targets["first shape"] = np.array([data.utts[u]["content"][0][1] for u in utts])
+            n = len(utts)
+            tr = np.arange(n) % 2 == 0
+            for tname, y in targets.items():
+                if len(set(y[tr])) < 2:
+                    continue
+                accs = {}
+                for pname, X in (("hub", hub), ("private", priv)):
+                    mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-6
+                    clf = LogisticRegression(max_iter=300, C=0.5).fit((X[tr] - mu) / sd, y[tr])
+                    accs[pname] = 100.0 * float((clf.predict((X[~tr] - mu) / sd) == y[~tr]).mean())
+                chance = 100.0 * float(np.bincount(y[~tr]).max() / (~tr).sum())
+                res[f"{lang}/{tname}"] = {**accs, "majority_class": chance}
+                bars.append((accs["hub"], accs["private"], chance))
+                labels.append(f"{lang}\n{tname}")
+        if bars:
+            x = np.arange(len(bars))
+            axes[0].bar(x - 0.27, [b[0] for b in bars], 0.27, label="hub tokens", color="#1f77b4")
+            axes[0].bar(x, [b[1] for b in bars], 0.27, label="private tokens", color="#ff7f0e")
+            axes[0].bar(x + 0.27, [b[2] for b in bars], 0.27, label="majority class", color="#bbbbbb")
+            axes[0].set_xticks(x, labels, fontsize=8)
+            axes[0].set_ylabel("linear-probe accuracy (%)")
+            axes[0].set_title("what each half of the speech read-out encodes (held-out half of the test set)", fontsize=9)
+            axes[0].legend(fontsize=8)
+        # norm of the private read-out vs a standard Gaussian (the training-time prior of the private tokens)
+        for i, lang in enumerate([l for l in model.langs if ("aud", l) in self.store["views"]]):
+            rec = self.store["views"][("aud", lang)]
+            z = rec["z"][:256].to(self.device)
+            lid = torch.full((len(z),), model.lang2id[lang], dtype=torch.long, device=self.device)
+            priv = model.spokes["aud"].read(z, lid)[1].flatten(1).float().cpu()
+            axes[1].hist((priv ** 2).mean(1).sqrt().numpy(), bins=30, alpha=0.6, color=LANG_COLORS[i % 6], label=f"speech:{lang}")
+            res[f"{lang}/private_rms"] = float((priv ** 2).mean().sqrt())
+        axes[1].axvline(1.0, color="k", ls="--", lw=1)
+        axes[1].set_title("RMS of the private code read from real speech\n(dashed = the N(0, I) prior it is written from)", fontsize=9)
+        axes[1].legend(fontsize=8)
+        fig.tight_layout()
+        fig.savefig(os.path.join(self.out, "13_hub_vs_private.png"), dpi=120)
+        plt.close(fig)
+        self.report["hub_vs_private_probe"] = res
+
+    # ================================================================== 14 codec reconstruction
+    @torch.no_grad()
+    def fig_codec_reconstruction(self) -> None:
+        import matplotlib.pyplot as plt
+
+        model, data = self.model, self.data
+        langs = [l for l in model.langs if ("aud", l) in self.store["views"]]
+        fig, axes = plt.subplots(4, len(langs), figsize=(8 * len(langs), 10), squeeze=False)
+        res = {}
+        for c, lang in enumerate(langs):
+            ui = int(self.store["views"][("aud", lang)]["utt"][1 % len(self.store["views"][("aud", lang)]["utt"])])
+            sub = _to(data._collate_audio([ui], [0]), self.device)
+            z = model.encode("aud", sub)
+            p = model.audio.bypass_code(sub["spk"], sub["f0"])
+            out = model.audio.decode(z, sub["lang"], sub["mask"].sum(1), p)
+            sem = model.audio.norm_sem(sub["sem"])[0].float().cpu().numpy()
+            rec = out["sem"][0].float().cpu().numpy()
+            cos = float(np.mean(np.sum(sem * rec, 1) / (np.linalg.norm(sem, axis=1) * np.linalg.norm(rec, axis=1) + 1e-8)))
+            res[lang] = {"segmental_cosine": cos}
+            k = min(48, sem.shape[1])
+            axes[0, c].imshow(sem[:, :k].T, aspect="auto", origin="lower", cmap="viridis")
+            axes[0, c].set_title(f"{lang}: segmental stream (first {k} dims)  |  {(data.utts[ui].get('text') or '')[:50]}", fontsize=8)
+            axes[1, c].imshow(rec[:, :k].T, aspect="auto", origin="lower", cmap="viridis")
+            axes[1, c].set_title(f"reconstructed from the {self.cfg.n_tokens}-token latent (frame cosine {cos:.3f})", fontsize=8)
+            if "mel" in sub:
+                tone = sub["tone"]
+                tone3 = torch.stack([tone[..., 0], tone[..., 1], tone[..., 3]], -1)
+                mel_hat = (model.audio.renderer(model.audio.norm_sem(sub["sem"]), tone3, p) * model.audio.mel_std + model.audio.mel_mean)[0]
+                axes[2, c].imshow(sub["mel"][0].float().cpu().numpy().T, aspect="auto", origin="lower", cmap="magma")
+                axes[2, c].set_title("natural log-mel", fontsize=8)
+                axes[3, c].imshow(mel_hat.float().cpu().numpy().T, aspect="auto", origin="lower", cmap="magma")
+                axes[3, c].set_title("log-mel rendered from (segmental stream, pitch contour, bypass code)", fontsize=8)
+                res[lang]["mel_l1"] = float((mel_hat - sub["mel"][0]).abs().mean())
+        fig.tight_layout()
+        fig.savefig(os.path.join(self.out, "14_codec_reconstruction.png"), dpi=120)
+        plt.close(fig)
+        self.report["codec_reconstruction"] = res
 
 
 def _write_wav(path: str, wav: np.ndarray, sr: int) -> None:
