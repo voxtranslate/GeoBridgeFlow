@@ -46,6 +46,8 @@ def main() -> None:
     ap.add_argument("--groups", nargs="*", default=[], help="ablation groups (default: all)")
     ap.add_argument("--seeds", nargs="*", type=int, default=[0])
     ap.add_argument("--list", action="store_true", help="list ablation groups and exit")
+    ap.add_argument("--only", nargs="*", default=[], help="run only variants whose name contains one of these")
+    ap.add_argument("--collect", action="store_true", help="rebuild ablation tables from finished cells only")
     args = ap.parse_args()
     cfg = build_config(args)
     if cfg.torch_threads:
@@ -90,7 +92,10 @@ def main() -> None:
         if args.list:
             runner.describe()
             return
-        runner.run(args.groups or None)
+        if args.collect:
+            runner.collect(args.groups or None)
+        else:
+            runner.run(args.groups or None, args.only or None)
 
 
 if __name__ == "__main__":

@@ -146,3 +146,21 @@ def test_inference_and_evaluation(tiny_run):
     rep = inf.run_all("test")
     assert not rep.get("failed"), rep.get("failed")
     assert os.path.exists(os.path.join(cfg.run_dir, "inference", "01_slot_attention.png"))
+
+
+def test_flat_pitch_equals_closed_gate_and_hub_codes_stay_in_the_image_hull(tiny_run):
+    cfg, tr = tiny_run
+    m = tr.model.eval()
+    batch = next(iter(tr.data.paired_loader("valid", shuffle=False, batch_size=8)))
+    aud = batch["aud"]
+    with torch.no_grad():
+        flat = m.audio.encode(aud["sem"], dsp.flatten_tone(aud["tone"]), aud["mask"], aud["lang"], gate_override=1.0)
+        closed = m.audio.encode(aud["sem"], aud["tone"], aud["mask"], aud["lang"], gate_override=0.0)
+        assert torch.allclose(flat, closed, atol=1e-5)       # the gated path is bias-free by construction
+        V = m.hub.project(batch["img"])[aud["item"]]
+        out = m.paired_hub("aud", m.encode("aud", aud), aud["lang"], V)
+    attn, hub = out["attn"], out["hub"]
+    assert attn.shape[-1] == V.shape[1] - 1                   # patches only: the global token is not offered
+    assert torch.allclose(attn.sum(-1), torch.ones_like(attn.sum(-1)), atol=1e-4) and (attn >= 0).all()
+    lo, hi = V[:, :-1].min(1).values.unsqueeze(1), V[:, :-1].max(1).values.unsqueeze(1)
+    assert ((hub >= lo - 1e-4) & (hub <= hi + 1e-4)).all()    # barycentres lie inside the hull of the patches

@@ -149,7 +149,7 @@ class Config:
     w_audio_rec: float = 1.0
     w_mel: float = 1.0
     w_orth: float = 0.1
-    w_gate: float = 0.02                 # "pay for pitch" sparsity on the tonality gate
+    w_gate: float = 0.01                 # "pay for pitch" sparsity on the tonality gate
     w_ground: float = 1.0
     w_agree: float = 0.5
     w_slot_div: float = 0.1

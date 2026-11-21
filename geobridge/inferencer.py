@@ -48,7 +48,8 @@ def load_model(cfg: Config, data: GeoBridgeData, device: torch.device, checkpoin
         path = os.path.join(cfg.run_dir, "checkpoints", "last.pt")
     ck = torch.load(path, map_location=device, weights_only=False)
     model = GeoBridge(cfg, build_spec(data)).to(device)
-    model.load_state_dict(ck["model"], strict=False)
+    own = model.state_dict()
+    model.load_state_dict({k: v for k, v in ck["model"].items() if k in own and own[k].shape == v.shape}, strict=False)
     if use_ema and ck.get("ema") and ck["step"] > cfg.phase_a_steps:
         named = {f"{i}.{n}": p for i, m in enumerate(model.phase_b_modules()) for n, p in m.named_parameters()}
         with torch.no_grad():
@@ -113,9 +114,9 @@ class Inferencer:
 
     # ================================================================== everything
     def run_all(self, split: str = "test") -> Dict:
-        import matplotlib
+        from .utils import setup_matplotlib
 
-        matplotlib.use("Agg")
+        setup_matplotlib()
         self.split = split
         self.groups = self.data.eval_groups(split, 400)
         self.store = self.evaluator.collect(self.model, split, 400)

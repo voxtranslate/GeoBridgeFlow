@@ -124,7 +124,9 @@ class AudioCodec(nn.Module):
         if self.cfg.tone_mode != "off" or gate_override is not None:
             tau = self.tone_net(tone[..., [0, 2]].transpose(1, 2)).transpose(1, 2)
             g = g.view(-1, 1, 1).to(h.dtype)
-            h = h * (1 + g * torch.tanh(self.film_scale(tau))) + g * self.film_shift(tau)
+            # both FiLM terms are bounded by tanh, so gamma is an upper bound on what pitch can contribute;
+            # with an unbounded shift the network could cancel a shrinking gate by growing its weights
+            h = h * (1 + g * torch.tanh(self.film_scale(tau))) + g * torch.tanh(self.film_shift(tau))
         h = h + sincos(torch.arange(h.shape[1], device=h.device), h.shape[-1]) + self.lang_emb(lang).unsqueeze(1)
         for blk in self.enc:
             h = blk(h, mask=mask)

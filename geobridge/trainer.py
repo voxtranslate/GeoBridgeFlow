@@ -233,9 +233,13 @@ class Trainer:
 
     def load_checkpoint(self, path: str, weights_only: bool = False) -> Dict:
         ck = torch.load(path, map_location=self.device, weights_only=False)
-        missing, unexpected = self.model.load_state_dict(ck["model"], strict=False)
-        if missing or unexpected:
-            self.log.info(f"[ckpt] non-strict load: {len(missing)} missing, {len(unexpected)} unexpected keys")
+        own = self.model.state_dict()
+        state = {k: v for k, v in ck["model"].items() if k not in own or own[k].shape == v.shape}
+        skipped = [k for k in ck["model"] if k not in state]  # e.g. a different LoRA rank in an ablation
+        missing, unexpected = self.model.load_state_dict(state, strict=False)
+        if missing or unexpected or skipped:
+            self.log.info(f"[ckpt] non-strict load: {len(missing)} missing, {len(unexpected)} unexpected, "
+                          f"{len(skipped)} shape-mismatched keys")
         if weights_only:
             return ck
         for k, v in ck["ema"].items():
@@ -448,9 +452,9 @@ class Trainer:
 
     # ------------------------------------------------------------------ curves
     def plot_curves(self) -> None:
-        import matplotlib
+        from .utils import setup_matplotlib
 
-        matplotlib.use("Agg")
+        setup_matplotlib()
         import matplotlib.pyplot as plt
 
         tr, va = self.history["train"], self.history["valid"]

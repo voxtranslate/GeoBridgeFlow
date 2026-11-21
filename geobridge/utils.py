@@ -141,3 +141,21 @@ def grid_factor(n: int) -> tuple:
     while r > 1 and n % r:
         r -= 1
     return r, n // r
+
+
+def setup_matplotlib() -> None:
+    """Headless backend + a font fallback chain that covers Devanagari and other non-Latin scripts when a
+    suitable system font exists (figures label graphemes of every language)."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib import font_manager
+
+    have = {f.name for f in font_manager.fontManager.ttflist}
+    chain = [f for f in ("DejaVu Sans", "Noto Sans Devanagari", "Lohit Devanagari", "FreeSerif", "FreeSans",
+                         "Noto Sans", "Arial Unicode MS") if f in have]
+    if chain:
+        matplotlib.rcParams["font.family"] = chain
+    import logging
+
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)

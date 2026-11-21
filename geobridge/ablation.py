@@ -7,6 +7,8 @@ representation phase reuse one phase-A checkpoint (matched by a hash of the fiel
 so a transport-only ablation costs only its phase B.
 
 Outputs in ``<out_root>/<exp>_ablation/``
+    _full/full_s<seed>/...            the full model (shared by every group)
+    _phase_a/<hash>/...               representation phases shared between variants
     <group>/<variant>_s<seed>/...     complete run directories (checkpoints, curves, eval json)
     table_<group>.md|csv|tex          mean +- std over seeds of the headline metrics
     plot_<group>.png                  bar chart per metric with seed error bars
@@ -47,8 +49,11 @@ GROUPS: Dict[str, Dict] = {
         ]},
     "bridge": {
         "question": "How many image-speech bridge pairs does the island need, with and without docking?",
-        "variants": [(f"{int(100 * f)}% bridge{'' if d == 'g2w' else ', no docking'}", {"bridge_frac": f, "dock_mode": d})
-                     for f in (0.0, 0.01, 0.05, 0.2, 1.0) for d in ("g2w", "none") if not (f == 1.0 and d == "none")]},
+        "variants": [("20% bridge, docking (reference)", {"bridge_frac": 0.2})] + [
+            (f"{int(100 * f)}% bridge, {'docking' if d == 'g2w' else 'no docking'}" if f < 1.0 else
+             "100% bridge (every island utterance paired; nothing left to dock)", {"bridge_frac": f, "dock_mode": d})
+            for f in (0.0, 0.01, 0.05, 0.2, 1.0) for d in ("g2w", "none")
+            if not (f == 1.0 and d == "none") and not (f == 0.2 and d == "g2w")]},
     "tone": {
         "question": "Does lexical tone need its own gated path into the hub?  (N5: lexical-tonality gate)",
         "variants": [
@@ -137,6 +142,9 @@ class AblationRunner:
         over = dict(over)
         if over.get("lora_rank") == "x4":
             over["lora_rank"] = self.base.lora_rank * 4
+        if all(getattr(self.base, k) == v for k, v in over.items()):
+            # the full model is the same run in every group: train it once, under _full/
+            return self.base.clone(seed=seed, out_root=os.path.join(self.root, "_full"), exp_name=f"full_s{seed}")
         slug = "".join(c if c.isalnum() else "_" for c in name).strip("_")[:48]
         return self.base.clone(seed=seed, out_root=os.path.join(self.root, group), exp_name=f"{slug}_s{seed}", **over)
 
@@ -175,17 +183,17 @@ class AblationRunner:
         return res
 
     # ------------------------------------------------------------------ whole study
-    def run(self, groups: Optional[Sequence[str]] = None) -> Dict:
+    def run(self, groups: Optional[Sequence[str]] = None, only: Optional[Sequence[str]] = None) -> Dict:
+        """Run every variant of the given groups (all groups by default).  ``only`` restricts the run to
+        variants whose name contains one of the given substrings; the full model is always included."""
         groups = list(groups) if groups else list(GROUPS)
-        summary: Dict = {}
         for g in groups:
-            spec = GROUPS[g]
-            rows: Dict[str, List[Dict]] = {}
-            for name, over in spec["variants"]:
-                rows[name] = [self.run_cell(g, name, over, s) for s in self.seeds]
-            summary[g] = self._report(g, spec["question"], rows)
-        self._write_summary(summary)
-        return summary
+            for i, (name, over) in enumerate(GROUPS[g]["variants"]):
+                if only and i > 0 and not any(o.lower() in name.lower() for o in only):
+                    continue
+                for s in self.seeds:
+                    self.run_cell(g, name, over, s)
+        return self.collect(groups)
 
     def collect(self, groups: Optional[Sequence[str]] = None) -> Dict:
         """Rebuild tables from finished cells only (no training)."""
@@ -227,7 +235,7 @@ class AblationRunner:
         best = {}
         for k, _, hib in cols:
             vals = {n: s[k][0] for n, s in stats.items() if not np.isnan(s[k][0])}
-            if vals:
+            if vals and max(vals.values()) - min(vals.values()) > 1e-9:  # no winner when every variant ties
                 best[k] = (max if hib else min)(vals, key=vals.get)
         n_seeds = max(len(r) for r in rows.values())
         fmt = lambda n, k: (f"**{stats[n][k][0]:.2f}**" if best.get(k) == n else f"{stats[n][k][0]:.2f}") + \
@@ -262,9 +270,9 @@ class AblationRunner:
         return {"md": "\n".join(md), "best": best, "cols": cols, "stats": stats}
 
     def _plot(self, group, question, rows, cols, stats) -> None:
-        import matplotlib
+        from .utils import setup_matplotlib
 
-        matplotlib.use("Agg")
+        setup_matplotlib()
         import matplotlib.pyplot as plt
 
         cols = cols[:8]
