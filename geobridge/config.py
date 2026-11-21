@@ -108,6 +108,7 @@ class Config:
     hub_heads: int = 4
     hub_temp: float = 0.07               # attention temperature over patches
     hub_inhibit: float = 2.0             # inhibition of return, in units of the full cosine range (0 = independent slots)
+    hub_temp_start: float = 6.0          # attention temperature multiplier at step 0 (annealed to 1 while dense)
     ground_temp: float = 0.07            # InfoNCE temperature
 
     # ------------------------------------------------------------------ spokes (N2)
@@ -302,7 +303,7 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
-    "hub_temp", "hub_inhibit", "ground_temp", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
+    "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
     "w_agree", "w_slot_div", "w_expl", "w_null", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",

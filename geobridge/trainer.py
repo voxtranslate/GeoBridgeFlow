@@ -308,6 +308,17 @@ class Trainer:
 
         return gen()
 
+    def _set_schedules(self) -> None:
+        """Step-dependent switches of phase A ("structure first, sparsity later").  Pure functions of the step,
+        so they need no state in the checkpoint: dense stage = gates held open, no null slot, soft attention
+        annealed to sharp; afterwards gates and slots are released and priced."""
+        cfg, m = self.cfg, self.model
+        release = cfg.gate_release_frac * cfg.phase_a_steps
+        dense = self.step < release
+        m.audio.gate_forced_open, m.hub.null_enabled = dense, not dense
+        frac = min(1.0, self.step / max(1.0, release))
+        m.hub.temp_scale = cfg.hub_temp_start ** (1.0 - frac)  # geometric anneal: start -> 1
+
     # ------------------------------------------------------------------ one optimisation step
     def train_step(self, batch: Dict, island: Optional[Dict]) -> Dict[str, float]:
         cfg, m = self.cfg, self.model
@@ -319,8 +330,7 @@ class Trainer:
             opt, lr = self.opt_b, self._lr(self.step - cfg.phase_a_steps, cfg.phase_b_steps, cfg.lr_flow)
         for g in opt.param_groups:
             g["lr"] = g.get("fixed_lr", lr)   # the scalar tonality gates keep a constant, much larger step
-        dense = self.step < cfg.gate_release_frac * cfg.phase_a_steps
-        m.audio.gate_forced_open, m.hub.null_enabled = dense, not dense
+        self._set_schedules()
         opt.zero_grad(set_to_none=True)
         with torch.autocast(device_type=self.device.type, enabled=self.amp):
             if self.phase == "A":
@@ -348,8 +358,7 @@ class Trainer:
         cfg, m = self.cfg, self.model
         was_training = m.training
         m.eval()
-        dense = self.step < cfg.gate_release_frac * cfg.phase_a_steps
-        m.audio.gate_forced_open, m.hub.null_enabled = dense, not dense
+        self._set_schedules()
         use_ema = self.phase == "B" and self.step > cfg.phase_a_steps
         if use_ema:
             self.ema.swap_in(self.b_named)

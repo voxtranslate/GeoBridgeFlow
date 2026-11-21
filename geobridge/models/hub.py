@@ -58,6 +58,7 @@ class VisualInterlingua(nn.Module):
         self.null_key = nn.Parameter(torch.randn(W) * 0.1)
         self.null_bias = nn.Parameter(torch.zeros(()))
         self.null_enabled = True   # the trainer switches it off for the first part of phase A (not a parameter)
+        self.temp_scale = 1.0      # > 1 early in phase A: soft attention, annealed to the sharp final value
         self.free_out = nn.Linear(W, d)          # used by hub_mode == "free"
         self.explainer = Explainer(cfg, n_lang)
         side = int(round((self.P - 1) ** 0.5))
@@ -95,13 +96,17 @@ class VisualInterlingua(nn.Module):
     def keys(self, V: torch.Tensor) -> torch.Tensor:
         return F.normalize(self.key(V), dim=-1)
 
+    @property
+    def tau(self) -> float:
+        return self.cfg.hub_temp * self.temp_scale
+
     def _sequential(self, logits: torch.Tensor, null: torch.Tensor) -> torch.Tensor:
         """Sequential attention with inhibition of return.  logits [..., K, P], null [..., K] -> [..., K, P]
         (rows sum to at most one; the remainder is the mass on the null option)."""
         taken = torch.zeros_like(logits[..., 0, :])
         rows = []
         for k in range(logits.shape[-2]):
-            a = torch.softmax(torch.cat([logits[..., k, :] - self.cfg.hub_inhibit / self.cfg.hub_temp * taken,
+            a = torch.softmax(torch.cat([logits[..., k, :] - self.cfg.hub_inhibit / self.tau * taken,
                                          null[..., k:k + 1]], dim=-1), dim=-1)[..., :-1]
             rows.append(a)
             taken = taken + a
@@ -110,7 +115,7 @@ class VisualInterlingua(nn.Module):
     def _null_logits(self, q: torch.Tensor) -> torch.Tensor:
         if not self.null_enabled:  # first part of phase A: every slot has to look at something
             return torch.full(q.shape[:-1], -1e4, device=q.device, dtype=torch.float32)
-        return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.cfg.hub_temp + self.null_bias
+        return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.tau + self.null_bias
 
     def attend(self, q: torch.Tensor, V: torch.Tensor, keys: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """q [n, K, W], V [n, P, d] (the utterance's own image) -> hub [n, K, d], attention [n, K, P-1].
@@ -125,9 +130,12 @@ class VisualInterlingua(nn.Module):
           origin of the anchored space, so its hub token is 0 and attention rows may sum to less than one.
           The option is offered only after the slots have learned their roles, and attention is then charged
           a small price: offered from the start, later slots retreat to null and never come back.
+        The attention starts soft (temperature x ``hub_temp_start``) and is annealed to its sharp final value
+        during that first stage: a sharp softmax gives the explanatory loss no gradient towards a patch the
+        slot is not already on.
         """
         keys = self.keys(V) if keys is None else keys
-        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.cfg.hub_temp
+        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.tau
         attn = self._sequential(logits, self._null_logits(q))
         return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
 
@@ -139,7 +147,7 @@ class VisualInterlingua(nn.Module):
         finding the second thing a sentence mentions.   q [n, K, W], keys [B, P, W] -> [n, B]"""
         cos = torch.einsum("nkw,bpw->nbkp", q, keys[:, :-1]).float()
         null = self._null_logits(q).unsqueeze(1).expand(-1, keys.shape[0], -1)
-        attn = self._sequential(cos / self.cfg.hub_temp, null)
+        attn = self._sequential(cos / self.tau, null)
         return (attn * cos).sum(-1).mean(-1)
 
     def free_code(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:
