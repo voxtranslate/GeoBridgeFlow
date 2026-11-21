@@ -2,7 +2,7 @@
 
 Phase A - representation (codecs + grounder)
     L_A = w_text_rec * L_text  +  w_audio_rec * L_audio(sem, prosody, duration, mel, orth, gate price)
-        + w_ground * L_ground  +  w_slot_div * L_div  +  w_agree * L_agree
+        + w_ground * L_ground  +  w_expl * L_expl  +  w_agree * L_agree  [+ w_slot_div * L_div]
 
 Phase B - transport (flow spokes; codecs and grounder frozen)
     L_B = w_cfm * (L_cfm^txt + L_cfm^aud + L_cfm^img)          hub (+) private conditional flow matching
@@ -90,7 +90,7 @@ class GeoBridgeLoss:
                     logs[k] = r[k].item()
 
         # ---- grounding: which patches does each utterance talk about?
-        sims, items, outs = [], [], {}
+        sims, items, outs, expl = [], [], {}, []
         for mod, sub in (("txt", txt), ("aud", aud)):
             if mod not in z:
                 continue
@@ -99,6 +99,9 @@ class GeoBridgeLoss:
             outs[mod] = o
             sims.append(model.hub.similarity(o["q"], keys))
             items.append(sub["item"])
+            if cfg.w_expl > 0:  # the hub code alone must explain the utterance
+                pred = model.hub.explainer(o["bary"], model.hub.MODS[mod], sub["lang"])
+                expl.append(((pred.float() - z[mod].detach().float()) ** 2).mean(dim=(1, 2)))
         if sims:
             logits = torch.cat(sims).float() / cfg.ground_temp
             item = torch.cat(items)
@@ -116,6 +119,10 @@ class GeoBridgeLoss:
             K = sim.shape[-1]
             div = (sim.sum(dim=(1, 2)) - sim.diagonal(dim1=1, dim2=2).sum(1)).mean() / max(1, K * (K - 1))
             total = total + cfg.w_ground * ground + cfg.w_slot_div * div
+            if expl:
+                unexplained = torch.cat(expl).mean()  # latents are unit-variance: this is 1 - R^2
+                total = total + cfg.w_expl * unexplained
+                logs["unexplained"] = unexplained.item()
             logs.update(ground=ground.item(), slot_div=div.item(),
                         ground_acc=(logits.masked_fill(same & ~pos, -1e4).argmax(1) == item).float().mean().item())
             it, ia = same_lang_pairs(txt, aud)

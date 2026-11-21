@@ -36,7 +36,7 @@ from .models import GeoBridge, build_spec, spec_for_checkpoint
 from .utils import (Averager, count_named, count_params, get_logger, resolve_device, save_json, seed_everything,
                     to_device)
 
-TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "aud_sem", "mel_l1", "ground", "ground_acc", "agree", "orth")
+TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "aud_sem", "mel_l1", "ground", "ground_acc", "unexplained", "agree", "orth")
 TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "swap", "dock", "pseudo", "dock_alpha", "pi_row_entropy")
 
 
@@ -468,7 +468,8 @@ class Trainer:
             return ([p[0] for p in pts], [p[1] for p in pts]) if pts else ([], [])
 
         panels = [("loss", "A", "phase A total loss"), ("txt_ce", "A", "text codec CE"), ("aud_sem", "A", "speech codec MSE"),
-                  ("ground", "A", "grounding InfoNCE"), ("mel_l1", "A", "mel renderer L1"), ("agree", "A", "text-speech hub agreement"),
+                  ("ground", "A", "grounding InfoNCE"), ("unexplained", "A", "latent variance NOT explained by the hub"),
+                  ("agree", "A", "text-speech hub agreement"),
                   ("loss", "B", "phase B total loss"), ("cfm_txt", "B", "CFM text spoke"), ("cfm_aud", "B", "CFM speech spoke"),
                   ("cfm_img", "B", "CFM image spoke"), ("swap", "B", "hub-swap CFM"), ("dock", "B", "docking FGW value (train only)")]
         fig, axes = plt.subplots(3, 4, figsize=(19, 11))

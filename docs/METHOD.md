@@ -62,9 +62,19 @@ grounding stuck at 14 % where it otherwise reaches 60–70 %). Training:
 ```
 L_ground = InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k max_p ⟨q_k(u), key(v_p(I))⟩     (both directions,
            same-image duplicates masked)
-L_div    = mean off-diagonal cosine between the K_h attention maps of a view
+L_expl   = ‖ P(z*, m, ℓ) − stopgrad(z) ‖²      a small predictor P must reconstruct the utterance latent from the
+           hub code alone; latents are unit-variance, so the value is the share of variance the hub leaves
+           unexplained (1 − R²)
 L_agree  = ‖ z*(text) − z*(speech) ‖²   for text and speech of the SAME caption in the SAME language
 ```
+
+`L_expl` is what makes the hub sentence-level. The contrastive term is satisfied as soon as one slot finds one
+matching patch, and with it alone the hub described a single object per sentence: in the controlled benchmark
+none of the two-object captions had both objects covered, and text → hub → text reached 46 % with the image in
+hand. `L_expl` is the `t = 0` view of flow matching (what the hub does not determine is unexplained variance of
+the latent, cf. FlowBind's Prop. 1), restricted here to hub codes that are barycentres of frozen patches. `P` is
+discarded after phase A. An optional slot-diversity term (`w_slot_div`, off by default) is kept for the
+ablation; it pushes spare slots onto patches the sentence does not mention.
 
 The grounding gradient reaches the codecs, which is what lets the tone gate learn from meaning (§5). At test time
 the grounder is not used: hub codes are read by the backward ODE.
@@ -150,7 +160,7 @@ bank**, a FIFO memory of hub codes produced from image-paired views. With centre
 
 ```
 Phase A   L_A = L_text + L_audio(segmental, prosody†, duration, mel, w_orth·L_orth, w_gate·γ) + L_ground
-                + w_div·L_div + w_agree·L_agree                                   († stop-gradient on the latent)
+                + w_expl·L_expl + w_agree·L_agree                                 († stop-gradient on the latent)
 Phase B   L_B = Σ_m L_cfm^m + w_swap·L_swap + w_dock·L_dock + w_pseudo·L_pseudo
 ```
 

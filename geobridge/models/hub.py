@@ -10,9 +10,12 @@ so a hub code is, by construction, a point of conv(V_image)^{K_h}: it lives in t
 contains no text, and is sentence-level (two captions of one image attend differently and get different
 codes).  It can be drawn on the image, which makes the interlingua directly inspectable.
 
-The grounder is trained with a late-interaction InfoNCE between utterances and images (which patch does each
-slot find), a slot-diversity term, and a same-language text<->speech agreement term.  No loss ever pairs two
-languages.
+The grounder is trained with three terms.  (i) A late-interaction InfoNCE between utterances and images: which
+patch does each slot find.  (ii) An **explanatory** term: a small predictor must reconstruct the utterance latent
+from the hub code alone, so the slots have to cover *everything that was said*, in a consistent order.  The
+contrastive term cannot do this by itself: it is satisfied as soon as one slot finds one matching patch, and
+the hub then describes a single object per sentence (measured: 0 % of two-object captions had both objects
+covered).  (iii) A same-language text<->speech agreement term.  No loss ever pairs two languages.
 
 Anchors available for the ablation (``cfg.hub_mode``):
     bary    (ours) utterance-conditioned barycentres of frozen patch tokens
@@ -52,6 +55,7 @@ class VisualInterlingua(nn.Module):
         self.q_out = nn.Linear(W, W)
         self.key = nn.Linear(d, W)
         self.free_out = nn.Linear(W, d)          # used by hub_mode == "free"
+        self.explainer = Explainer(cfg, n_lang)
         side = int(round((self.P - 1) ** 0.5))
         self.grid = (side, side) if side * side == self.P - 1 else (1, self.P - 1)
 
@@ -112,6 +116,31 @@ class VisualInterlingua(nn.Module):
         Grounder-free: used to score hub estimates that came out of a backward ODE.  -> [n, G]"""
         h, v = F.normalize(hub.float(), dim=-1), F.normalize(V[:, :-1].float(), dim=-1)
         return torch.einsum("nkd,gpd->ngkp", h, v).amax(-1).mean(-1)
+
+
+class Explainer(nn.Module):
+    """hub code [n, K_h, d] -> predicted modality latent [n, N, d].  Only used in phase A, to make the grounder
+    select the patches that explain the utterance (the t = 0 view of flow matching: what the hub does not
+    determine is unexplained variance of the latent).  Discarded afterwards; the flows take over."""
+
+    def __init__(self, cfg, n_lang: int):
+        super().__init__()
+        W, d = cfg.hub_width, cfg.latent_dim
+        self.inp = nn.Linear(d, W)
+        self.slot_pos = nn.Parameter(torch.randn(cfg.hub_slots, W) * 0.02)
+        self.mod_emb = nn.Embedding(2, W)
+        self.lang_emb = nn.Embedding(n_lang, W)
+        self.queries = nn.Parameter(torch.randn(cfg.n_tokens, W) * 0.02)
+        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W) for _ in range(2)])
+        self.norm = nn.LayerNorm(W)
+        self.out = nn.Linear(W, d)
+
+    def forward(self, hub: torch.Tensor, mod: int, lang: torch.Tensor) -> torch.Tensor:
+        ctx = self.inp(hub) + self.slot_pos + self.mod_emb.weight[mod] + self.lang_emb(lang).unsqueeze(1)
+        q = self.queries.unsqueeze(0).expand(hub.shape[0], -1, -1)
+        for blk in self.blocks:
+            q = blk(q, ctx=ctx)
+        return self.out(self.norm(q))
 
 
 class HubBank(nn.Module):
