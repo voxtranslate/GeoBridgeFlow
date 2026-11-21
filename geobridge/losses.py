@@ -119,6 +119,10 @@ class GeoBridgeLoss:
             K = sim.shape[-1]
             div = (sim.sum(dim=(1, 2)) - sim.diagonal(dim1=1, dim2=2).sum(1)).mean() / max(1, K * (K - 1))
             total = total + cfg.w_ground * ground + cfg.w_slot_div * div
+            if cfg.w_null > 0 and model.hub.null_enabled:  # pay for attention: unused slots retire to null
+                use = attn.sum(-1).mean()
+                total = total + cfg.w_null * use
+                logs["slot_use"] = use.item()
             if expl:
                 unexplained = torch.cat(expl).mean()  # latents are unit-variance: this is 1 - R^2
                 total = total + cfg.w_expl * unexplained

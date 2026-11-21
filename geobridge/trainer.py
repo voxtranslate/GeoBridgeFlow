@@ -319,7 +319,8 @@ class Trainer:
             opt, lr = self.opt_b, self._lr(self.step - cfg.phase_a_steps, cfg.phase_b_steps, cfg.lr_flow)
         for g in opt.param_groups:
             g["lr"] = g.get("fixed_lr", lr)   # the scalar tonality gates keep a constant, much larger step
-        m.audio.gate_forced_open = self.step < cfg.gate_release_frac * cfg.phase_a_steps
+        dense = self.step < cfg.gate_release_frac * cfg.phase_a_steps
+        m.audio.gate_forced_open, m.hub.null_enabled = dense, not dense
         opt.zero_grad(set_to_none=True)
         with torch.autocast(device_type=self.device.type, enabled=self.amp):
             if self.phase == "A":
@@ -347,7 +348,8 @@ class Trainer:
         cfg, m = self.cfg, self.model
         was_training = m.training
         m.eval()
-        m.audio.gate_forced_open = self.step < cfg.gate_release_frac * cfg.phase_a_steps
+        dense = self.step < cfg.gate_release_frac * cfg.phase_a_steps
+        m.audio.gate_forced_open, m.hub.null_enabled = dense, not dense
         use_ema = self.phase == "B" and self.step > cfg.phase_a_steps
         if use_ema:
             self.ema.swap_in(self.b_named)

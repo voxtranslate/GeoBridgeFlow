@@ -57,6 +57,7 @@ class VisualInterlingua(nn.Module):
         self.key = nn.Linear(d, W)
         self.null_key = nn.Parameter(torch.randn(W) * 0.1)
         self.null_bias = nn.Parameter(torch.zeros(()))
+        self.null_enabled = True   # the trainer switches it off for the first part of phase A (not a parameter)
         self.free_out = nn.Linear(W, d)          # used by hub_mode == "free"
         self.explainer = Explainer(cfg, n_lang)
         side = int(round((self.P - 1) ** 0.5))
@@ -107,6 +108,8 @@ class VisualInterlingua(nn.Module):
         return torch.stack(rows, -2)
 
     def _null_logits(self, q: torch.Tensor) -> torch.Tensor:
+        if not self.null_enabled:  # first part of phase A: every slot has to look at something
+            return torch.full(q.shape[:-1], -1e4, device=q.device, dtype=torch.float32)
         return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.cfg.hub_temp + self.null_bias
 
     def attend(self, q: torch.Tensor, V: torch.Tensor, keys: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -120,6 +123,8 @@ class VisualInterlingua(nn.Module):
           (independent slots covered both objects of a two-object caption in 0 % of cases);
         * a null option - a slot with nothing left to say attends to a learned null key whose value is the
           origin of the anchored space, so its hub token is 0 and attention rows may sum to less than one.
+          The option is offered only after the slots have learned their roles, and attention is then charged
+          a small price: offered from the start, later slots retreat to null and never come back.
         """
         keys = self.keys(V) if keys is None else keys
         logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.cfg.hub_temp

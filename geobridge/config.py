@@ -95,7 +95,8 @@ class Config:
     audio_heads: int = 4
     tone_mode: str = "gated"             # gated (ours) | on (ungated) | off (single stream)
     tone_gate_init: float = 2.0          # logit at release -> gamma = 0.88
-    gate_release_frac: float = 0.5       # share of phase A during which all gates are held open and unpriced
+    gate_release_frac: float = 0.5       # share of phase A during which the tonality gates are held open and
+                                         # the slots have no null option ("structure first, sparsity later")
     bypass_dim: int = 64                 # paralinguistic (speaker / register) bypass code
     use_bypass: bool = True
     mel_width: int = 192                 # mel renderer
@@ -154,6 +155,7 @@ class Config:
     w_ground: float = 1.0
     w_agree: float = 0.5
     w_expl: float = 1.0                  # explanatory grounding: the hub code must predict the utterance latent
+    w_null: float = 0.02                 # "pay for attention": price on slot mass once the null option is on
     w_slot_div: float = 0.0              # optional slot-diversity term (off: it pushes spare slots onto patches
                                          # the sentence does not mention)
     w_cfm: float = 1.0
@@ -301,7 +303,7 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
     "hub_temp", "hub_inhibit", "ground_temp", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_slot_div", "w_expl", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "w_agree", "w_slot_div", "w_expl", "w_null", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",
