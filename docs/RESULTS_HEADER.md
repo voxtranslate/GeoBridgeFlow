@@ -31,17 +31,26 @@ python scripts/make_results.py --synth runs/sf_main --ablation runs/sf_ablation 
 
 **What the ablations say** (section 2; one seed).
 
-- *Sentence-level visual hub vs scene-level visual pivot:* the pivot loses on every column (for example island
-  content 12 % vs 28 %, text → third-language text 17 % vs 62 %).
+- *Sentence-level visual hub vs scene-level visual pivot:* the pivot loses on every translation and retrieval
+  column (for example island content 12 % vs 28 %, text → third-language text 17 % vs 62 %).
 - *Visual hub vs text anchor:* the text anchor is **better** when the target is hub-language text (island content
   41 % vs 28 %) and much worse for the third language (24 % vs 62 %) and for anything involving images. The claim
   that survives is "balanced across directions and not centred on one written language", not "better everywhere".
-- *Transitive hub-swap:* removing it costs 17 points of hub-language speech → text content accuracy (35 % vs 52 %)
-  and leaves the island, which has no same-language pairs to swap, unchanged.
+- *Tone stream:* without it, tone-word accuracy on the island falls from 81 % to 56 %, exactly its level with the
+  pitch removed, island BLEU from 22 to 15 and island speech → image R@1 from 25 % to 13 %; the non-tonal hub
+  language is unaffected (speech → text content 48 % vs 52 %).
+- *Private tokens:* making the spokes deterministic costs 26 points of hub-language speech → text content
+  accuracy (25 % vs 52 %) and 37 points of text → third-language content (25 % vs 62 %).
+- *Transitive hub-swap:* removing it costs 17 points of hub-language speech → text content accuracy (35 % vs
+  52 %; WER 53 vs 36) and leaves the island, which has no same-language pairs to swap, unchanged. Text → text and
+  captioning are slightly better without it.
 - *Docking:* with balanced marginals it is indistinguishable from no docking (28 % vs 33 % island content, BLEU
-  22 vs 17); with semi-relaxed marginals the transport plan collapses onto 6 % of the hub codes and the island
-  drops to chance. **At a 20 % bridge budget docking has not earned its place.** The 1 % and 5 % budgets, where
-  it could matter, were not run.
+  22 vs 17), and so is pure Wasserstein docking (23 %). Pure Gromov–Wasserstein docking, which is what the
+  roadmap specified, drives the island to chance (3 %), and so does the semi-relaxed plan, which collapses onto
+  6 % of the hub codes. **At a 20 % bridge budget docking has not earned its place.** The 1 % and 5 % budgets,
+  where it could matter, were not run.
+- *Not run:* the bridge-budget sweep, the text-unit, LoRA and protocol groups, and four variants of the hub
+  (independent slots, contrastive-only grounding, sharp attention from the start, free learned anchor).
 
 **Does not work yet.**
 

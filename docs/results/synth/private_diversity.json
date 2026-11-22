@@ -1,0 +1,92 @@
+[
+  {
+    "source": "sipa pise",
+    "samples": {
+      "temp=0.0": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ],
+      "temp=0.5": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ],
+      "temp=1.0": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ]
+    }
+  },
+  {
+    "source": "sipa pise ge kufi kope",
+    "samples": {
+      "temp=0.0": [
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope"
+      ],
+      "temp=0.5": [
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope"
+      ],
+      "temp=1.0": [
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope",
+        "sipa pise ge kufi kope"
+      ]
+    }
+  },
+  {
+    "source": "kufi kope",
+    "samples": {
+      "temp=0.0": [
+        "kufi kope",
+        "kufi kope",
+        "kufi kope"
+      ],
+      "temp=0.5": [
+        "kufi kope",
+        "kufi kope",
+        "kufi kope"
+      ],
+      "temp=1.0": [
+        "kufi kope",
+        "kufi kope",
+        "kufi kope"
+      ]
+    }
+  },
+  {
+    "source": "sipa pise",
+    "samples": {
+      "temp=0.0": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ],
+      "temp=0.5": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ],
+      "temp=1.0": [
+        "sipa pise",
+        "sipa pise",
+        "sipa pise"
+      ]
+    }
+  },
+  {
+    "hub_interpolation": [
+      "sipa pise",
+      "sipa pise",
+      "sipa pise",
+      "sipa pise ge sipa kope",
+      "sipa pise ge kufi kope",
+      "sipa pise ge kufi kope"
+    ]
+  }
+]

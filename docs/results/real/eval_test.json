@@ -1,0 +1,3678 @@
+{
+  "metrics": {
+    "aud_yo>txt_en/bleu": 2.512911659306254,
+    "aud_yo>txt_en/chrf": 15.661095407505133,
+    "aud_yo>txt_en/bleu_multi": 4.2122479458368876,
+    "aud_yo>txt_en/flat_bleu": 2.5231727539741104,
+    "aud_en>txt_en/bleu": 1.3307816916510695,
+    "aud_en>txt_en/chrf": 14.789101607900657,
+    "aud_en>txt_en/bleu_multi": 4.5650438948995244,
+    "aud_en>txt_en/wer": 106.80905439941584,
+    "aud_en>txt_en/cer": 86.8756351129524,
+    "aud_en>txt_en/flat_bleu": 1.386033337398923,
+    "img>txt_en/bleu": 1.2686264623650967,
+    "img>txt_en/chrf": 15.089991362229274,
+    "img>txt_en/bleu_multi": 4.011140535976181,
+    "txt_en>txt_hi/bleu": 0.15063023728704775,
+    "txt_en>txt_hi/chrf": 10.125096627151875,
+    "txt_en>txt_hi/bleu_multi": 0.30648474280640287,
+    "txt_hi>txt_en/bleu": 1.162699002428667,
+    "txt_hi>txt_en/chrf": 15.635409473397166,
+    "txt_hi>txt_en/bleu_multi": 3.7687491886936524,
+    "aud_yo>txt_hi/bleu": 0.1452080039504953,
+    "aud_yo>txt_hi/chrf": 10.358315637307896,
+    "aud_yo>txt_hi/bleu_multi": 0.45949262787268486,
+    "aud_yo>txt_hi/flat_bleu": 0.14399502348291654,
+    "txt_en>img/r1": 4.130434617400169,
+    "txt_en>img/r5": 15.6521737575531,
+    "txt_en>img/r10": 29.1304349899292,
+    "txt_hi>img/r1": 2.1739130839705467,
+    "txt_hi>img/r5": 11.739130318164825,
+    "txt_hi>img/r10": 22.39130437374115,
+    "aud_en>img/r1": 5.2173912525177,
+    "aud_en>img/r5": 20.652173459529877,
+    "aud_en>img/r10": 40.00000059604645,
+    "aud_yo>img/r1": 3.8461539894342422,
+    "aud_yo>img/r5": 16.66666716337204,
+    "aud_yo>img/r10": 30.769231915473938,
+    "aud_yo>txt_en/hub_r1": 0.0,
+    "aud_yo>txt_en/hub_r5": 3.8461539894342422,
+    "txt_en>aud_en/rt_bleu": 0.5703693492213884,
+    "txt_en>aud_en/rt_chrf": 12.062336522968172,
+    "aud_yo>aud_en/rt_bleu": 1.6106465650361559,
+    "aud_yo>aud_en/rt_chrf": 13.668177500695158,
+    "txt_en>aud_yo/rt_bleu": 0.6159428686557543,
+    "txt_en>aud_yo/rt_chrf": 13.803133859375638,
+    "aud_en>aud_yo/rt_bleu": 0.43390215825367984,
+    "aud_en>aud_yo/rt_chrf": 13.886871405893785,
+    "codec_txt_en/cer": 67.03639196993308,
+    "codec_txt_hi/cer": 80.19521717911176,
+    "tone/gate_en": 0.35490894317626953,
+    "tone/reliance_en": 0.03728777542710304,
+    "tone/gate_yo": 0.4641909897327423,
+    "tone/reliance_yo": 0.022276530042290688,
+    "score": 1.3290598316283746
+  },
+  "samples": {
+    "aud_yo>txt_en": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A boy with a black and a black and a black the .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man in a black and a standing a black and a ball .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy in a black and a black .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is boy a black a ball .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is boy in a black a rack .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A young girl in a black in a black .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man in a black and a black and a black and a black and a black and and balll back back .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A dog is running a ron the stand with a red strand in the .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A boy in a black and a black on a ball .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black white standing a standing a black white a standing a a band wathe s thirout a be s thiro a s s she she wa a a warorowandowallllllllle .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A boy with a black and a black and the stand .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A few younger boys play around a fountain .",
+        "hyp": "A young boy with a black and a black with a black and with a blue black .",
+        "img": 94,
+        "cap": 0
+      },
+      {
+        "ref": "A man rock climbs up a very tall cliff , with a blue rope behind him .",
+        "hyp": "A man wearing a black and a black and a black and the stand a ball .",
+        "img": 103,
+        "cap": 0
+      },
+      {
+        "ref": "A girl kisses her mother goodbye before she waits with the other children to start school .",
+        "hyp": "A boy in a black and a black and a black and a black and balll .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a beret rides a bicycle down the street .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "Two ladies walking on the sidewalk talking to each other .",
+        "hyp": "A woman in a rid sting a string a round a rack .",
+        "img": 125,
+        "cap": 0
+      },
+      {
+        "ref": "A person in a blue jacket , wearing a bicycle helmet is riding a bike",
+        "hyp": "A group of people a standing a stare to a beack .",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "A dog and a cow are on a rocky slope .",
+        "hyp": "A brown and a black and .",
+        "img": 151,
+        "cap": 0
+      },
+      {
+        "ref": "An older man with white hair a blue jacket and a bright red hat .",
+        "hyp": "A man in a white standing a stand water a red .",
+        "img": 152,
+        "cap": 0
+      },
+      {
+        "ref": "A baby eats and has food on his face .",
+        "hyp": "A man is dog a standing a back and a rack a back and .",
+        "img": 154,
+        "cap": 0
+      },
+      {
+        "ref": "A boat with two fishermen sits peacefully on the lake .",
+        "hyp": "A man in a black and a stand a stand a ball .",
+        "img": 161,
+        "cap": 0
+      },
+      {
+        "ref": "A child playing in the beach sand during a sunset .",
+        "hyp": "A man in a black on the .",
+        "img": 172,
+        "cap": 0
+      },
+      {
+        "ref": "A man wearing a black hat walks along a road next to a building .",
+        "hyp": "A man in a black and a standing a black and a black and watering .",
+        "img": 178,
+        "cap": 0
+      },
+      {
+        "ref": "A green fish is jumping out of water .",
+        "hyp": "A blitle boy in a blue shild in the stow .",
+        "img": 200,
+        "cap": 0
+      },
+      {
+        "ref": "a brown and black dog jumping through a field of long blades of grass",
+        "hyp": "A boy in a black and a black in a black .",
+        "img": 209,
+        "cap": 0
+      },
+      {
+        "ref": "A brown puppy is laying on its back in the grass .",
+        "hyp": "A man in a black and a black and a black and a black .",
+        "img": 215,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog looks up while a person 's fingers are in its mouth .",
+        "hyp": "A little girl in the stand a blay .",
+        "img": 219,
+        "cap": 0
+      },
+      {
+        "ref": "A group of dogs look at each other while standing in the snow .",
+        "hyp": "A man in a black on the stater .",
+        "img": 233,
+        "cap": 0
+      },
+      {
+        "ref": "A woman holding onto a camera smiling at the camera .",
+        "hyp": "A woman in a stand and a white standing a boy a black and a ball wateron thing .",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "A little white and black dog is leaping over a big brown dog 's head in a field of green grass .",
+        "hyp": "A little boy in a black white standing a black and with in a blue shing a blll .",
+        "img": 266,
+        "cap": 0
+      },
+      {
+        "ref": "a blonde boy in a white and orange t-shirt is playing on a swing .",
+        "hyp": "A young boy in a black in a black and a black and stand ball .",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is diving through the air into a swimming pool .",
+        "hyp": "A young boy is standing a black and with a bloy in a bllow .",
+        "img": 291,
+        "cap": 0
+      },
+      {
+        "ref": "a man doing tricks on a motorcycle",
+        "hyp": "A man is playing a ron a stating a black a ball .",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "Two girls in karate uniforms struggle in a dojo .",
+        "hyp": "A young girl in a standing a standing a black and with in a ball .",
+        "img": 298,
+        "cap": 0
+      },
+      {
+        "ref": "A boy with his hands above his head stands on a cement pillar above the cobblestones .",
+        "hyp": "A man in a black and a black and a black and a black and a black and and balll wack back .",
+        "img": 304,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog splashing through water .",
+        "hyp": "A boy in a black dog is the stown a ball .",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "A black and brown dog stands on a roof .",
+        "hyp": "A dog is brunning the down a black and water the stow .",
+        "img": 333,
+        "cap": 0
+      },
+      {
+        "ref": "A child wearing swim goggles .",
+        "hyp": "A boy in a blue shilde .",
+        "img": 337,
+        "cap": 0
+      },
+      {
+        "ref": "A couple walking alongside a waterfront next to a city .",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 360,
+        "cap": 0
+      },
+      {
+        "ref": "a lone person walking in the distance on a long beach .",
+        "hyp": "A man is playing a ron a back .",
+        "img": 361,
+        "cap": 0
+      },
+      {
+        "ref": "The two small dogs run through the grass .",
+        "hyp": "A man in a black dog a black and a black and a black and balll .",
+        "img": 376,
+        "cap": 0
+      },
+      {
+        "ref": "A boy in an open Hawaiian shirt is making the Longhorns symbol with his hand .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond thind a t the .",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "There are two women tanning in bikinis .",
+        "hyp": "A woman in a white standing a standing a ball wate stand water .",
+        "img": 386,
+        "cap": 0
+      },
+      {
+        "ref": "A big dog chases a little dog on the grass .",
+        "hyp": "A girl is standing a stand a stand with a ball .",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "A child plays outdoors , near a group of people who are mostly seated .",
+        "hyp": "A woman in a rid sting a round the .",
+        "img": 425,
+        "cap": 0
+      },
+      {
+        "ref": "A girl is cold after coming out of the pool and is covered by a towel .",
+        "hyp": "A boy in a black and a black and a black .",
+        "img": 426,
+        "cap": 0
+      },
+      {
+        "ref": "A pack of black dogs running in grass .",
+        "hyp": "A man is black and a black and a black and a black and black .",
+        "img": 427,
+        "cap": 0
+      },
+      {
+        "ref": "A man is doing tricks on a bicycle on ramps in front of a crowd .",
+        "hyp": "A man wearing a black and a ball .",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "Two boys stand in an ocean as the sun sets .",
+        "hyp": "A boy in a black and a black and a black and a black and balll .",
+        "img": 461,
+        "cap": 0
+      },
+      {
+        "ref": "A man is lying on the grass next to a shopping cart .",
+        "hyp": "A man is playing a ron the .",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "A beagle walks through the grass .",
+        "hyp": "A .",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "A man in an orange shirt flips his skateboard on a suburban street .",
+        "hyp": "A man in a black and a black and a black and a black and a ball back and back .",
+        "img": 476,
+        "cap": 0
+      },
+      {
+        "ref": "A man swings his racket at a tennis ball .",
+        "hyp": "A man is boy in a black a rack .",
+        "img": 484,
+        "cap": 0
+      },
+      {
+        "ref": "A couple are walking along a street while the man carries a toddler over one shoulder .",
+        "hyp": "A girl is player in a black and a black and a black and water a balll .",
+        "img": 499,
+        "cap": 0
+      },
+      {
+        "ref": "A race cars muffler catches on fire .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate .",
+        "img": 501,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog up to its neck in water",
+        "hyp": "A black dog is tanding a black and white ston the .",
+        "img": 508,
+        "cap": 0
+      },
+      {
+        "ref": "A group of basketball players wearing yellow and green reach for a ball .",
+        "hyp": "A boy in a black and a black and a black .",
+        "img": 509,
+        "cap": 0
+      },
+      {
+        "ref": "a boy pushes a wagon full of pumpkins .",
+        "hyp": "A man is siting a bick a rick and a rack .",
+        "img": 510,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog leaps for a ball held by a man .",
+        "hyp": "A dog .",
+        "img": 522,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in a blue and white uniform tags someone in a black and red uniform .",
+        "hyp": "A young boy in a black and a black a ball .",
+        "img": 523,
+        "cap": 0
+      }
+    ],
+    "aud_en>txt_en": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A black dog is black and a black and while ball .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A black dog running the strown the .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A black dog is the black and a black .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A boy in a black dog is the standing a black and ball .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A woman in a white dog a standing a standing a black in a back and .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man in a black and a black and a black a ball ball .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A young is siting a siting a string a stride .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A woman in a black white and a black white and a black white a black and white the s andind a wand s whithith s s wange wa a a wirororowire blllllllle waine shire",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A woman in a white standing a black white a bland white with a bleand wathite s and the warowat bllllll wand s shingr wand ain .",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy in a black on a black .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A boy in a blue shirt in a back .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A boy people .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A boy in a black down a black on a ball .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy in a black and a black and a black a ball .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is siting a ron the .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A man in a black and a black and a black and a black and a ball .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man in a stand a standing a standing a back a back .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man is standing a standing a string a string a back in the strand .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man in a black white standing a black and a black and with a ballk ind wath wate s .",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is player in a black and a standing a poole an a black and ball .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A woman in a white standing a black white a bleand white stand and a stand with ate s thir a wa bllllllll inding wang win s ire irowindingre a ble wangre ineairea",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A woman in a black white and a standing a ball water a black .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A woman in a black white and a black white a black and white a black and wate bathe bllll .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A man in a black and a black and a rand the stand .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A man wearing a black and a black and and a black water a back and wate stand wat teron t the a band the strand s .",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A woman in a red standing a stater .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A man in a stand a stand and a staring a rand .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A woman in a white standing a standing a ball wate stand .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A woman in a white standing a stand a water a stand .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A woman wearing a white standing a water white a stand water and water .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A woman an a white dog an a black white and a black and white a blang and wathite te th grand and s the and strand .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A woman in a standing a with a standing a back and water the .",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A man wearing a black and a black white and a bland white an a black and thind and t t greand wand s wand banond s wan wa a thirorowallllllllllllllle gre waineain",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man in a black and a black and a black and a black and a ball back and thind .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man in a black and a stand and a standing a black and a back and with a sthin a t the thire a s sthirore s s s s sthine a a a shirorowa ballllllllane .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A man in a black and a standing a black and a black and in a ball .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A man wearing a black a ball .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A man wearing a black and a black and the stand a ball .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A black dog is black and a black and the black and balll .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man is standing a black and a stand and a back and a black and wateron thin .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A black dog and a black and a black and a black and the black and blowate ball .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A woman in a siting a stree .",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A dog in a black dog in the string .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man in a black and a black and a black and a black and the stand .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is boy in a black .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A boy in a sin a sting .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A boy wearing a black and a black and a black and ball white a bloow an back ball .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A man in a black a re stat .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black and a black and a black and a black and the stand .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond an t the and .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A man wearing a black and a black and the stand .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A man in a black and a standing a black a ball .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A woman wearing a white standing a white standing a water water a strond the wathe .",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A black dog and a black and a black and a black and the black and .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A dog with a running the strown the stow the .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A dog is dog is the stand and the stow .",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A dog with running the strown the strow .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A black dog and a black and a black the water a black .",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "img>txt_en": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A woman dog in a ron a stand a strow the stand .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A dog in a running the strand .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A woman dog a red standing a stand water the streees .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A woman dog with a red standing a black a red wate .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A dog in a running the string a snow the .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A boy in a black and a black and a black and a black and .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man is black and a black and a black and a black and black .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A man is black and a black and a black and a black .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A man is black and a black and a black and a black and a balll .",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate stand thind a .",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A young boy in a black and a black and a ball .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A boy in a black and a black and a black and a balll .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A boy in a black and a black and a black .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A boy in a black and a black and a ball .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy in a black and a black and a ball .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is playing in a black in a black .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A man is playing a black ano a black .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man is playing a ron a black and a rack .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man is standing a black and a stand a bick a black in a back .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man is playing a black and a black and a black in a black .",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is blick a blick a bick and a ball .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A man is blie childer a black .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A man is blick a black a back and a black .",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A man is blick a black a black and a ball .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A man is black on a black and a black .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A man in a black with a standing a black a ball .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A woman in a standing a with a standing a black in a black .",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A man in a black and a standing a standing a tree snow .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A man in a black and a standing a standing a pooler a the stand .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A girl is and a standing and a with a standing a ball .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A woman in a black white and a black white a black and water a balll .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A group of playe walking a ball wate stand a ball .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A group of a playe wate and a black and a ball wate stand .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A group of a playe white and a black and a black and wate balll .",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A group of playe an the standing a black a ball .",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man is standing a black and a rown a rack .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man is standing a black and a stand a ball wate .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A man is ride standing a rown a stride a ball .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A man in a black on the stare .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A man is standing a standing a stare with a stree .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A man wearing a black and a black and a black and the water a ball wate bat .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man wearing a black and a black and a ball wate stand and a the strand .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A man wearing a black and a black and a ball wate stand and a ball .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A man wearing a black and a black and a black and the water a stand ton a the .",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A man wearing a black and a black and a ball wate stand .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is playing a black and a black ano the stand .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is player standing a playing a black and a black in a ball .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A man in a black and a standing a black and a black and .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A man in a black and a black and a black and a black and back .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A man is playing a stand and a black ano the stand .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black and a standing a stand wallk .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A woman in a stand with a stand a stand water .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A woman in a white standing a standing a ball wate .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A woman in a standing a streed with a streee .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A woman in a standing a standing a stree water .",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A little girl with a black and a black white and a black with ith in a ba blll .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A large boy white dog a black and white a black in a black ton the .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A boy with a black dog a black and white stand and to the stow .",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A woman in a black dog a standing a black a back in the strand .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A boy wearing a black and a black and water the strow .",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "txt_en>txt_hi": [
+      {
+        "ref": "एक सफेद कुत्ता का एक बंद अंग है जो अपने पंजे पर अपना सिर रखता है.",
+        "hyp": "एक कोटी एक कालर कें केते पार काााा पकार हाहााा हहा हहाहा हा ह",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा सफेद कुत्ता फर्श पर पड़ा है.",
+        "hyp": "एक कुत्ते एक के कात कााा हहाहा हह",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "एक सफेद कुत्ता जमीन पर सिर है.",
+        "hyp": "एक कुत्ते के के कााा कााा कााा हहा हााा.",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "एक सफेद कुत्ता अपनी आँख खुले हुए फर्श पर अपना सिर रखता है.",
+        "hyp": "एक कोती एक कालर के काराा एक काााा कर कके कसकाका हर कहााााा ाक ",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "एक सफेद कुत्ता अपने सिर patoo ईंटों पर आराम करते हैं.",
+        "hyp": "एक कुत्ते एक के कााा कााा कता हहा हहा हहा हाा हहा हा .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "श्‍वेत वस्त्र में बच्चा चाँद और तारों के साथ एक झंडा धारण करता है ।",
+        "hyp": "एक कोती एक कालााा काााा पर पााााा हहाा हहहा हाा हहा हाहहा ",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "एक बच्चा चाँद पर एक छोटे से काले ध्वज और एक तारे के साथ पकड़ रहा है।",
+        "hyp": "एक कुती के एक के के काााा पालााा कााा ककाा हाहा हहा हहाा ा हह",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "एक बच्चे को सफेद रंग की लहर पहनाता है एक मुसलमान झंडा.",
+        "hyp": "एक कोती एक कालााा पार पाााा हहाा हहा हहै.",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "सफेद रंग के एक छोटे - से कपड़े पहने हुए जब एक महिला उसे झंडे की लहरों की मदद करती है ।",
+        "hyp": "एक कोटी एक कालर के एक काार पर काााा कककाा ककाका हर कहााा का हहक ",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "श्‍वेत पर काले और सफेद ध्वज में बेबी.",
+        "hyp": "एक कोटी एक कालााल काााा पर पे सरे कार करे हहाका हहा हहाहा ा हह",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "एक लड़का बिस्तर पर कूद किया जा रहा है.",
+        "hyp": "एक कोत्ते एक के काला कााा हहाा हहा.",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का एक हरे बिस्तर से कूद जाता है.",
+        "hyp": "एक कोती एक कालााा पार पाााा हहाा हहै.",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "एक लड़का एक बिस्तर से दूसरे को कूदता है.",
+        "hyp": "एक कोत्ते एक के काला काााा हहहा हहै.",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "एक छोटा बच्चा बिस्तर पर कूद जाता है.",
+        "hyp": "एक कोती एक कालााा पार पााहा हहहै.",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "नीले छोटे में एक लड़का बिस्तर पर चिल्ला हो.",
+        "hyp": "एक कोत्ते एक के काला काााा पहाा हहा हहै.",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "एक साइकिलर कॉफी का आनंद लेते हैं.",
+        "hyp": "एक कोत्ते साते साहा हहै.",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी हरे - भरे फूल में एक साइकिल पर दौड़ता है ।",
+        "hyp": "एक कोटी एक कालर के काराा पर पे सरे एक कक कके कके कहाा हाहाा हह",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "एक आदमी हरे - भरे फूल में साइकिल चलाता है ।",
+        "hyp": "एक क्त्त्त्त्ती करे करे एक के कंक करे करे काकां रर कहाताा ाह",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "एक आदमी अपनी साइकिल पर एक हाथ से सवारी और दूसरे के साथ एक जाम पकड़.",
+        "hyp": "एक क्त्त्त्त्ती करे एक कार के एक कक के कके ककके एकक कक कका ा कक ",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "एक आदमी साइकिल पर एक हरा शर्ट पहनने की सवारी उसके हाथ में एक जाम के साथ.",
+        "hyp": "एक क्त्त्त्ती एक काक कार पर के एक कक के ककाााका हर कराार का हक ",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "एक रीफ़ेंस मेल पर पोशाक में व्यक्ति का एक समूह.",
+        "hyp": "एक केती केते परे सें काार पर हहे हहै.",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "एक रीजेंसी पर पोशाक में लोग.",
+        "hyp": "एक कोती कार पार परे परे के पहै.",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "रंगीन पोशाक में दो महिला एक छोटी लड़की भूरे रंग के कपड़े पहनती है.",
+        "hyp": "एक क्ट्ती एक के कें के सरे परे संकाक कार काााका कर करााााा ाकक ",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "दो औरत और एक बच्चा मध्य युग के एक शिविर में तीर के सामने बैठा हुआ है ।",
+        "hyp": "एक क्ट्ती एक के के के एक के एक कक के कके ककसे के सएक ककाे ााक क ",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "दो महिला मध्य मध्य युग में एक छोटे बच्चे के पास पड़ी हुई है ।",
+        "hyp": "एक क्त्ती एक कें कें कार पार काााा ककाााा हाहा हहा हहााा हा ह",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "एक महिला कलाकार उसे रंग दिखाता है और एक कागज पर हस्ताक्षर।",
+        "hyp": "एक कोती एक कालर कें केते पार काााा हहहाा हहाहा हहा हहाहा ह",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "एक फोन पर एक आदमी एक रंग के पास बैठते हैं.",
+        "hyp": "एक क्त्त्त्त्ी करे करे एक के सके करे कंार कर कार काराताा ा ह",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "एक महिला एक सेलफोन घड़ी में एक आदमी की तस्वीर खींच रही है.",
+        "hyp": "एक कुत्त्ते एक केते कााार पाााा काका कााा हहा हहाा हााा हा ह",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "एक स्त्री पर एक चित्र के किनारे पर लिखा हुआ",
+        "hyp": "एक कोती एक कालााा पार पार पर हरे काााा हहा हाहा हहा हहाहा ा ह",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "सीट महिला लिखने के साथ फोन पर पुरुष खड़े खड़े हो जाओ, कलाकार के दरवाजे के पास.",
+        "hyp": "एक कोत्त्ते एक के काराा पर पार काार कहााा हाका हहा हहाहा ा हह",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "तीन महिला एक शहर सड़क पर खड़े हैं.",
+        "hyp": "एक कोत्ते एक कें सरे काार हहे हहाा हहााा हहा.",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "तीन महिला एक सड़क पर चलते हैं.",
+        "hyp": "एक केती केते पााा पार पााहा हहाा हहै.",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "दो लड़की और एक औरत एक किनारे पर चलते हैं",
+        "hyp": "एक कुती केते एक केते काााा पहााा हहाा हहा हाहा हहा हहााा ा ",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "हरी बूट में दो लड़की और एक औरत साथ हो.",
+        "hyp": "एक कोती एक कालााा काााा पााााा कााक ककाा हाका हहाा हााा हा हह",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "हरे बूट में दो युवती को शहरी क्षेत्र में चला जा रही है जबकि एक बूढ़ी औरत काले जूते पहने उनके पीछे हो रही है।",
+        "hyp": "एक केती के एक के के के साराा कााा करे करे सकाकाा हकााााा ा हकक ",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "एक बड़ा आदमी नदी के किनारे एक और आदमी के साथ नाव के पीछे बैठा हुआ है ।",
+        "hyp": "एक क्टार केंलर के काराार पर रें कके कके कसरार कर एककाााे काक",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "दोनों तरफ हरे पेड़ हैं ।",
+        "hyp": "एक क्टार के केंरे एक कार एक के कके करे करे सतकर ररर े परके र कके ",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "एक छोटी नाव में दो आदमी एक नदी के नीचे.",
+        "hyp": "एक कोत्त्ते एक केते कार पााााा काहा हहाा हहहा हह",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "एक छोटी नदी के नीचे दो आदमी एक नाव जलती है ।",
+        "hyp": "एक कोत्ते एक केते पार पार हहे हहै.",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "दो padder एक नाव नीचे एक पेड़ की धारा के नीचे चला जाता है.",
+        "hyp": "एक केत्ती एक कें सार काार पर काााा कहाााा हाहा हहा हहााा ा हह",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "एक कुत्ता अपने मालिक के रूप में इंतज़ार करता है सामान के संग्रह के माध्यम से.",
+        "hyp": "एक कुत्त्त्ते एक के काार पााार कााक ककाा कककका काा ककता का कक",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी एक घर की दुकान पर नज़र रखने के लिए नीचे गिरता हुआ एक आदमी.",
+        "hyp": "एक क्त्त्त्ती के एक काार कााार कााक ककाा कककका कका कााा का ककक",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "एक आदमी एक किनारे से कुछ लेने के लिए ऊपर मोड़.",
+        "hyp": "एक क्त्त्त्ती के एक कार पाााार कार कके काहार कार कार हहााा कक ",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "व्यापार की जाँच करने के लिए नीचे मोड़ एक आदमी के साथ एक आदमी.",
+        "hyp": "एक क्ट्ती एक करे कें करे एक के सके करे करे सराकाा रार हताा ार क",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "एक व्यक्‍ति एक छोटे से कुत्ता को एक ले लेता है...... एक पर मोड़ और वस्तु के माध्यम से देखो.",
+        "hyp": "एक कुत्त्त्ते एक के कार पााााा कक कके कााहा काा हहा हाहा हहह",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "एक बड़े पहाड़ पर चढ़ जाते हैं",
+        "hyp": "एक कोती एक कालााा पाहा हहाा हहहै.",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "चार क्रूसोपर चढ़ रहे हैं।",
+        "hyp": "एक आदमी एक कर परे परे पर परे परााा हहहा हहा हहा हह",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "चार व्यक्ति बर्फ में एक पहाड़ी पर चढ़ जाते हैं.",
+        "hyp": "एक कोती केते एक केते काार पााााा हहा हहाा हाहा हह",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "चार टायर एक बर्फ पर चढ़ जाते हैं ।",
+        "hyp": "एक कोती एक कालर पार परे परे पार हाााा हहाा हाहा हहा हहाहा ",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "चार कठिन चढ़ाई बरफ गनित पहाड़.",
+        "hyp": "एक कोत्त्ते एक कार काार हहा हहहै.",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "रेत में एक व्यक्‍ति का एक समूह पानी पर नज़र रखता है ।",
+        "hyp": "एक केती केते सरे सें कार पे पारााा ककाााा हाका हहाा हााा हा ह",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "पांच व्यक्ति समुद्र की ओर बाहर देखो.",
+        "hyp": "एक केती केते परे सें काार पााााा हहा हहाा हाहा हह",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "पाँच व्यक्‍ति पानी के एक शरीर के सामने खड़े हैं ।",
+        "hyp": "एक केत्ती एक कें सार काार पााााा हहाा हहा हाहा हह",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "तीन आदमी और दो और महिला एक धूप के दिन किनारे से समुद्र का सामना करते हैं ।",
+        "hyp": "एक क्ट्ती एक कें कें कार पे एक कके कार करे सारााार ाराााा ा हह",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "दो महिला और तीन आदमी समुद्र पर देखते हैं.",
+        "hyp": "एक कोती एक कालााा पार पार पााााा हहा हहाा हाहा हहा हहाा ह",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "एक बड़ा कुत्ता मानव हाथ उड़ाता है जब एक छोटा कुत्ता एक बड़े कुत्ते को चुराता है.",
+        "hyp": "एक क्ट्ती एक के के के एक के एक कक के कके ककके के सएक कके ककााक क ",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "एक व्यक्‍ति बड़े धूसर कुत्ते के लिए पहुँचता है जबकि एक काला कुत्ता घूमता है ।",
+        "hyp": "एक क्टार के केंरे एक कार पे एक कक के कके ककरे के सएक कके ककााक",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "एक छोटा कुत्ता पहाड़ी के एक बड़े कुत्ते को सिर पर उड़ाता है.",
+        "hyp": "एक कोती एक कालााा पार पार पर हहे हहैात हाा हहा हहहा हााहा ",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "एक काला कुत्ता एक भूरे कुत्ते का सिर उड़ा दिया जा सकता है.",
+        "hyp": "एक कुत्ते एक के कााा कााा कता कााा हहा हााा हाा हहा .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "एक औरत ने कुत्ते से कहा कि वह उसे अपने समुद्र तट पर गेंद देने के लिए कहता है ।",
+        "hyp": "एक कुत्त्ते एक के कार पार कााााा कााा कहाा ाहा हहाा हाहा हा ह",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "txt_hi>txt_en": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A black dog is tanding a black and white stonde an the blow .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A dog .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A dog running the strown .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A black dog is tanding a black and white stonde the stround .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A dog with a dog standing a black in the strow .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A little girl in a black white shirt and a black and a blue ball white stand tond and the .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A young is playing in a black in a black a back .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A man wearing a black and a black white and a black and a black and wate bllowack te thing a back band and band s wnd wan a a barowarowand balllllllllle be ",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A man in a black and a black and a black and a black .",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A young girl in a siting a string a stree .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A young is playing in the sirt in a stride .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A sman is sing in a sting a sits .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A young is playing in the sirt .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy wearing a black and a black and a black and the ball .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A boy in a stand stown a streee .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A man is pering a stand and a pare stand a ball .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man in a black and a stand a back a rack .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man is and a standing a standing a standing a ball in a back and stron .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man in a player standing a pare stand a ball in a ball wate stand a strand .",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A woman in a standing a black white shirt a park in a black .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A man .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A man in a black and a black and a black and a black and black and a black with ate blllle back back s and band s s wandoooooooor baroware ballllllllle aine ",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A man is standing a standing a standing a black and with a ball with in a stron .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A man in a black and a standing a black and a black and waterin a black .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A young boy in a black in a black and with a string a blue .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A group of player in a black and a black and to the stand .",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A young girl is standing and a standing a black in a black .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A boy wearing a black and a black and a black and the blow .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A woman in a black white shirt and a black white standing a ball water shind .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A small in a siting in a string .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A child in a siting .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A little girl in a sting and a string .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A man in a black and a black and a black and a black and a balll .",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A man wearing a black and a black white and a black and a black and wate bllowack te thing a back bath .",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A woman in a staring a standing a string a back in a black .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man is playing a black and a black ano the a ball .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A black dog running the stroung the .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A group of playing a black on the stow .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A woman in a stand wearing a stand and a water a strownd a strand .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A black dog and a black and a black white a black in the back the .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man in a black and a standing a standing a tree stand and a bacare stron t .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A man in a black and a black and a ball wate stand a ball .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A woman in a standing a black white shir a standing a black and a black wate .",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A man in a white standing a stand with a stand a streed water .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is siting a ron .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is playing a black and a black .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A man in a black and a stand a stand a ball .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A man is playing a ron a round .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A boy dog is .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black and a black and a black and a black and a balll .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A man in a black one stare .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A man wearing a black and a black and a ball and a ball back and ball .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A man is and a standing a pare standing a black and a black and a balll .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A group of people a stater a ball .",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A black dog in a black white standing a black and with ith in a blowite sthing the out .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A man in a black and a standing a black and a black and with a ballke and wate .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A dog is dog is the standing a black in the stow .",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A dog is running the sirt in the strow .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A boy wearing a black and a black and a black and to the back .",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "aud_yo>txt_hi": [
+      {
+        "ref": "एक सफेद कुत्ता का एक बंद अंग है जो अपने पंजे पर अपना सिर रखता है.",
+        "hyp": "एक कोती एक कालााा पार पार पर हहे हहैाा हहा हहहा हहा हहा",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "श्‍वेत वस्त्र में बच्चा चाँद और तारों के साथ एक झंडा धारण करता है ।",
+        "hyp": "एक कोत्त्ते एक के एक काार पर काााा हहहा हहहा हाहा हाहाा हा ",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का बिस्तर पर कूद किया जा रहा है.",
+        "hyp": "एक कोत्ते एक के एक काक काला हहहै.",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "एक साइकिलर कॉफी का आनंद लेते हैं.",
+        "hyp": "एक कोत्ते एक केते पार पाहाा हहहै.",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "एक रीफ़ेंस मेल पर पोशाक में व्यक्ति का एक समूह.",
+        "hyp": "एक कोत्ते एक के एक काक काला हहहै.",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "तीन महिला एक शहर सड़क पर खड़े हैं.",
+        "hyp": "एक कोती एक कालााा पार पााहा हहाा हहा हहै.",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा आदमी नदी के किनारे एक और आदमी के साथ नाव के पीछे बैठा हुआ है ।",
+        "hyp": "एक क्ट्ती एक कें के कें करे एक कक के कके ककरे के सएक कके काााक",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ता अपने मालिक के रूप में इंतज़ार करता है सामान के संग्रह के माध्यम से.",
+        "hyp": "एक कुत्त्त्ते के कार के एक के कके कााा हाा हाा हहाा ाहाा ा ",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़े पहाड़ पर चढ़ जाते हैं",
+        "hyp": "एक कोत्त्ते एक के कार पार हहे हहै.",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "रेत में एक व्यक्‍ति का एक समूह पानी पर नज़र रखता है ।",
+        "hyp": "एक क्टार के केंरे एक कार एक के सके करे करे सतकर ररर रााते ाार क",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा कुत्ता मानव हाथ उड़ाता है जब एक छोटा कुत्ता एक बड़े कुत्ते को चुराता है.",
+        "hyp": "एक कुत्त्ते एक के कार पाार पाााा हहा हहाा हाहा हहा हहाा ह",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "एक ही सोते के चारों ओर कुछ छोटे बच्चे खेलते हैं.",
+        "hyp": "एक कोती एक कालाल के कें कले एक कक के कके काहााक हहाा हााा हा ह",
+        "img": 94,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी एक बहुत ऊँचे चट्टान पर चढ़ रहा है, उसके पीछे एक नीले रस्सी है.",
+        "hyp": "एक कुत्ती एक कें कें कााार पाााा कााा ककाा ाहाा हहा हाााा ाह",
+        "img": 103,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़की स्कूल शुरू करने के लिए उसके साथ इंतज़ार करने से पहले अपनी मां अलविदा चूमती है.",
+        "hyp": "एक कुती एक के एक के काााा पर पार काााा कहाा ाहाा हहा हहाा हा ह",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "एक टन में एक आदमी एक सड़क के नीचे साइकिल चला जाता है.",
+        "hyp": "एक क्त्त्त्ती एक कें एक काााार कााक ककाा हकाका हहा हााा का ह",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "दो महिला एक किनारे पर बात करते हुए एक दूसरे से बात करती है.",
+        "hyp": "एक कोत्त्ते एक काला कार पहाा हहहा हहा हहा हहह",
+        "img": 125,
+        "cap": 0
+      },
+      {
+        "ref": "नीले जैकेट में एक व्यक्‍ति साइकिल का टोप पहने एक साइकिल पर सवार हो",
+        "hyp": "एक कोती एक कालर कें परे परे पार हाााा हहाा हाहा ह",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ता और गाय चट्टानी ढाल पर होते हैं ।",
+        "hyp": "एक कुत्त्ते केते पार के साााा हहा हहाा.",
+        "img": 151,
+        "cap": 0
+      },
+      {
+        "ref": "सफेद बालों वाला एक बूढ़े आदमी और लाल टोपी.",
+        "hyp": "एक कुत्त्ते एक के कार एक कााा हहाा हहा हाा हाहा ह",
+        "img": 152,
+        "cap": 0
+      },
+      {
+        "ref": "एक बच्चे के खाने और उसके चेहरे पर भोजन है.",
+        "hyp": "एक कोत्त्ते एक के कार एक कााााा कााा कहाा हाहा हहा हहाा हा ",
+        "img": 154,
+        "cap": 0
+      },
+      {
+        "ref": "एक नाव जो दो मँगे हुए झील पर शांति से बैठी है ।",
+        "hyp": "एक क्त्त्त्ते एक के कार पाार हहे हहै.",
+        "img": 161,
+        "cap": 0
+      },
+      {
+        "ref": "सूर्यास्त के दौरान समुद्र तट पर एक बच्चा खेलता है.",
+        "hyp": "एक कोती एक कालााा पार पाहाा हहहै.",
+        "img": 172,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी एक काले टोपी पहने एक इमारत के बगल में चलते हुए.",
+        "hyp": "एक कुत्त्ते एक के कार एक के एक कक के कके ककहे के हहााााता ा हह",
+        "img": 178,
+        "cap": 0
+      },
+      {
+        "ref": "एक हरे मछली पानी से कूद जाती है.",
+        "hyp": "एक कुत्ते एक के कााा कााा कााा कता हहाा हहाा हा हहा .",
+        "img": 200,
+        "cap": 0
+      },
+      {
+        "ref": "भूरे रंग का भूरे रंग का कुत्ता घास के लम्बे दाने के मैदान में कूदता है",
+        "hyp": "एक कुत्ते एक के केते काााा पहाा कहै.",
+        "img": 209,
+        "cap": 0
+      },
+      {
+        "ref": "एक भूरे रंग का पपी घास में अपनी पीठ पर रखा जा रहा है.",
+        "hyp": "एक कोत्ती एक केते पार पार पर हरे कहैात हाा हहाा हहा हहाहा ",
+        "img": 215,
+        "cap": 0
+      },
+      {
+        "ref": "एक भूरे कुत्ता जब एक व्यक्ति की उंगली उसके मुँह में हो.",
+        "hyp": "एक कुत्ते एक के केते काााा पहाा हहाा हााा हाहा हा हाहाा ा",
+        "img": 219,
+        "cap": 0
+      },
+      {
+        "ref": "कुत्ते का एक समूह बर्फ में खड़े होकर एक दूसरे पर नज़र रखता है ।",
+        "hyp": "एक कोत्ते एक केते पार हहे हहै.",
+        "img": 233,
+        "cap": 0
+      },
+      {
+        "ref": "एक महिला कैमरा पर एक कैमरा मुस्कान पर पकड़.",
+        "hyp": "एक कोटी एक करे एक के करे एक काार कार कके काहााका हर कहााा हा हह",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "एक छोटा सा सफेद और काला कुत्ता हरी घास के मैदान में एक बड़े भूरे कुत्ते के सिर पर हिलता है.",
+        "hyp": "एक कुत्त्ते एक के कार एक के एक कक के कके ककहे के सते ााााा ाह",
+        "img": 266,
+        "cap": 0
+      },
+      {
+        "ref": "एक सफेद और नारंगी टी-ल एक झूले पर खेल रहे हैं।",
+        "hyp": "एक लड़की कार एक के कार एक कालाा काा ककार कहााा हहहा हााा हा ह",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का हवा में तेजी से उड़ा दिया जा सकता है एक तालाब में.",
+        "hyp": "एक कोती एक कालाल के कें कले एक कक के कहे हहहैै.",
+        "img": 291,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी साइकिल पर चाल चला है",
+        "hyp": "एक कोत्त्ते एक के कार पार पर हरे कार हहै.",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "दो लड़की, जो दो साल की थी ।",
+        "hyp": "एक कोती एक कालाल कें काार पर हर पे हहे हहे हहहाा हहा हहहहा ",
+        "img": 298,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का अपने सिर के ऊपर एक मज़बूत खम्भे पर खड़ा खड़ा है ।",
+        "hyp": "एक क्टी केते एक के काराा पर पे सरे सरे करे सकाकाार ार हताा हहर ",
+        "img": 304,
+        "cap": 0
+      },
+      {
+        "ref": "एक भूरे कुत्ते का पानी के माध्यम से स्कैन.",
+        "hyp": "एक कुत्ते एक के के कााा कलाा कहा कहै.",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "एक काले और भूरे कुत्ते छत पर खड़े हैं.",
+        "hyp": "एक कुत्त्ते के कार के केते पाााा हहा हााा हाहा हा हाहाा ा",
+        "img": 333,
+        "cap": 0
+      },
+      {
+        "ref": "एक बच्चा हिलता रहता है।",
+        "hyp": "एक कोत्ते एक के काला काााा हहहै.",
+        "img": 337,
+        "cap": 0
+      },
+      {
+        "ref": "एक पति - पत्नी एक - दूसरे के साथ घर - घर जाते हैं ।",
+        "hyp": "एक कोती एक कालर कें केते पार काााा हहहाा हहाहा हहहा हाहा ह",
+        "img": 360,
+        "cap": 0
+      },
+      {
+        "ref": "एक अकेला व्यक्‍ति दूर एक लंबे समुद्र तट पर चल रहा है ।",
+        "hyp": "एक कोत्त्ते एक केते कार पााााा हहा हहाहा हाह",
+        "img": 361,
+        "cap": 0
+      },
+      {
+        "ref": "दो छोटे कुत्ता घास के माध्यम से चलता है.",
+        "hyp": "एक कुत्त्त्ते एक के काार पाााा कका ककााा हाहहा हहा हहाा हा ह",
+        "img": 376,
+        "cap": 0
+      },
+      {
+        "ref": "एक खुले हवाई शर्ट में एक लड़का अपने हाथ के साथ लंबा बाल चिह्न बनाता है ।",
+        "hyp": "एक क्त्त्त्ती एक काक कार पर रें कके कके कसराता कर कराता ा हकक ",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "दो औरत बनी है, मिखिया में.",
+        "hyp": "एक क्त्त्त्ते एक कार एक काााा सकाा कककाा हाहका हहा हात हा हह",
+        "img": 386,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा कुत्ता घास पर एक छोटे कुत्ते का पीछा करता है.",
+        "hyp": "एक कुत्ते एक के केते काााा पहाा हहाा हााा हा.",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "एक बच्चा बाहर खेलता है, उस व्यक्‍ति के एक समूह के पास जो ज़्यादातर सीट पर होता है ।",
+        "hyp": "एक कोत्ते एक के काला कााार पहाा हहा हहाहा हा हहह",
+        "img": 425,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़की तालाब से बाहर आने के बाद ठंडा हो और एक तौलिया से ढका हो।",
+        "hyp": "एक कोती एक कालााा पार पार पाााा कहा हहाा हहाहा हहा हहाा ह",
+        "img": 426,
+        "cap": 0
+      },
+      {
+        "ref": "घास में काले कुत्ते का एक पैक.",
+        "hyp": "एक कोत्त्त्ते एक के कर केते कते ते कां काहाा काहाा हहाा हा ह",
+        "img": 427,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी भीड़ के सामने एक साइकिल पर धोखा खा सकता है ।",
+        "hyp": "एक केत्ते केते केते के के पााााा हहा हहाा ाहा.",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "दो लड़का सूरज सेट के रूप में एक सागर में खड़ा है.",
+        "hyp": "एक कोती एक कालाल के कें कले एक कक के कके काहाााा हहा हााहा ा ह",
+        "img": 461,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी घास पर झूठ बोल रहा है एक दुकान कार के बगल में.",
+        "hyp": "एक कोत्त्ते पार केते कााहा हहहै.",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "एक उड़ान घास के माध्यम से चलते हैं।",
+        "hyp": "एक कोत्ते एक के काता हहे हहाहा हहै.",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "एक नारंगी शर्ट में एक आदमी एक उपनगरी सड़क पर अपने कवरबोर्ड को उछालता है.",
+        "hyp": "एक क्टार कें एक के कारार पार काााा ककर काार ककाााा कहाा ा हह",
+        "img": 476,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी एक बेवकूफ़ गेंद के पास अपने झूलता हुआ झूलता है.",
+        "hyp": "एक कुत्ते एक के कााा काााा पहाहा हहा हा.",
+        "img": 484,
+        "cap": 0
+      },
+      {
+        "ref": "एक जोड़ा सड़क पर चलते वक्‍त एक बच्चे को एक कंधे पर ले जाता है ।",
+        "hyp": "एक कोटी एक कालर कें के सरे परे संकााा कर कहााका हहा हााा हा हह",
+        "img": 499,
+        "cap": 0
+      },
+      {
+        "ref": "आग पर एक प्रतियोगिता कार जा रही है.",
+        "hyp": "एक कोती केते एक के कार सरे परे संकाा ककााा हाका हहा हहाा हा ह",
+        "img": 501,
+        "cap": 0
+      },
+      {
+        "ref": "क्या ही ख़ूब है वह जो स्वयं को बड़ा समझता है!",
+        "hyp": "एक कुत्ते के के कााा काााा पकाा कााा हााा हाहा हाा ाहाा ाा ",
+        "img": 508,
+        "cap": 0
+      },
+      {
+        "ref": "गेंद की गेंद के लिए पीले और हरा रंग के खिलाड़ी के समूह को पहनते हैं.",
+        "hyp": "एक कुत्ती एक के एक काक के एक कालाा कहाा हाहा हहा हहा हााहा ",
+        "img": 509,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का पंप की एक गाड़ी धक्का.",
+        "hyp": "एक कोत्ते एक के एक काक काला हहहै.",
+        "img": 510,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी द्वारा गेंद पकड़ के लिए एक काला कुत्ता उछलता है.",
+        "hyp": "एक कुत्ते एक के कााा काा हहा हहहै.",
+        "img": 522,
+        "cap": 0
+      },
+      {
+        "ref": "एक नीले और सफेद रंग के टैग में एक लड़की काले और लाल रंग की पोशाक में किसी को.",
+        "hyp": "एक कोती एक कालााा पार पार पर हहे हहैहै.",
+        "img": 523,
+        "cap": 0
+      }
+    ],
+    "txt_en>aud_en (round trip)": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A man is black and a black and a black and a black and a black and in a balll back .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A man .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A man is playing a rock a race strace .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A man is black and a black and a black and a black and blowack .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A man is playing in the .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man is black and a black and a black and a black .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man is black and a black and a black and a black and bloow .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A man is standing a black and a string a ball in a ball .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A man is black and a black and a black and a black and in a balll .",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balllowack te back and back band band bllllllllll .",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A young boy in a black and a black and a ball .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A man is black and a black and a black and a black and in a black and a balll .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A man is black and a black and a black and a black and .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A man is player a black and a black and a ball .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is standing a string a string a roun .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A man is playing a black and a black and a black and .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man in a black and a black and a black and a black and the stand .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man is standing a black and a black in a black in a black and .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow wathite the te band .",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is and a black and a black and a black and a back back and in this a thin the .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A man is black and a black and a black and a black and in a balll .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A man is black and a black and a black and a black .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A man is playing a black and a black .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A man in a black and a black and a black and a black and a balll with a ball wathite s thind a athing a bando s s s s wane a a brorowalane balllllllane baineairai",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A man is playing a black and a black .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A man is standing a black and a black and a black and with a ball .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A man is plis in a black in a black and a black in a black .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A man is standing a black and a string a ball in the stroun .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A man is player in a black and a black and a black and in a ball back .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A man is player in a black and a black and a black and in a ball back and ball .",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A man in a black and a black and a black and a black and a balll .",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow back thin .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man is black and a black and a black and a black and in a ball back and ball .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A man in a black and a black and a ball .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A man is and a black and a black and a black and a back back and a black and bat balllll .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A man is player in a black and a black and a black and in a black and a balll .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man is and a black and a back and a back and a back the stand .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A little girl is a playing a playing the standing a black a ball back .",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A man is black and a black and a black and trow .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is playing a black and a ball .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is playing a black and a black and a black in a black .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A man in a black and a black and a black and a black and a ball back and ball .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A man in a black and a black and a black and a black and a balll back .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A man is and a black and a black and a ball white a ball back .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man is player in a black and a black and a black and in a ball back .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterind a bal back .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate strome .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A man is playing a black and a black and a black in a black and a black .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A man is and a black and a black and a black and a ball back and balll .",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A man in a black and a black and a black and a black and black and a black with ath bllll athing bing ind ba s s s s wane a a irorowindowallllllllllane baineairai",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A man in a black and a black white and a black and back black and a black wathite te bllll athe back s oond band s s wandooooooor thind ballllllllllle .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A man is black and a black and a black and a black and in a ball back .",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A man is siting a ron a striding a black .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A man is playing a black ano the stare .",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "aud_yo>aud_en (round trip)": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man is playing a ron a bal .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A man is playing a ron a bal .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is black and a black and a black and a black and a black and wate balll .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is blick and a black and a black and a black .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A man is black and a black and a black and a black .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man is black and a black and a black and a black and black .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A man is standing a standing a string a ball in the .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balack back t back band back st .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A young boy is standing a black and a black and a black back and .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A few younger boys play around a fountain .",
+        "hyp": "A man is black and a black and a black and a black and in a balll .",
+        "img": 94,
+        "cap": 0
+      },
+      {
+        "ref": "A man rock climbs up a very tall cliff , with a blue rope behind him .",
+        "hyp": "A little boy wearing a black and a black and a black and a balll water .",
+        "img": 103,
+        "cap": 0
+      },
+      {
+        "ref": "A girl kisses her mother goodbye before she waits with the other children to start school .",
+        "hyp": "A man is and a black and a black and a black and a ball back and a black and t band .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a beret rides a bicycle down the street .",
+        "hyp": "A man in a black and a black and a black and a ball .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "Two ladies walking on the sidewalk talking to each other .",
+        "hyp": "A man is standing a string a string a strow the .",
+        "img": 125,
+        "cap": 0
+      },
+      {
+        "ref": "A person in a blue jacket , wearing a bicycle helmet is riding a bike",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "A dog and a cow are on a rocky slope .",
+        "hyp": "A man in a black and a black a ball .",
+        "img": 151,
+        "cap": 0
+      },
+      {
+        "ref": "An older man with white hair a blue jacket and a bright red hat .",
+        "hyp": "A man is black and a black and a black and a black in a black and in a ba black .",
+        "img": 152,
+        "cap": 0
+      },
+      {
+        "ref": "A baby eats and has food on his face .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow wathite the be band .",
+        "img": 154,
+        "cap": 0
+      },
+      {
+        "ref": "A boat with two fishermen sits peacefully on the lake .",
+        "hyp": "A man is standing a black and a black and a ball wate ball .",
+        "img": 161,
+        "cap": 0
+      },
+      {
+        "ref": "A child playing in the beach sand during a sunset .",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 172,
+        "cap": 0
+      },
+      {
+        "ref": "A man wearing a black hat walks along a road next to a building .",
+        "hyp": "A man is black and a black and a black and a ball .",
+        "img": 178,
+        "cap": 0
+      },
+      {
+        "ref": "A green fish is jumping out of water .",
+        "hyp": "A man is playing a black anor the .",
+        "img": 200,
+        "cap": 0
+      },
+      {
+        "ref": "a brown and black dog jumping through a field of long blades of grass",
+        "hyp": "A man is black on a black and a black and .",
+        "img": 209,
+        "cap": 0
+      },
+      {
+        "ref": "A brown puppy is laying on its back in the grass .",
+        "hyp": "A man is boy in a bloy in a black .",
+        "img": 215,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog looks up while a person 's fingers are in its mouth .",
+        "hyp": "A man is player in a standing a standing a black in a black and a black .",
+        "img": 219,
+        "cap": 0
+      },
+      {
+        "ref": "A group of dogs look at each other while standing in the snow .",
+        "hyp": "A man is playing a ron a black and .",
+        "img": 233,
+        "cap": 0
+      },
+      {
+        "ref": "A woman holding onto a camera smiling at the camera .",
+        "hyp": "A man is black and a black and a black and a black and in a ball back .",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "A little white and black dog is leaping over a big brown dog 's head in a field of green grass .",
+        "hyp": "A man is and a black and white and a black and a black and a ball with a ball sthinde .",
+        "img": 266,
+        "cap": 0
+      },
+      {
+        "ref": "a blonde boy in a white and orange t-shirt is playing on a swing .",
+        "hyp": "A man is standing a black in a black and a black in a black and a black .",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is diving through the air into a swimming pool .",
+        "hyp": "A man is playing a ron a staring a black a ball .",
+        "img": 291,
+        "cap": 0
+      },
+      {
+        "ref": "a man doing tricks on a motorcycle",
+        "hyp": "A man is player in a black and a standing a poole an the stand a balll .",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "Two girls in karate uniforms struggle in a dojo .",
+        "hyp": "A man is black and a black and a black and a black and in a black and a balll back .",
+        "img": 298,
+        "cap": 0
+      },
+      {
+        "ref": "A boy with his hands above his head stands on a cement pillar above the cobblestones .",
+        "hyp": "A man in a black and a black and a black and a black and a balll back .",
+        "img": 304,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog splashing through water .",
+        "hyp": "A man is playing a ron a bal .",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "A black and brown dog stands on a roof .",
+        "hyp": "A man is playing a black and a black ano ball .",
+        "img": 333,
+        "cap": 0
+      },
+      {
+        "ref": "A child wearing swim goggles .",
+        "hyp": "A man is boy in a ron the .",
+        "img": 337,
+        "cap": 0
+      },
+      {
+        "ref": "A couple walking alongside a waterfront next to a city .",
+        "hyp": "A man in a black and a black and a ball .",
+        "img": 360,
+        "cap": 0
+      },
+      {
+        "ref": "a lone person walking in the distance on a long beach .",
+        "hyp": "A man is playing a black and a black and a ball back .",
+        "img": 361,
+        "cap": 0
+      },
+      {
+        "ref": "The two small dogs run through the grass .",
+        "hyp": "A man is playing a black and a black and a black in a black and .",
+        "img": 376,
+        "cap": 0
+      },
+      {
+        "ref": "A boy in an open Hawaiian shirt is making the Longhorns symbol with his hand .",
+        "hyp": "A man in a black and a standing a black and a ball stand troun .",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "There are two women tanning in bikinis .",
+        "hyp": "A man is and a black and a back and a ball white stand in a ball .",
+        "img": 386,
+        "cap": 0
+      },
+      {
+        "ref": "A big dog chases a little dog on the grass .",
+        "hyp": "A little girl in a stand and a strow the .",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "A child plays outdoors , near a group of people who are mostly seated .",
+        "hyp": "A man is black and a black a ball .",
+        "img": 425,
+        "cap": 0
+      },
+      {
+        "ref": "A girl is cold after coming out of the pool and is covered by a towel .",
+        "hyp": "A man is playing a ron a back .",
+        "img": 426,
+        "cap": 0
+      },
+      {
+        "ref": "A pack of black dogs running in grass .",
+        "hyp": "A man is playing in a black in a black .",
+        "img": 427,
+        "cap": 0
+      },
+      {
+        "ref": "A man is doing tricks on a bicycle on ramps in front of a crowd .",
+        "hyp": "A man in a black and a black and a black a ball .",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "Two boys stand in an ocean as the sun sets .",
+        "hyp": "A man is black and a black and a black and a black and black .",
+        "img": 461,
+        "cap": 0
+      },
+      {
+        "ref": "A man is lying on the grass next to a shopping cart .",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "A beagle walks through the grass .",
+        "hyp": "A man is playing a black ano the store .",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "A man in an orange shirt flips his skateboard on a suburban street .",
+        "hyp": "A man is and a black and a black and a black and a ball back and a black back .",
+        "img": 476,
+        "cap": 0
+      },
+      {
+        "ref": "A man swings his racket at a tennis ball .",
+        "hyp": "A man is black and a black and a black and a black and in a ball back .",
+        "img": 484,
+        "cap": 0
+      },
+      {
+        "ref": "A couple are walking along a street while the man carries a toddler over one shoulder .",
+        "hyp": "A man is standing a black and a black and a black in a black and with a balll .",
+        "img": 499,
+        "cap": 0
+      },
+      {
+        "ref": "A race cars muffler catches on fire .",
+        "hyp": "A man is and a black and a black and a black and a ball back and balll .",
+        "img": 501,
+        "cap": 0
+      },
+      {
+        "ref": "A brown dog up to its neck in water",
+        "hyp": "A man is player in a black and a black and a black and a black and in a black back t back band back st .",
+        "img": 508,
+        "cap": 0
+      },
+      {
+        "ref": "A group of basketball players wearing yellow and green reach for a ball .",
+        "hyp": "A man in a black white standing a black and black white blooy an a blowate blll wack boooooow back back the ban blllllll .",
+        "img": 509,
+        "cap": 0
+      },
+      {
+        "ref": "a boy pushes a wagon full of pumpkins .",
+        "hyp": "A man is black and a black and a black and a black and blowack an black and .",
+        "img": 510,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog leaps for a ball held by a man .",
+        "hyp": "A man is siting a ron a stree .",
+        "img": 522,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in a blue and white uniform tags someone in a black and red uniform .",
+        "hyp": "A man is playing a black and a black .",
+        "img": 523,
+        "cap": 0
+      }
+    ],
+    "txt_en>aud_yo (round trip)": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A man in a black and a black and a black and a black and a balll with a ball wathit .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A man wearing a black and a black and a ball .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A man in a black and a black and a black and a black and the stand .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A man in a black and a black and a black and a black and the stand .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A man is black and a black and a black and a ball .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man is playing a black and a black and a black in a black .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man in a black and a black and a black and a black and a balll in a bal back back back .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A man in a black white standing a standing a black and with a ball wate stron the a .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A young boy with a black and a black with a black and a blue stand wate balll .",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A man in a black white and a black white a bland white a blok an an this and thin a t the a bland blllllowand s s wand waire irowirowindinge balllllle aine shire ",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy wearing a black and a black and a black and water ball .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A man is black and white standing a black and a black and a balll with a ball .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A man in a black white standing a black and a black and with ith in a ba blll .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A man is and a black and a black and a black and a black and a balll .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A man in a black and a black and a black and a ball .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is black and a black and a black and a black and in a balll .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A woman in a black white and a black with a black and with a ball wate strond .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man in a black and a stand a back and a ball wate stand a ball .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man in a black and a standing a standing a black in a black in a black in thin th t .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man in a black and a black and a black and a black and a balll waterond thin a the .",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man in a black and a standing a black and a black and in a ball wate .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A man in a black and a black and a black and a black and waterin the .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond thin .",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A man is and a black and a black and a ball white stand a back .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate strowat .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A woman in a white standing a black white a bland white a back and with a blleand wack s wathind bathir te s s s wand wandore irowarowand walllllllle .",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A man in a black and a standing a black and a black and watering .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A man is black and a black and a black and a black and in a ball back .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A woman in a black white a stand a black a back and water .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow wathite the s thind .",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A man wearing a black and a black and a black and white a back and wateron the the .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A man in a black and a standing a standing a the standing a ball with a stron at the toun .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A man in a black and a black white and a black and white a black and a band wathite s thir a a bllllllll ind s s s wangrooooooooware inge ainge be bane aine ",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A man is player a playing a pare stand a ball in a ball back .",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man in a black and a black and a black and a black and a balll with a ball wathite s back and band st andond s s .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man in a black and a black and a black and a black and a ball with in a black and back band back back .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A man is and a black and a black and a ball white a ball back .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A man in a black and a black and a black and the stand .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A man in a black and a stand and a black and a black and a back and wate stand wate terowa bat bathind .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A man in a black and a black and a black and a black and a ball with in a thin the s thindor a a s sthirore s s .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man in a black and a stand and a standing a black and a back and wateron the the se .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A man in a black and a black and a black and a black and a balll in a bal wathite bllll .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A woman in a white standing a standing a black and white standing a ston a the wa stherout t a be shiroro sthe s s .",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A man is standing a black and a string a ball in the stround .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is standing a black and a standing a black in a black and a black in thin a ba ba .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond thing a t t the .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A man in a black and a black and a black and a black and a balll in a balack back t back .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A man is standing a standing a staring a ball in a back back .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black white standing a black and a black and with a black and wathite te s thir a athe bllllll ind .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wateron .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A man in a black and a black and a black and a black and a ball white stand wate thite thir a a bather t band s s s .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A man in a black and a standing a standing a the stand with a ball .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A woman in a white standing a black with a bleand with a black and with a with sthite ste and and shirorond s s wnd wande a a wirorowindind s bllllle waineaineair",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balll wathit ite back band s ind andond s s s wanea a irorowalllllllllllllllle ane ine",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balll wathite bing ba blllllll .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A man in a black white standing a black white a black and a black and a back wathit bllll back back ind ind s s s wandindooowa irowin win walllllllle aine ineaire",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A man is playing a black and a black and a ball back .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A man in a black and a black and a ball .",
+        "img": 93,
+        "cap": 4
+      }
+    ],
+    "aud_en>aud_yo (round trip)": [
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow wathite the be band .",
+        "img": 9,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A man in a black and a black and a ball wate stand .",
+        "img": 9,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A man in a black and a stand and a black and a black and a ball waterond thin .",
+        "img": 9,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A man is black and a black and a black and a black and in a ball .",
+        "img": 9,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A man is standing a black white shirt and a black in a black and with a balll wack ste back .",
+        "img": 9,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man is black and a black and a black and a black and black .",
+        "img": 15,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A man is playing a black and a black and a black in a black and .",
+        "img": 15,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A man is standing a standing a string a ball .",
+        "img": 15,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A man in a black and a black and a black and a black and a ball white stand with ate thind a a bororth a band s s s s wandooroororowallllllllllllllle aine ine",
+        "img": 15,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balack thind t ind a bland s sthirondo s s wan wa wa a brorowallllllllllllllle shine ineair",
+        "img": 15,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A man in a black white standing a black and a black and white a blowate back wath blllll .",
+        "img": 18,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A man in a black and a black and a black and a black and a balll back .",
+        "img": 18,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A woman in a white standing a black white a black water a back and wate black wathe s thir .",
+        "img": 18,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate .",
+        "img": 18,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate strand .",
+        "img": 18,
+        "cap": 4
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A man is standing a black and a black and a ball .",
+        "img": 24,
+        "cap": 0
+      },
+      {
+        "ref": "A man in a bright green shirt and sunglasses is riding a bicycle through the streets whilst drinking a latte .",
+        "hyp": "A man is and a black and white shirt and a black in a black and a black and wate s terond .",
+        "img": 24,
+        "cap": 1
+      },
+      {
+        "ref": "A man in a bright green shirt riding a bicycle in a paved courtyard , carying a drink .",
+        "hyp": "A man in a black and a black and a black a ball wate .",
+        "img": 24,
+        "cap": 2
+      },
+      {
+        "ref": "A man rides on his bike with one hand and holds a drink with the other .",
+        "hyp": "A man is and a black and a stand and a ball white stand in a ball .",
+        "img": 24,
+        "cap": 3
+      },
+      {
+        "ref": "A man riding a bike wearing a green shirt with a drink in his hand .",
+        "hyp": "A man wearing a black and white shirt and a black white a black and wate bllowack wack thind ate bath o and s s wnd wandooo a arorowarowan ballllllllle aine ",
+        "img": 24,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A man is standing a black and a string a ball .",
+        "img": 25,
+        "cap": 0
+      },
+      {
+        "ref": "People in costume at a renaissance fair .",
+        "hyp": "A man in a black and a black and a black and a black and a balll wate .",
+        "img": 25,
+        "cap": 1
+      },
+      {
+        "ref": "Two woman in colorful costumes look at a little girl wearing a brown vest .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond .",
+        "img": 25,
+        "cap": 2
+      },
+      {
+        "ref": "two women and a child are sitting by a cart of arrows in front of a booth at a medieval Fayre .",
+        "hyp": "A man in a black and a black and a black and a black and a balll .",
+        "img": 25,
+        "cap": 3
+      },
+      {
+        "ref": "Two women crouch near a small child at a medieval fair .",
+        "hyp": "A man is black and a black and a black and a black and in a ball back .",
+        "img": 25,
+        "cap": 4
+      },
+      {
+        "ref": "A female artist showing her painting and signing a paper .",
+        "hyp": "A man in a black and a black and a black and a black and the .",
+        "img": 27,
+        "cap": 0
+      },
+      {
+        "ref": "A man on a phone and woman sitting near a painting .",
+        "hyp": "A man in a black white and a black white a bland with a black and a black wate thite ste arand band s thind s s s wand wa a a irorowarowand s band band waineairai",
+        "img": 27,
+        "cap": 1
+      },
+      {
+        "ref": "A woman drawing portrait while a man on a cellphone watches .",
+        "hyp": "A man in a black and a standing a black a ball .",
+        "img": 27,
+        "cap": 2
+      },
+      {
+        "ref": "A woman writing on a notepad near a portrait outdoors",
+        "hyp": "A man is and a black and a black and a black and a black and a balllow ith in the s stoura .",
+        "img": 27,
+        "cap": 3
+      },
+      {
+        "ref": "Standing man on phone with seated woman writing , near artist 's outdoor display .",
+        "hyp": "A woman in a white standing a black with a black with a blue stand wate wate sthe .",
+        "img": 27,
+        "cap": 4
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A woman in a white standing a black with a bleand with a black and with a with sthite ste arond s sthirond a s s wnd wane a a wirorowindowa shire be he waineairea",
+        "img": 32,
+        "cap": 0
+      },
+      {
+        "ref": "Three women walk down the street .",
+        "hyp": "A man in a black and a black and a black and a black and a balll waterond thin a the ball .",
+        "img": 32,
+        "cap": 1
+      },
+      {
+        "ref": "Two girls and a woman walking on the sidewalk",
+        "hyp": "A man in a black and a standing a black and a black and in a black in a balll sthinde .",
+        "img": 32,
+        "cap": 2
+      },
+      {
+        "ref": "Two girls in bright green boots and a woman are together .",
+        "hyp": "A man in a black and a black and a black and a black and a ball with in a thin the s andoura t s band .",
+        "img": 32,
+        "cap": 3
+      },
+      {
+        "ref": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+        "hyp": "A man in a black and a stand and a black and a black and a ball waterond wate thith .",
+        "img": 32,
+        "cap": 4
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man in a black and a black and a black and a black and a balll with a stronde and t thind a a s sthiroronde .",
+        "img": 37,
+        "cap": 0
+      },
+      {
+        "ref": "two man are paddling a kayak along a river with green trees on either side .",
+        "hyp": "A man in a black and a black and a black and a black and a balll with in a thin the s thir .",
+        "img": 37,
+        "cap": 1
+      },
+      {
+        "ref": "Two men in a small boat rowing down a river .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond .",
+        "img": 37,
+        "cap": 2
+      },
+      {
+        "ref": "Two men paddling a canoe down a narrow stream .",
+        "hyp": "A man in a black and a black and a black a ball .",
+        "img": 37,
+        "cap": 3
+      },
+      {
+        "ref": "Two paddlers propel a canoe down a tree-lined stream .",
+        "hyp": "A man in a white standing a black white a black and a black and a black wate thind s thind a a s sthind a strand .",
+        "img": 37,
+        "cap": 4
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A man is player in a black and a stand a black and a black a ball .",
+        "img": 41,
+        "cap": 0
+      },
+      {
+        "ref": "A man holding the leash of a pug bends down to look in a bin at an outdoor rummage sale .",
+        "hyp": "A man in a black and a stand and a black and a black and a back and waterind wate te .",
+        "img": 41,
+        "cap": 1
+      },
+      {
+        "ref": "A man with a pug dog bends over to pick something off the sidewalk .",
+        "hyp": "A man in a black and a stand and a black and a black and a back and in a black and st ba ba back back st bandrand s s wala .",
+        "img": 41,
+        "cap": 2
+      },
+      {
+        "ref": "A man with a pug on a leash bending down to examine merchandise .",
+        "hyp": "A woman in a white standing a standing a white standing a black and with with athe s steround and s hirt a stre s wnd wanea a wirowirowind wa she wand waineeairea",
+        "img": 41,
+        "cap": 3
+      },
+      {
+        "ref": "A person holding a small dog on a leash is bending over and looking through items .",
+        "hyp": "A man in a black and a standing a black a back and tree .",
+        "img": 41,
+        "cap": 4
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A man is playing a black and a black and a ball .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "Four cross-country skiers climb uphill .",
+        "hyp": "A man is and a black and a black and a black and a black in a black in a balll back .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "Four people climbing a hill in the snow .",
+        "hyp": "A man in a black and a black and a black and a black and a ball waterond .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "Four skiers walking up a snow covered hill .",
+        "hyp": "A man in a black and a black and a black and a black and a balll in thin a t .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "four skiers climbing snow drapped mountain .",
+        "hyp": "A man is standing a standing a string a strow treees a ball .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A group of people stand in the sand looking out at the water .",
+        "hyp": "A man in a black white standing a black and a black and with a black and wate sthit te band and s sthirorond s s s .",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "Five people look out toward the ocean .",
+        "hyp": "A man in a black and a standing a black and a black and in a ball wate .",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "Five people standing in front of a body of water .",
+        "hyp": "A man in a black and a black and a black and a black and a ball watering an the the st and .",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "Three men and two women stand facing the ocean from the shore on a sunny day .",
+        "hyp": "A man in a black and a standing a standing a pooler a the stand .",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "Two ladies and three men looking at the ocean .",
+        "hyp": "A man in a black white standing a standing a black and with a ball wate .",
+        "img": 76,
+        "cap": 4
+      },
+      {
+        "ref": "A large dog sniffing a human hand while a small dog is sniffing the large dog 's butt .",
+        "hyp": "A man is and a black and a black and a black and a black and a blue shir thint a t the band band blllllll s s s shindine aie .",
+        "img": 93,
+        "cap": 0
+      },
+      {
+        "ref": "A person reaches for a large grey dog while a black dog trails .",
+        "hyp": "A man in a black and a black and a black and a black and a black and a balll wathite back band back ind band bllllllllll in .",
+        "img": 93,
+        "cap": 1
+      },
+      {
+        "ref": "A smaller dog sniffs a larger dog in the hills .",
+        "hyp": "A young boy with a black with a black and a black with a blue back and a balll back .",
+        "img": 93,
+        "cap": 2
+      },
+      {
+        "ref": "the black dog is sniffing the brown dog 's butt .",
+        "hyp": "A man is boy in a black and a black and a ball .",
+        "img": 93,
+        "cap": 3
+      },
+      {
+        "ref": "The lady ask the dog to give her the ball on their beach walk .",
+        "hyp": "A man is playing a black and a ball .",
+        "img": 93,
+        "cap": 4
+      }
+    ]
+  }
+}

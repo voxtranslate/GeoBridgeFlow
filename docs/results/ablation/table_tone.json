@@ -1,0 +1,174 @@
+{
+  "question": "Does lexical tone need its own gated path into the hub?  (N5: lexical-tonality gate)",
+  "stats": {
+    "gated tone stream (ours)": {
+      "aud_sb>txt_sa/bleu": [
+        22.413444243820482,
+        0.0
+      ],
+      "aud_sb>txt_sa/bleu_multi": [
+        29.28683056477691,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        57.267400941751845,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        28.333333333333332,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        81.25,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        47.5,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        25.416666269302368,
+        0.0
+      ],
+      "aud_sb>txt_sa/hub_r1": [
+        52.91666388511658,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        35.58201058201058,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        25.793356940274354,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        43.057912586683415,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        51.023084877861365,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        10.425327431617598,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        15.0,
+        0.0
+      ],
+      "codec_txt_sc/cer": [
+        11.62280701754386,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.5771417617797852,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0003092362603638321,
+        0.0
+      ],
+      "tone/reliance_sb": [
+        0.288120836019516,
+        0.0
+      ]
+    },
+    "no tone stream (single stream)": {
+      "aud_sb>txt_sa/bleu": [
+        15.493257119147577,
+        0.0
+      ],
+      "aud_sb>txt_sa/bleu_multi": [
+        21.317191357769936,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        48.07942167672524,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        23.333333333333332,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        56.25,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        56.25,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        13.333334028720856,
+        0.0
+      ],
+      "aud_sb>txt_sa/hub_r1": [
+        38.333332538604736,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        36.77248677248677,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        19.047981341207617,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        43.30252328403321,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        46.147521486441384,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        4.2711825699927735,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        11.666666666666666,
+        0.0
+      ],
+      "codec_txt_sc/cer": [
+        11.586257309941521,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.0,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0,
+        0.0
+      ],
+      "tone/reliance_sb": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "best": {
+    "aud_sb>txt_sa/bleu": "gated tone stream (ours)",
+    "aud_sb>txt_sa/bleu_multi": "gated tone stream (ours)",
+    "aud_sb>txt_sa/chrf": "gated tone stream (ours)",
+    "aud_sb>txt_sa/content_acc": "gated tone stream (ours)",
+    "aud_sb>txt_sa/color_acc": "gated tone stream (ours)",
+    "aud_sb>txt_sa/flat_color_acc": "no tone stream (single stream)",
+    "aud_sb>img/r1": "gated tone stream (ours)",
+    "aud_sb>txt_sa/hub_r1": "gated tone stream (ours)",
+    "aud_sa>txt_sa/wer": "gated tone stream (ours)",
+    "img>txt_sa/bleu_multi": "gated tone stream (ours)",
+    "txt_sa>txt_sc/bleu": "no tone stream (single stream)",
+    "txt_sc>txt_sa/bleu": "gated tone stream (ours)",
+    "txt_sa>aud_sb/rt_bleu": "gated tone stream (ours)",
+    "txt_sa>aud_sb/rt_content_acc": "gated tone stream (ours)",
+    "codec_txt_sc/cer": "no tone stream (single stream)",
+    "tone/gate_sb": "gated tone stream (ours)",
+    "tone/gate_sa": "no tone stream (single stream)",
+    "tone/reliance_sb": "gated tone stream (ours)"
+  },
+  "seeds": 1
+}

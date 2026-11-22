@@ -1,0 +1,92 @@
+[
+  {
+    "source": "A closeup of a white dog that is laying its head on its paws .",
+    "samples": {
+      "temp=0.0": [
+        "A man in a black and a black and a black and a black and a balll ing a strond .",
+        "A man in a black and a black and a black and a black and a balll ing a strond .",
+        "A man in a black and a black and a black and a black and a balll ing a strond ."
+      ],
+      "temp=0.5": [
+        "A man in a black and a black and a black and a black and the stand .",
+        "A man is standing a black and a standing a black in a black .",
+        "A group of player in a black and a black and to the stand ."
+      ],
+      "temp=1.0": [
+        "A man in a black and a black and a black and the stand .",
+        "A man is standing a standing a string a ball .",
+        "A man is standing a black and a black and a black in a black ."
+      ]
+    }
+  },
+  {
+    "source": "a large white dog lying on the floor .",
+    "samples": {
+      "temp=0.0": [
+        "A woman in a white standing a with a stander a wall .",
+        "A woman in a white standing a with a stander a wall .",
+        "A woman in a white standing a with a stander a wall ."
+      ],
+      "temp=0.5": [
+        "A girl with in a grees sing and the singe .",
+        "A woman in a standing a standing a reed .",
+        "A groung girl in the stand a stand ."
+      ],
+      "temp=1.0": [
+        "A girl is runing the sirt in the .",
+        "A girl in a rid girl in the streee .",
+        "A woman in a stand with a reand snow ."
+      ]
+    }
+  },
+  {
+    "source": "A white dog has its head on the ground .",
+    "samples": {
+      "temp=0.0": [
+        "A dog runnning the stown the .",
+        "A dog runnning the stown the .",
+        "A dog runnning the stown the ."
+      ],
+      "temp=0.5": [
+        "A dog in the sing .",
+        "A dog running the singr .",
+        "A dog running the singr ."
+      ],
+      "temp=1.0": [
+        "A dog is running the strow the .",
+        "A dog in the siting in the .",
+        "A dog in a girl shing the strow the ."
+      ]
+    }
+  },
+  {
+    "source": "A white dog is resting its head on a tiled floor with its eyes open .",
+    "samples": {
+      "temp=0.0": [
+        "A woman in a black white dog a black with a black with a blowate blownd an thin a blllloooo t the back .",
+        "A woman in a black white dog a black with a black with a blowate blownd an thin a blllloooo t the back .",
+        "A woman in a black white dog a black with a black with a blowate blownd an thin a blllloooo t the back ."
+      ],
+      "temp=0.5": [
+        "A woman in a stand with a standing a standing a black with ith in a stronde wate s steround .",
+        "A woman in a dog standing a standing a with stownder a blue stand water .",
+        "A woman in a white standing a standing a white standing a back and waterow thite te ."
+      ],
+      "temp=1.0": [
+        "A woman in a black white standing a black white in a black and water .",
+        "A boy wearing a black and a black and with a strown .",
+        "A boy with a standing a black and with a black in the ."
+      ]
+    }
+  },
+  {
+    "hub_interpolation": [
+      "A man in a black and a black and a black and a black and a balll ing a strond .",
+      "A man in a black and a black and a black and a black and a balll ing a strond at the .",
+      "A man in a black white standing a black and the stand and a balllooow the wate the ste .",
+      "A woman in a black white and a whille and a black water a ball wate strond the .",
+      "A woman in a white standing a with a standing a black water .",
+      "A woman in a white standing a with a stander a wall ."
+    ]
+  }
+]

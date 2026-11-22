@@ -212,7 +212,7 @@ class AblationRunner:
                         done.append(load_json(p))
                 if done:
                     rows[name] = done
-            if rows:
+            if len(rows) >= 2:  # a group with only the full model has nothing to compare
                 summary[g] = self._report(g, GROUPS[g]["question"], rows)
         self._write_summary(summary)
         return summary

@@ -1,0 +1,268 @@
+{
+  "checkpoint_step": 2800,
+  "synthesised_speech": [
+    {
+      "file": "tts_en_0.wav",
+      "lang": "en",
+      "text": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+      "seconds": 3.82
+    },
+    {
+      "file": "tts_yo_0.wav",
+      "lang": "yo",
+      "text": "Two young ladies in green boots are walking through an urban area while an older lady wearing black shoes follows them .",
+      "seconds": 5.98
+    },
+    {
+      "file": "tts_en_1.wav",
+      "lang": "en",
+      "text": "There is a group of people in winter coats are gather in front of a large building .",
+      "seconds": 4.7
+    },
+    {
+      "file": "tts_yo_1.wav",
+      "lang": "yo",
+      "text": "There is a group of people in winter coats are gather in front of a large building .",
+      "seconds": 7.86
+    },
+    {
+      "file": "tts_en_2.wav",
+      "lang": "en",
+      "text": "A small white dogs leaps over the back of a larger dog to chase his toy .",
+      "seconds": 4.42
+    },
+    {
+      "file": "tts_yo_2.wav",
+      "lang": "yo",
+      "text": "A small white dogs leaps over the back of a larger dog to chase his toy .",
+      "seconds": 7.98
+    }
+  ],
+  "path_straightness": {
+    "hub -> text (write)": 0.9866719245910645,
+    "speech:yo -> hub (read)": 0.9754765629768372
+  },
+  "hub_centroid_gap": {
+    "txt:en|txt:hi": 0.25556686520576477,
+    "txt:en|aud:en": 0.23962387442588806,
+    "txt:en|aud:yo": 0.3645172715187073,
+    "txt:en|img:-": 0.3441585302352905,
+    "txt:hi|aud:en": 0.3149219751358032,
+    "txt:hi|aud:yo": 0.44496282935142517,
+    "txt:hi|img:-": 0.377031534910202,
+    "aud:en|aud:yo": 0.3069932162761688,
+    "aud:en|img:-": 0.3046517074108124,
+    "aud:yo|img:-": 0.36356422305107117
+  },
+  "docking_coupling": {
+    "alpha=0.0": {
+      "match_acc": 4.16666679084301,
+      "mass_on_true_pairs": 1.0461523197591305,
+      "row_entropy": 0.9999721050262451,
+      "max_prob": 0.010681398212909698,
+      "used_cols": 1.0
+    },
+    "alpha=0.5": {
+      "match_acc": 2.083333395421505,
+      "mass_on_true_pairs": 2.170351892709732,
+      "row_entropy": 0.8202607035636902,
+      "max_prob": 0.09870335459709167,
+      "used_cols": 1.0
+    },
+    "alpha=1.0": {
+      "match_acc": 2.083333395421505,
+      "mass_on_true_pairs": 2.103155665099621,
+      "row_entropy": 0.6453014612197876,
+      "max_prob": 0.20442818105220795,
+      "used_cols": 1.0
+    },
+    "relational_isometry_r": 0.4951984527429662
+  },
+  "tone": {
+    "gate": {
+      "en": 0.35490894317626953,
+      "yo": 0.4641909897327423
+    },
+    "pitch_scaling": {
+      "en": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          0.03154393658041954,
+          0.017636509612202644,
+          0.007442236877977848,
+          0.0,
+          0.004608226008713245,
+          0.014068192802369595
+        ],
+        "color_acc": []
+      },
+      "yo": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          0.02419295907020569,
+          0.01481666136533022,
+          0.007385341916233301,
+          0.0,
+          0.006394499912858009,
+          0.017350535839796066
+        ],
+        "color_acc": []
+      }
+    },
+    "contour_corr_yo": -0.016628635699767108
+  },
+  "speech_attribution": {
+    "en": {
+      "tone_stream_share_of_attribution": 0.0022420119494199753
+    },
+    "yo": {
+      "tone_stream_share_of_attribution": 0.0030531843658536673
+    }
+  },
+  "ode": {
+    "score_vs_steps": {
+      "1": 1.1561748512345302,
+      "2": 3.084139092487853,
+      "4": 2.6860383625603808,
+      "8": 2.1673423873698607,
+      "16": 2.550645869153889
+    },
+    "plain_cycle_vs_steps": {
+      "euler": {
+        "1": 1.7976024150848389,
+        "2": 2.909397840499878,
+        "4": 2.611485004425049,
+        "8": 1.7337690591812134,
+        "16": 0.7873714566230774,
+        "32": 0.23381061851978302
+      },
+      "midpoint": {
+        "1": 4.291458606719971,
+        "2": 1.0773484706878662,
+        "4": 0.17363804578781128,
+        "8": 0.027987435460090637,
+        "16": 0.0016628653975203633,
+        "32": 3.1116291211219504e-05
+      }
+    }
+  },
+  "fertility": {
+    "grapheme (ours)": {
+      "en": {
+        "units_per_word": 4.651067184772202,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 4.970167935746323,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 0.774805684737715,
+        "bytes_per_grapheme": 1.2906461835505467
+      },
+      "hi": {
+        "units_per_word": 3.2322211735968467,
+        "units_per_grapheme": 1.0726629573676258,
+        "units_per_byte": 0.28974097389833037,
+        "bytes_per_grapheme": 3.702144515273223
+      }
+    },
+    "byte": {
+      "en": {
+        "units_per_word": 4.651067184772202,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 6.414728277876291,
+        "units_per_grapheme": 1.2906461835505467,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.2906461835505467
+      },
+      "hi": {
+        "units_per_word": 11.155554321878643,
+        "units_per_grapheme": 3.702144515273223,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 3.702144515273223
+      }
+    },
+    "BPE-2000 (hub language only)": {
+      "en": {
+        "units_per_word": 1.1506448161288505,
+        "units_per_grapheme": 0.2473937207134122,
+        "units_per_byte": 0.2473937207134122,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 4.990820903306561,
+        "units_per_grapheme": 1.0041553862620411,
+        "units_per_byte": 0.7780253016358255,
+        "bytes_per_grapheme": 1.2906461835505467
+      },
+      "hi": {
+        "units_per_word": 11.149947260311997,
+        "units_per_grapheme": 3.700283724529275,
+        "units_per_byte": 0.9994973749035806,
+        "bytes_per_grapheme": 3.702144515273223
+      }
+    }
+  },
+  "hub_agreement": {
+    "txt:en|aud:en": {
+      "same_mean_cos": 0.27972137928009033,
+      "diff_mean_cos": 0.23683752119541168,
+      "auc": 0.58059375
+    },
+    "aud:yo|txt:en": {
+      "same_mean_cos": 0.21195551753044128,
+      "diff_mean_cos": 0.11536864936351776,
+      "auc": 0.6591836734693878
+    },
+    "aud:yo|aud:en": {
+      "same_mean_cos": 0.2526226341724396,
+      "diff_mean_cos": 0.13857311010360718,
+      "auc": 0.6871428571428572
+    }
+  },
+  "lora_relative_norm": {
+    "txt": {
+      "en": 0.08862480521202087,
+      "yo": 0.0,
+      "hi": 0.08295045793056488
+    },
+    "aud": {
+      "en": 0.08802811801433563,
+      "yo": 0.090614452958107,
+      "hi": 0.0
+    }
+  },
+  "hub_vs_private_probe": {
+    "en/private_rms": 0.4330315589904785,
+    "yo/private_rms": 0.5178734064102173
+  },
+  "codec_reconstruction": {
+    "en": {
+      "segmental_cosine": 0.23529241979122162,
+      "mel_l1": 0.9496022462844849
+    },
+    "yo": {
+      "segmental_cosine": 0.3867926299571991,
+      "mel_l1": 0.36601367592811584
+    }
+  }
+}

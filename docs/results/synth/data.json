@@ -1,0 +1,44 @@
+{
+  "images": {
+    "train": 1080,
+    "valid": 60,
+    "test": 60
+  },
+  "caption_groups": {
+    "train": 3445,
+    "valid": 240,
+    "test": 240
+  },
+  "bridge_pairs_train": 205,
+  "island_unpaired_train": 875,
+  "vision_tokens": [
+    17,
+    64
+  ],
+  "speech_dim": 26,
+  "anchor_explained_var": 0.9853265881538391,
+  "lang_sa": {
+    "utterances": 4800,
+    "with_audio": 4800,
+    "tonal": false,
+    "script": "Latin",
+    "written": true,
+    "spoken": true
+  },
+  "lang_sb": {
+    "utterances": 4800,
+    "with_audio": 4800,
+    "tonal": true,
+    "script": "Latin+tone marks (held out)",
+    "written": false,
+    "spoken": true
+  },
+  "lang_sc": {
+    "utterances": 4800,
+    "with_audio": 0,
+    "tonal": false,
+    "script": "Devanagari",
+    "written": true,
+    "spoken": false
+  }
+}

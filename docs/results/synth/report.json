@@ -1,0 +1,347 @@
+{
+  "checkpoint_step": 3000,
+  "synthesised_speech": [
+    {
+      "file": "tts_sa_0.wav",
+      "lang": "sa",
+      "text": "sipa pise ge kufi kope",
+      "seconds": 0.86
+    },
+    {
+      "file": "tts_sb_0.wav",
+      "lang": "sb",
+      "text": "sipa pise ge kufi kope",
+      "seconds": 1.22
+    },
+    {
+      "file": "s2st_sb2sa_0.wav",
+      "lang": "sa",
+      "text": "sipa pise ge kufi kope",
+      "seconds": 0.94
+    },
+    {
+      "file": "tts_sa_1.wav",
+      "lang": "sa",
+      "text": "viba kope ge dolu pise",
+      "seconds": 0.74
+    },
+    {
+      "file": "tts_sb_1.wav",
+      "lang": "sb",
+      "text": "viba kope ge dolu pise",
+      "seconds": 0.9
+    },
+    {
+      "file": "s2st_sb2sa_1.wav",
+      "lang": "sa",
+      "text": "viba kope ge dolu pise",
+      "seconds": 0.98
+    },
+    {
+      "file": "tts_sa_2.wav",
+      "lang": "sa",
+      "text": "kufi pise ge vofu febu",
+      "seconds": 0.9
+    },
+    {
+      "file": "tts_sb_2.wav",
+      "lang": "sb",
+      "text": "kufi pise ge vofu febu",
+      "seconds": 1.18
+    },
+    {
+      "file": "s2st_sb2sa_2.wav",
+      "lang": "sa",
+      "text": "kufi pise ge vofu febu",
+      "seconds": 0.98
+    }
+  ],
+  "pointing_game": {
+    "txt:sa": {
+      "any_slot_hits": 100.0,
+      "slot_precision": 60.0,
+      "chance_precision": 8.4375
+    },
+    "aud:sa": {
+      "any_slot_hits": 100.0,
+      "slot_precision": 59.6875,
+      "chance_precision": 8.4375
+    },
+    "aud:sb": {
+      "any_slot_hits": 100.0,
+      "slot_precision": 55.625,
+      "chance_precision": 8.4375
+    }
+  },
+  "path_straightness": {
+    "hub -> text (write)": 0.9903564453125,
+    "speech:sb -> hub (read)": 0.9900320172309875
+  },
+  "hub_centroid_gap": {
+    "txt:sa|txt:sc": 0.106024831533432,
+    "txt:sa|aud:sa": 0.09222131967544556,
+    "txt:sa|aud:sb": 0.16187918186187744,
+    "txt:sa|img:-": 0.20744937658309937,
+    "txt:sc|aud:sa": 0.12589551508426666,
+    "txt:sc|aud:sb": 0.13618609309196472,
+    "txt:sc|img:-": 0.17950081825256348,
+    "aud:sa|aud:sb": 0.14004473388195038,
+    "aud:sa|img:-": 0.20473229885101318,
+    "aud:sb|img:-": 0.1672009378671646
+  },
+  "docking_coupling": {
+    "alpha=0.0": {
+      "match_acc": 10.41666641831398,
+      "mass_on_true_pairs": 2.9162608087062836,
+      "row_entropy": 0.8090818524360657,
+      "max_prob": 0.0504998080432415,
+      "used_cols": 1.0
+    },
+    "alpha=0.5": {
+      "match_acc": 29.16666567325592,
+      "mass_on_true_pairs": 13.256874680519104,
+      "row_entropy": 0.5710824728012085,
+      "max_prob": 0.15734745562076569,
+      "used_cols": 1.0
+    },
+    "alpha=1.0": {
+      "match_acc": 22.91666716337204,
+      "mass_on_true_pairs": 14.238184690475464,
+      "row_entropy": 0.5065995454788208,
+      "max_prob": 0.18926148116588593,
+      "used_cols": 1.0
+    },
+    "relational_isometry_r": 0.9367887389705478
+  },
+  "tone": {
+    "gate": {
+      "sa": 0.0003092362603638321,
+      "sb": 0.5771417617797852
+    },
+    "pitch_scaling": {
+      "sa": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          1.2709413965694694e-08,
+          7.415958069856288e-09,
+          3.35917582638956e-09,
+          0.0,
+          3.0448521481929447e-09,
+          1.0776910031040643e-08
+        ],
+        "color_acc": [
+          98.95833333333333,
+          98.95833333333333,
+          98.95833333333333,
+          98.95833333333333,
+          98.95833333333333,
+          98.95833333333333
+        ]
+      },
+      "sb": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          0.2709859311580658,
+          0.12888702750205994,
+          0.046659670770168304,
+          0.0,
+          0.020015917718410492,
+          0.056249309331178665
+        ],
+        "color_acc": [
+          42.708333333333336,
+          62.5,
+          77.08333333333333,
+          83.33333333333333,
+          84.375,
+          83.33333333333333
+        ]
+      }
+    },
+    "contour_corr_sb": 0.926245560073604
+  },
+  "speech_attribution": {
+    "sa": {
+      "tone_stream_share_of_attribution": 1.817163865780458e-05
+    },
+    "sb": {
+      "tone_stream_share_of_attribution": 0.029411593452095985
+    }
+  },
+  "ode": {
+    "score_vs_steps": {
+      "1": 23.75,
+      "2": 35.0,
+      "4": 27.5,
+      "8": 24.375,
+      "16": 26.875
+    },
+    "plain_cycle_vs_steps": {
+      "euler": {
+        "1": 3.655163288116455,
+        "2": 2.3191449642181396,
+        "4": 2.0453288555145264,
+        "8": 0.9182855486869812,
+        "16": 0.2412753701210022,
+        "32": 0.056857965886592865
+      },
+      "midpoint": {
+        "1": 2.816159248352051,
+        "2": 2.304349660873413,
+        "4": 0.6362706422805786,
+        "8": 0.04823805391788483,
+        "16": 0.0019472474232316017,
+        "32": 0.0001727301423670724
+      }
+    }
+  },
+  "fertility": {
+    "grapheme (ours)": {
+      "sa": {
+        "units_per_word": 4.442265795206971,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "sb": {
+        "units_per_word": 4.442265795206971,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 0.7151876534549281,
+        "bytes_per_grapheme": 1.398234428641491
+      },
+      "sc": {
+        "units_per_word": 2.5577342047930283,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 0.21349336242953265,
+        "bytes_per_grapheme": 4.6839863713798975
+      }
+    },
+    "byte": {
+      "sa": {
+        "units_per_word": 4.442265795206971,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "sb": {
+        "units_per_word": 6.211328976034858,
+        "units_per_grapheme": 1.398234428641491,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.398234428641491
+      },
+      "sc": {
+        "units_per_word": 11.980392156862745,
+        "units_per_grapheme": 4.6839863713798975,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 4.6839863713798975
+      }
+    },
+    "BPE-2000 (hub language only)": {
+      "sa": {
+        "units_per_word": 1.0,
+        "units_per_grapheme": 0.22511034820990683,
+        "units_per_byte": 0.22511034820990683,
+        "bytes_per_grapheme": 1.0
+      },
+      "sb": {
+        "units_per_word": 5.873856209150326,
+        "units_per_grapheme": 1.3222658165767534,
+        "units_per_byte": 0.9456681866011926,
+        "bytes_per_grapheme": 1.398234428641491
+      },
+      "sc": {
+        "units_per_word": 11.980392156862745,
+        "units_per_grapheme": 4.6839863713798975,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 4.6839863713798975
+      }
+    }
+  },
+  "hub_agreement": {
+    "txt:sa|aud:sa": {
+      "same_mean_cos": 0.8918097019195557,
+      "diff_mean_cos": 0.5028680562973022,
+      "auc": 0.7996701388888889
+    },
+    "aud:sb|txt:sa": {
+      "same_mean_cos": 0.8450708389282227,
+      "diff_mean_cos": 0.47409161925315857,
+      "auc": 0.7736458333333334
+    },
+    "aud:sb|aud:sa": {
+      "same_mean_cos": 0.8481454253196716,
+      "diff_mean_cos": 0.4733812212944031,
+      "auc": 0.7747743055555556
+    }
+  },
+  "lora_relative_norm": {
+    "txt": {
+      "sa": 0.12709374725818634,
+      "sb": 0.0,
+      "sc": 0.1271173506975174
+    },
+    "aud": {
+      "sa": 0.13989610970020294,
+      "sb": 0.17933155596256256,
+      "sc": 0.0
+    }
+  },
+  "hub_vs_private_probe": {
+    "sa/speaker": {
+      "hub": 46.666666666666664,
+      "private": 34.166666666666664,
+      "majority_class": 20.0
+    },
+    "sa/first colour": {
+      "hub": 100.0,
+      "private": 90.0,
+      "majority_class": 17.5
+    },
+    "sa/first shape": {
+      "hub": 97.5,
+      "private": 91.66666666666666,
+      "majority_class": 23.333333333333332
+    },
+    "sb/speaker": {
+      "hub": 96.66666666666667,
+      "private": 81.66666666666667,
+      "majority_class": 50.0
+    },
+    "sb/first colour": {
+      "hub": 97.5,
+      "private": 96.66666666666667,
+      "majority_class": 17.5
+    },
+    "sb/first shape": {
+      "hub": 98.33333333333333,
+      "private": 92.5,
+      "majority_class": 23.333333333333332
+    },
+    "sa/private_rms": 0.726809561252594,
+    "sb/private_rms": 0.6636690497398376
+  },
+  "codec_reconstruction": {
+    "sa": {
+      "segmental_cosine": 0.6991310119628906,
+      "mel_l1": 0.4595659673213959
+    },
+    "sb": {
+      "segmental_cosine": 0.8630572557449341,
+      "mel_l1": 0.3604568541049957
+    }
+  }
+}

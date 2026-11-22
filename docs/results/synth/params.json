@@ -1,0 +1,9 @@
+{
+  "total": 5420182,
+  "text_codec": 935827,
+  "audio_codec": 1175490,
+  "hub": 633601,
+  "spokes": 2672912,
+  "per_language_flow_params": 52522.666666666664,
+  "per_language_pct_of_spokes": 2.0873472588730273
+}

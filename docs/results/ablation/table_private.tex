@@ -1,0 +1,8 @@
+\begin{tabular}{lrrrrrrrrrrrrrrrrrr}
+\toprule
+Variant & island ST BLEU & island ST BLEU (multi-ref) & island ST chrF++ & island ST content acc & island ST tone-word acc &   ... with pitch removed & island speech-$\to$image R@1 & island speech-$\to$text hub R@1 & hub ASR WER & captioning BLEU (multi-ref) & MT hub-$\to$written BLEU & MT written-$\to$hub BLEU & TTS into island (round-trip BLEU) & TTS into island (round-trip content) & text codec CER (written lang) & gate (island) & gate (hub lang) & tone reliance (island) \\
+\midrule
+hub + private Gaussian tokens (ours) & \textbf{22.41} & \textbf{29.29} & \textbf{57.27} & \textbf{28.33} & \textbf{81.25} & 47.50 & \textbf{25.42} & \textbf{52.92} & \textbf{35.58} & \textbf{25.79} & \textbf{43.06} & \textbf{51.02} & \textbf{10.43} & \textbf{15.00} & 11.62 & 0.58 & 0.00 & 0.29 \\
+private tokens fixed to zero (deterministic spokes) & 7.01 & 19.69 & 39.57 & 18.33 & 79.17 & \textbf{57.50} & 15.83 & 20.42 & 64.95 & 10.54 & 8.54 & 14.77 & 5.20 & 3.33 & 11.62 & 0.58 & 0.00 & \textbf{0.40} \\
+\bottomrule
+\end{tabular}

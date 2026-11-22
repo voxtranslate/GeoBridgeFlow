@@ -1,0 +1,245 @@
+{
+  "question": "What should the hub be anchored to?  (N1: barycentric visual interlingua)",
+  "stats": {
+    "bary (ours)": {
+      "aud_sb>txt_sa/bleu": [
+        22.413444243820482,
+        0.0
+      ],
+      "aud_sb>txt_sa/bleu_multi": [
+        29.28683056477691,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        57.267400941751845,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        28.333333333333332,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        81.25,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        47.5,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        25.416666269302368,
+        0.0
+      ],
+      "aud_sb>txt_sa/hub_r1": [
+        52.91666388511658,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        35.58201058201058,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        25.793356940274354,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        43.057912586683415,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        51.023084877861365,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        10.425327431617598,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        15.0,
+        0.0
+      ],
+      "codec_txt_sc/cer": [
+        11.62280701754386,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.5771417617797852,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0003092362603638321,
+        0.0
+      ],
+      "tone/reliance_sb": [
+        0.288120836019516,
+        0.0
+      ]
+    },
+    "global visual pivot": {
+      "aud_sb>txt_sa/bleu": [
+        6.795752336493548,
+        0.0
+      ],
+      "aud_sb>txt_sa/bleu_multi": [
+        15.525960615078787,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        40.2794140911336,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        11.666666666666666,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        58.333333333333336,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        36.25,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        8.33333358168602,
+        0.0
+      ],
+      "aud_sb>txt_sa/hub_r1": [
+        13.333334028720856,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        51.32275132275132,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        11.299714874146652,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        27.766687184814103,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        37.286365144146444,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        4.51472678210034,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        2.5,
+        0.0
+      ],
+      "codec_txt_sc/cer": [
+        11.62280701754386,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.5771417617797852,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0003092362603638321,
+        0.0
+      ],
+      "tone/reliance_sb": [
+        0.3099418580532074,
+        0.0
+      ]
+    },
+    "text anchor (image-pivoted)": {
+      "aud_sb>txt_sa/bleu": [
+        21.753638463163703,
+        0.0
+      ],
+      "aud_sb>txt_sa/bleu_multi": [
+        27.631102894436292,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        59.78766787962656,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        41.25,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        90.83333333333333,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        55.0,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        1.2500000186264515,
+        0.0
+      ],
+      "aud_sb>txt_sa/hub_r1": [
+        60.41666865348816,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        30.158730158730158,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        30.347829953023645,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        13.813883770069724,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        28.583125423722464,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        16.073680300743476,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        18.75,
+        0.0
+      ],
+      "codec_txt_sc/cer": [
+        11.62280701754386,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.5771417617797852,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0003092362603638321,
+        0.0
+      ],
+      "tone/reliance_sb": [
+        0.24355049431324005,
+        0.0
+      ]
+    }
+  },
+  "best": {
+    "aud_sb>txt_sa/bleu": "bary (ours)",
+    "aud_sb>txt_sa/bleu_multi": "bary (ours)",
+    "aud_sb>txt_sa/chrf": "text anchor (image-pivoted)",
+    "aud_sb>txt_sa/content_acc": "text anchor (image-pivoted)",
+    "aud_sb>txt_sa/color_acc": "text anchor (image-pivoted)",
+    "aud_sb>txt_sa/flat_color_acc": "text anchor (image-pivoted)",
+    "aud_sb>img/r1": "bary (ours)",
+    "aud_sb>txt_sa/hub_r1": "text anchor (image-pivoted)",
+    "aud_sa>txt_sa/wer": "text anchor (image-pivoted)",
+    "img>txt_sa/bleu_multi": "text anchor (image-pivoted)",
+    "txt_sa>txt_sc/bleu": "bary (ours)",
+    "txt_sc>txt_sa/bleu": "bary (ours)",
+    "txt_sa>aud_sb/rt_bleu": "text anchor (image-pivoted)",
+    "txt_sa>aud_sb/rt_content_acc": "text anchor (image-pivoted)",
+    "tone/reliance_sb": "global visual pivot"
+  },
+  "seeds": 1
+}

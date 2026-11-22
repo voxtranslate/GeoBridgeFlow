@@ -41,6 +41,8 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
     md = [f"## {title}", "", note, ""]
     md += [f"- Run directory: `{run}`; {cfg['phase_a_steps']} representation steps + {cfg['phase_b_steps']} flow steps, "
            f"batch {cfg['batch_size']}, seed {cfg['seed']}.",
+           f"- Retrieval gallery: the {data['images']['test']} test images (chance R@1 "
+           f"{100 / data['images']['test']:.1f} %, R@10 {min(100.0, 1000 / data['images']['test']):.1f} %).",
            f"- Data: {data['images']['train']} / {data['images']['valid']} / {data['images']['test']} images "
            f"(train / valid / test), {data['bridge_pairs_train']} bridge pairs and "
            f"{data['island_unpaired_train']} unpaired island utterances in training "
@@ -59,12 +61,15 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
         (f"aud_{L}>txt_{H}/flat_bleu", "", "BLEU with the pitch contour removed"),
         (f"aud_{L}>img/r1", f"island speech ({L}) → image", "R@1 (%)"),
         (f"aud_{L}>img/r5", "", "R@5 (%)"),
+        (f"aud_{L}>img/r10", "", "R@10 (%)"),
         (f"aud_{L}>txt_{H}/hub_r1", f"island speech ({L}) → {H} text (hub retrieval)", "R@1 (%)"),
         (f"aud_{H}>txt_{H}/wer", f"{H} speech → {H} text", "WER (%)"),
         (f"aud_{H}>txt_{H}/content_acc", "", "exact content accuracy (%)"),
         (f"aud_{H}>txt_{H}/bleu", "", "BLEU"),
         (f"txt_{H}>img/r1", f"{H} text → image", "R@1 (%)"),
+        (f"txt_{H}>img/r10", "", "R@10 (%)"),
         (f"aud_{H}>img/r1", f"{H} speech → image", "R@1 (%)"),
+        (f"aud_{H}>img/r10", "", "R@10 (%)"),
         (f"img>txt_{H}/bleu_multi", f"image → {H} text", "BLEU (all captions of the image)"),
         (f"txt_{H}>txt_{T}/bleu", f"{H} text → {T} text, zero-pair", "BLEU"),
         (f"txt_{H}>txt_{T}/content_acc", "", "exact content accuracy (%)"),
@@ -144,6 +149,64 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
     return md
 
 
+FIGURES = [
+    ("01_slot_attention.png", "Where each hub slot looks, for text, speech and island speech of the same caption"),
+    ("05_tone.png", "Tonality gates, hub displacement and tone-word accuracy against pitch-contour scaling"),
+    ("04_docking_coupling.png", "Transport plans between island speech and hub codes, with the true partners marked"),
+    ("09_ode_steps.png", "Quality against ODE steps; the plain ODE cycle vanishes with the step size"),
+    ("03_hub_manifold.png", "All views in hub coordinates"),
+    ("13_hub_vs_private.png", "Linear probes on the hub and private halves of a speech read-out"),
+    ("10_fertility.png", "Units per word and per written symbol for each script"),
+]
+
+
+def export_assets(a) -> List[str]:
+    """Copy the figures, tables, sample outputs and metric files behind this document into docs/results/,
+    so they are versioned with the code (runs/ itself is not)."""
+    import glob
+    import shutil
+
+    root = os.path.join(os.path.dirname(a.out) or ".", "results")
+    md = ["## 4. Files behind these numbers", "",
+          "`runs/` is not versioned; the artefacts behind this document are copied to `docs/results/`.", ""]
+    for name, run in (("synth", a.synth), ("real", a.real)):
+        if not run or not os.path.isdir(run):
+            continue
+        dst = os.path.join(root, name)
+        shutil.rmtree(dst, ignore_errors=True)
+        os.makedirs(os.path.join(dst, "figures"), exist_ok=True)
+        os.makedirs(os.path.join(dst, "speech"), exist_ok=True)
+        for p in glob.glob(os.path.join(run, "inference", "*.png")) + glob.glob(os.path.join(run, "curves", "*.png")):
+            shutil.copy(p, os.path.join(dst, "figures"))
+        for p in glob.glob(os.path.join(run, "inference", "outputs", "speech", "*")):
+            shutil.copy(p, os.path.join(dst, "speech"))
+        for p in ("eval_test.json", "config.json", "params.json", "data.json", "history.json",
+                  os.path.join("inference", "report.json"), os.path.join("inference", "outputs", "translations.md"),
+                  os.path.join("inference", "outputs", "private_diversity.json")):
+            if os.path.exists(os.path.join(run, p)):
+                shutil.copy(os.path.join(run, p), dst)
+        label = "SynthWorld reference run" if name == "synth" else "Flickr8k-Tri subset"
+        md += [f"### {label} (`docs/results/{name}/`)", "",
+               "Metrics `eval_test.json`, internals `report.json`, sample conversions `translations.md`, "
+               "synthesised speech `speech/*.wav`, training curves and all figures in `figures/`.", ""]
+        for fig, cap in FIGURES:
+            if os.path.exists(os.path.join(dst, "figures", fig)):
+                md += [f"**{cap}**", "", f"![{fig}](results/{name}/figures/{fig})", ""]
+    if a.ablation and os.path.isdir(a.ablation):
+        dst = os.path.join(root, "ablation")
+        shutil.rmtree(dst, ignore_errors=True)
+        os.makedirs(os.path.join(dst, "cells"), exist_ok=True)
+        for p in glob.glob(os.path.join(a.ablation, "table_*")) + glob.glob(os.path.join(a.ablation, "plot_*")) + \
+                glob.glob(os.path.join(a.ablation, "SUMMARY.md")):
+            shutil.copy(p, dst)
+        for p in glob.glob(os.path.join(a.ablation, "*", "*", "results.json")):
+            parts = p.split(os.sep)
+            shutil.copy(p, os.path.join(dst, "cells", f"{parts[-3]}__{parts[-2]}.json"))
+        md += ["### Ablation (`docs/results/ablation/`)", "",
+               "Tables as Markdown, CSV and LaTeX, bar charts, and the full test metrics of every cell in `cells/`.", ""]
+    return md
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--synth", default="")
@@ -162,11 +225,12 @@ def main() -> None:
                           "compared with the true content of the source utterance).")
     if a.ablation and os.path.exists(os.path.join(a.ablation, "SUMMARY.md")):
         body = open(os.path.join(a.ablation, "SUMMARY.md"), encoding="utf8").read().split("\n")
-        md += ["## 2. Ablations on SynthWorld", ""] + [l.replace("](plot_", f"](../{a.ablation}/plot_") for l in body[1:]] + [""]
+        md += ["## 2. Ablations on SynthWorld", ""] + [l.replace("](plot_", "](results/ablation/plot_") for l in body[1:]] + [""]
     if a.real:
         md += run_section("3. Flickr8k-Tri subset (real data)", a.real, "en", "yo", "hi",
                           "English text and speech, Yorùbá speech (orthography held out), Hindi text. "
                           "This is a pipeline check on a small subset with a small model, not a result to cite.")
+    md += export_assets(a)
     with open(a.out, "w", encoding="utf8") as f:
         f.write("\n".join(md) + "\n")
     print(f"wrote {a.out}")
