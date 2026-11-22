@@ -67,27 +67,29 @@ class Spoke(nn.Module):
 
     # ------------------------------------------------------------------ conditional flow matching
     def cfm_loss(self, x0: torch.Tensor, x1: torch.Tensor, lang: torch.Tensor,
-                 weight: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+                 weight: Optional[torch.Tensor] = None) -> torch.Tensor:
         B = x0.shape[0]
         if self.cfg.t_sampling == "logit_normal":
             t = torch.sigmoid(torch.randn(B, device=x0.device))
         else:
             t = torch.rand(B, device=x0.device)
         tt = t.view(B, 1, 1).to(x0.dtype)
-        xt = (1 - tt) * x0 + tt * x1
-        v = self.vel(xt, t, lang)
+        v = self.vel((1 - tt) * x0 + tt * x1, t, lang)
         per = ((v.float() - (x1 - x0).float()) ** 2).mean(dim=(1, 2))
         if weight is not None:
-            return (per * weight).sum() / weight.sum().clamp_min(1e-6), per.detach()
-        return per.mean(), per.detach()
+            return (per * weight).sum() / weight.sum().clamp_min(1e-6)
+        return per.mean()
 
     # ------------------------------------------------------------------ ODE integration
     def solve(self, x: torch.Tensor, lang: torch.Tensor, direction: int, steps: Optional[int] = None,
-              solver: Optional[str] = None, grad: bool = False, return_path: bool = False):
-        """direction = +1: t 0 -> 1 (hub -> modality);  -1: t 1 -> 0 (modality -> hub)."""
+              solver: Optional[str] = None, grad: bool = False, return_path: bool = False,
+              t_start: Optional[float] = None):
+        """direction = +1: t t_start -> 1 (hub -> modality; t_start defaults to 0);
+        direction = -1: t t_start -> 0 (modality -> hub; t_start defaults to 1)."""
         steps, solver = steps or self.cfg.ode_steps, solver or self.cfg.ode_solver
-        h = direction / steps
-        t = torch.full((x.shape[0],), 0.0 if direction > 0 else 1.0, device=x.device)
+        t0 = (0.0 if direction > 0 else 1.0) if t_start is None else float(t_start)
+        h = direction * ((1.0 - t0) if direction > 0 else t0) / steps
+        t = torch.full((x.shape[0],), t0, device=x.device)
         path: List[torch.Tensor] = [x]
         with torch.set_grad_enabled(grad):
             for _ in range(steps):
@@ -106,12 +108,23 @@ class Spoke(nn.Module):
         return (x, path) if return_path else x
 
     def read(self, z: torch.Tensor, lang: torch.Tensor, grad: bool = False, steps: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
-        """modality latent -> (hub estimate [B, K_h, d], private code [B, K_p, d])."""
+        """modality latent -> (hub estimate [B, K_h, d], private code [B, K_p, d]) by the backward ODE."""
         x0 = self.solve(z, lang, -1, steps=steps, grad=grad)
         return x0[:, : self.K], x0[:, self.K:]
 
     def write(self, hub: torch.Tensor, lang: torch.Tensor, temp: Optional[float] = None,
-              private: Optional[torch.Tensor] = None, grad: bool = False, steps: Optional[int] = None) -> torch.Tensor:
-        """hub code -> modality latent."""
+              private: Optional[torch.Tensor] = None, grad: bool = False, steps: Optional[int] = None,
+              draft: Optional[torch.Tensor] = None, t0: float = 0.0) -> torch.Tensor:
+        """hub code -> modality latent.
+
+        ``draft`` (the Explainer's one-pass prediction of the latent) with ``t0`` in (0, 1] starts the ODE on
+        the straight path between the source and the draft, at time t0, instead of at the source: the flow
+        only has to finish what the draft began (t0 = 1 returns the draft itself, with no ODE step)."""
         temp = self.cfg.sample_temp if temp is None else temp
-        return self.solve(self.source(hub, temp, private), lang, +1, steps=steps, grad=grad)
+        x = self.source(hub, temp, private)
+        if draft is None or t0 <= 0.0:
+            return self.solve(x, lang, +1, steps=steps, grad=grad)
+        if t0 >= 1.0:
+            return draft
+        steps = max(1, int(round((steps or self.cfg.ode_steps) * (1.0 - t0))))
+        return self.solve((1.0 - t0) * x + t0 * draft, lang, +1, steps=steps, grad=grad, t_start=t0)

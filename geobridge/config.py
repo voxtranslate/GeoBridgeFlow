@@ -69,9 +69,9 @@ class Config:
     speech_pool: int = 2                 # 50 Hz -> 25 Hz
     sample_rate: int = 16000
     n_mels: int = 80
-    mel_hop: int = 320                   # 50 fps mel for the renderer
+    mel_spec: str = "internal"           # internal (50 fps, Griffin-Lim) | speecht5 (62.5 fps, pretrained HiFi-GAN vocoder)
+    mel_hop: int = 320                   # hop of the internal mel
     feat_batch_size: int = 16
-    cache_mel: bool = True
 
     # ------------------------------------------------------------------ latent geometry
     latent_dim: int = 128                # d: token width shared by hub and all modality latents
@@ -101,7 +101,7 @@ class Config:
     use_bypass: bool = True
     mel_width: int = 192                 # mel renderer
 
-    # ------------------------------------------------------------------ hub (N1)
+    # ------------------------------------------------------------------ hub
     hub_mode: str = "bary"               # bary (ours) | global | free | text
     hub_width: int = 256
     hub_layers: int = 2
@@ -110,8 +110,9 @@ class Config:
     hub_inhibit: float = 2.0             # inhibition of return, in units of the full cosine range (0 = independent slots)
     hub_temp_start: float = 6.0          # attention temperature multiplier at step 0 (annealed to 1 while dense)
     ground_temp: float = 0.07            # InfoNCE temperature
+    read_mode: str = "amortized"         # amortized (image-free reader, one pass) | ode (backward flow of the spoke)
 
-    # ------------------------------------------------------------------ spokes (N2)
+    # ------------------------------------------------------------------ spokes (writers)
     flow_width: int = 384
     flow_layers: int = 6
     flow_heads: int = 6
@@ -119,32 +120,35 @@ class Config:
     lora_alpha: float = 16.0
     private_noise: bool = True           # False: K_p private tokens are zeros (deterministic spokes)
     ode_steps: int = 4                   # steps per hop at test time
-    train_ode_steps: int = 2             # steps of the (cheaper) reads done inside the training losses
+    train_ode_steps: int = 2             # steps of the writes done inside the training losses
     ode_solver: str = "midpoint"         # euler | midpoint | heun
     sample_temp: float = 0.6             # std of the private noise at generation time
     eval_temp: float = 0.5               # same, for the scored (deterministic-seeded) evaluation
+    draft_t0: float = 0.0                # start writing from the explainer's draft at time t0 (0 = from the source)
     t_sampling: str = "uniform"          # uniform | logit_normal
+    exposure: str = "reader"             # read hubs the writers are also trained on: reader | ode | none
+    p_read: float = 0.5                  # share of paired views written from a read hub instead of the grounded one
     image_spoke: bool = True
+    thumb_size: int = 64                 # preview pixel decoder (image latent -> RGB)
+    pix_width: int = 96
 
-    # ------------------------------------------------------------------ docking (N3)
-    dock_mode: str = "g2w"               # g2w (ours) | gw | w | none
-    dock_marginal: str = "balanced"      # balanced (log-Sinkhorn, default) | semi (semi-relaxed: collapses, see docs)
+    # ------------------------------------------------------------------ unpaired island speech: hub-space back-translation
+    bt_weight: float = 1.0               # 0 = use the bridge pairs only
+    bt_warmup_frac: float = 0.2          # share of phase B before back-translation starts
+    bt_rectify: float = 0.5              # how far pseudo hub codes are moved along the OT map onto real ones (0 = off)
+    bt_eps: float = 0.05
+    bt_bank_mult: int = 4                # real hub codes drawn per unpaired utterance
+
+    # ------------------------------------------------------------------ fused-GW docking of the reader (ablation; off)
+    dock_mode: str = "none"              # none | g2w | gw | w
+    dock_marginal: str = "balanced"      # balanced (log-Sinkhorn) | semi (semi-relaxed: collapses, see docs)
     dock_eps: float = 0.05
     dock_outer_iters: int = 10
     dock_sinkhorn_iters: int = 50
     dock_alpha_start: float = 0.0        # weight of the model-induced Wasserstein cost
     dock_alpha_end: float = 0.8
     dock_anneal_frac: float = 0.6        # fraction of phase B over which alpha is annealed
-    dock_bank_size: int = 2048
-    dock_bank_batch: int = 192
-    dock_pin: bool = True                # anchor pinning with the available bridge pairs
-    dock_pin_cost: float = 4.0
-    dock_pseudo_pair: bool = True        # coupling-guided CFM on the unpaired stream
     dock_warmup_frac: float = 0.1        # fraction of phase B before docking is switched on
-
-    # ------------------------------------------------------------------ transitive consistency (N4')
-    swap_frac: float = 0.5               # share of paired items trained with a hub from another spoke
-    twohop_weight: float = 0.0           # differentiable 2-hop hub-swap reconstruction (costly)
     naive_cycle_weight: float = 0.0      # roadmap's ODE cycle; kept to show it is vacuous
 
     # ------------------------------------------------------------------ loss weights
@@ -155,21 +159,20 @@ class Config:
     w_gate: float = 0.01                 # "pay for pitch" sparsity on the tonality gate
     w_ground: float = 1.0
     w_agree: float = 0.5
-    w_expl: float = 1.0                  # explanatory grounding: the hub code must predict the utterance latent
-    w_null: float = 0.02                 # "pay for attention": price on slot mass once the null option is on
-    w_slot_div: float = 0.0              # optional slot-diversity term (off: it pushes spare slots onto patches
-                                         # the sentence does not mention)
+    w_expl: float = 1.0                  # sufficiency: the hub code must predict the utterance latent
+    w_read: float = 1.0                  # the image-free reader must predict the hub code
+    w_min: float = 0.5                   # minimality: the hub code must be predictable by the reader
+    w_pix: float = 1.0                   # preview pixel decoder (0 removes it and its thumbnails)
     w_cfm: float = 1.0
-    w_swap: float = 1.0
     w_dock: float = 1.0
-    w_pseudo: float = 0.5
     w_free_hub_var: float = 1.0          # variance floor for the unconstrained ("free") hub baseline
+    text_replay: int = 0                 # extra text-only captions per phase-A step (text is cheap; codec converges faster)
 
     # ------------------------------------------------------------------ optimisation
     batch_size: int = 64
     island_batch_size: int = 64
     phase_a_steps: int = 20000           # representation phase: codecs + grounder
-    phase_b_steps: int = 40000           # transport phase: spokes, swap, docking
+    phase_b_steps: int = 40000           # transport phase: writers, exposure, back-translation
     lr: float = 3e-4
     lr_flow: float = 3e-4
     lr_gate: float = 0.05                # the tonality gates are scalars: they need a much larger step
@@ -191,6 +194,10 @@ class Config:
     @property
     def n_tokens(self) -> int:
         return self.hub_slots + self.private_slots
+
+    @property
+    def mel_fps(self) -> float:
+        return 62.5 if self.mel_spec == "speecht5" else self.sample_rate / self.mel_hop
 
     @property
     def total_steps(self) -> int:
@@ -304,11 +311,11 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
     "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_slot_div", "w_expl", "w_null", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "w_agree", "w_expl", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",
-    "max_text_bytes", "max_graphemes", "max_audio_sec", "mel_width", "n_mels",
+    "max_text_bytes", "max_graphemes", "max_audio_sec", "mel_width", "n_mels", "mel_spec",
 )
 
 
@@ -320,14 +327,14 @@ _SYNTH = dict(
 
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)
-    "flickr8k_yo": dict(),
+    "flickr8k_yo": dict(mel_spec="speecht5", text_replay=128),
     # same benchmark, sized for a laptop / CPU sanity run
     "flickr8k_yo_cpu": dict(
-        max_images=1200, latent_dim=96, hub_slots=6, private_slots=6, text_width=192, text_enc_layers=3,
+        mel_spec="speecht5", text_replay=96, max_images=1200, latent_dim=96, hub_slots=6, private_slots=6, text_width=192, text_enc_layers=3,
         text_dec_layers=3, audio_width=192, audio_enc_layers=3, audio_dec_layers=2, hub_width=192,
         flow_width=256, flow_layers=4, flow_heads=4, lora_rank=4, batch_size=48, island_batch_size=48,
         phase_a_steps=2500, phase_b_steps=3500, eval_every=1000, save_every=500, milestone_every=2000,
-        dock_bank_size=1024, dock_bank_batch=128, eval_max_items=200, num_workers=2, mel_width=128,
+        eval_max_items=200, num_workers=2, mel_width=128,
         bridge_frac=0.2, warmup_steps=200,
     ),
     # ---- controlled procedural benchmark (ground truth known for every factor)
@@ -336,7 +343,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         text_dec_layers=2, audio_width=128, audio_enc_layers=2, audio_dec_layers=2, hub_width=128,
         flow_width=192, flow_layers=4, flow_heads=4, lora_rank=4, batch_size=64, island_batch_size=64,
         phase_a_steps=3000, phase_b_steps=4000, eval_every=1000, save_every=500, milestone_every=2000,
-        dock_bank_size=1024, dock_bank_batch=128, eval_max_items=300, mel_width=96, warmup_steps=200,
+        eval_max_items=300, mel_width=96, warmup_steps=200,
         bridge_frac=0.2,
     ),
     # small world + small model: a full run takes minutes on a CPU; used for the reference ablation
@@ -345,7 +352,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         text_enc_layers=2, text_dec_layers=2, audio_width=96, audio_enc_layers=2, audio_dec_layers=2,
         hub_width=96, hub_layers=2, flow_width=128, flow_layers=3, flow_heads=4, lora_rank=4, batch_size=48,
         island_batch_size=48, phase_a_steps=1500, phase_b_steps=2500, eval_every=500, save_every=500,
-        milestone_every=1000, dock_bank_size=768, dock_bank_batch=96, eval_max_items=120, mel_width=64,
+        milestone_every=1000, eval_max_items=120, mel_width=64,
         warmup_steps=100, bridge_frac=0.2, bypass_dim=32, torch_threads=2,
     ),
     # seconds-long smoke test used by tests/ and CI
@@ -355,7 +362,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         audio_dec_layers=1, audio_heads=2, hub_width=64, hub_layers=1, hub_heads=2, flow_width=64,
         flow_layers=2, flow_heads=2, lora_rank=2, batch_size=16, island_batch_size=16, phase_a_steps=30,
         phase_b_steps=30, eval_every=30, save_every=20, milestone_every=40, log_every=10,
-        dock_bank_size=64, dock_bank_batch=32, eval_max_items=24, mel_width=48, warmup_steps=5,
-        bridge_frac=0.25, bypass_dim=16, dock_outer_iters=4, dock_sinkhorn_iters=20, bridge_per_batch=3,
+        eval_max_items=24, mel_width=48, warmup_steps=5,
+        bridge_frac=0.25, bypass_dim=16, bridge_per_batch=3,
     ),
 }

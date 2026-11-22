@@ -27,6 +27,7 @@ import torch
 from torch.utils.data import DataLoader, Sampler
 from tqdm import tqdm
 
+from .cache import LatentCache
 from .config import Config
 from .data import GeoBridgeData
 from .data.dataset import _GroupDataset, _IslandDataset
@@ -36,8 +37,8 @@ from .models import GeoBridge, build_spec, spec_for_checkpoint
 from .utils import (Averager, count_named, count_params, get_logger, resolve_device, save_json, seed_everything,
                     to_device)
 
-TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "aud_sem", "mel_l1", "ground", "ground_acc", "unexplained", "agree", "orth")
-TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "swap", "dock", "pseudo", "dock_alpha", "pi_row_entropy")
+TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "pix_l1", "agree")
+TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "bt_write", "bt_read", "bt_shift", "dock")
 
 
 class ResumableBatchSampler(Sampler):
@@ -138,6 +139,7 @@ class Trainer:
             self.isl_sampler = ResumableBatchSampler(len(self.data.island_ids), bs, cfg.seed + 7)
         self.step, self.epoch, self.offset = 0, 0, 0
         self.isl_epoch, self.isl_offset = 0, 0
+        self.cache: Dict[str, LatentCache] = {}
         self.history: Dict[str, List[Dict]] = {"train": [], "valid": []}
         self.best = {"score": -1e9, "step": -1}
         self._describe()
@@ -156,7 +158,9 @@ class Trainer:
         per_lang = lora / n_lang + sum(count_params(s.vel.lang_emb) for s in m.spokes.values()) / n_lang
         spokes = count_params(m.spokes)
         self.param_report = {"total": total, "text_codec": count_params(m.text), "audio_codec": count_params(m.audio),
-                             "hub": count_params(m.hub), "spokes": spokes, "per_language_flow_params": per_lang,
+                             "hub": count_params(m.hub), "reader": count_params(m.hub.reader),
+                             "explainer": count_params(m.hub.explainer), "spokes": spokes,
+                             "per_language_flow_params": per_lang,
                              "per_language_pct_of_spokes": 100.0 * per_lang / max(1, spokes - lora)}
         self.log.info(f"[model] {total / 1e6:.2f}M params | text {self.param_report['text_codec'] / 1e6:.2f}M | "
                       f"audio {self.param_report['audio_codec'] / 1e6:.2f}M | hub {self.param_report['hub'] / 1e6:.2f}M | "
@@ -178,19 +182,34 @@ class Trainer:
         return base * warm * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * prog)))
 
     def _set_phase_mode(self) -> None:
-        m, cfg = self.model, self.cfg
+        m = self.model
         if self.phase == "A":
             m.train()
             for mod in m.phase_a_modules():
                 mod.requires_grad_(True)
         else:
-            for mod in (m.text, m.audio, m.hub, m.free_img):
+            for mod in m.phase_a_modules():
                 mod.eval()
                 mod.requires_grad_(False)
+            self._ensure_cache()
             for mod in m.phase_b_modules():
                 mod.train()
                 mod.requires_grad_(True)
         self._apply_train_only()
+
+    def _ensure_cache(self) -> None:
+        """Phase B runs on cached latents and hub codes: the frozen codecs and the grounder are run exactly
+        once more, here.  Deterministic, so it is simply rebuilt after a resume."""
+        if self.cache:
+            return
+        t0 = time.time()
+        self._set_schedules()
+        self.cache = {"train": LatentCache(self.model, self.data, "train", self.device, self.loss),
+                      "valid": LatentCache(self.model, self.data, "valid", self.device, self.loss, island=False)}
+        c = self.cache["train"]
+        self.log.info(f"[cache] latents and hub codes of {sum(len(v) for v in c.z.values())} paired views"
+                      f"{'' if c.isl_z is None else f' and {len(c.isl_z)} unpaired island utterances'} "
+                      f"cached in {time.time() - t0:.1f}s; phase B no longer runs the codecs or the grounder")
 
     def _apply_train_only(self) -> None:
         """``train_only="lora:<lang>"``: language-incremental docking - only that language's LoRA rows and
@@ -287,8 +306,10 @@ class Trainer:
         self.log.info(f"[init] weights from {path}; starting at step {self.step} (phase {self.phase})")
 
     # ------------------------------------------------------------------ data streams
-    def _paired_loader(self) -> DataLoader:
+    def _paired_loader(self):
         self.sampler.set_state(self.epoch, self.offset)
+        if self.phase == "B":  # cached latents: a batch is assembled by indexing tensors, no loader needed
+            return (self.cache["train"].batch(idx) for idx in self.sampler)
         return DataLoader(self.train_ds, batch_sampler=self.sampler, num_workers=self.cfg.num_workers,
                           collate_fn=self.data.collate_groups)
 
@@ -299,12 +320,22 @@ class Trainer:
         def gen():
             ds = _IslandDataset(self.data.island_ids)
             while True:
+                phase = self.phase
                 self.isl_sampler.set_state(self.isl_epoch, self.isl_offset)
-                for b in DataLoader(ds, batch_sampler=self.isl_sampler, num_workers=0,
-                                    collate_fn=self.data.collate_island):
+                if phase == "B":
+                    it = (self.cache["train"].island_batch(idx) for idx in self.isl_sampler)
+                else:
+                    it = iter(DataLoader(ds, batch_sampler=self.isl_sampler, num_workers=0,
+                                         collate_fn=self.data.collate_island))
+                finished = True
+                for b in it:
                     self.isl_offset += 1
                     yield b
-                self.isl_epoch, self.isl_offset = self.isl_epoch + 1, 0
+                    if self.phase != phase:  # the representation phase ended: switch to cached batches
+                        finished = False
+                        break
+                if finished:
+                    self.isl_epoch, self.isl_offset = self.isl_epoch + 1, 0
 
         return gen()
 
@@ -337,7 +368,7 @@ class Trainer:
                 loss, logs = self.loss.phase_a(m, batch, island)
             else:
                 prog = (self.step - cfg.phase_a_steps) / max(1, cfg.phase_b_steps)
-                loss, logs = self.loss.phase_b(m, batch, island, prog)
+                loss, logs = self.loss.phase_b(m, batch, island, prog, self.cache["train"].sample_hubs)
         if not torch.isfinite(loss):
             self.log.info(f"[warn] non-finite loss at step {self.step}; step skipped")
             return logs
@@ -363,10 +394,16 @@ class Trainer:
         if use_ema:
             self.ema.swap_in(self.b_named)
         avg = Averager()
-        loader = self.data.paired_loader(split, shuffle=False, batch_size=cfg.batch_size)
+        if self.phase == "A":
+            loader = self.data.paired_loader(split, shuffle=False, batch_size=cfg.batch_size)
+            n_batches = len(loader)
+        else:
+            c = self.cache[split]
+            loader = (c.batch(list(range(i, min(i + cfg.batch_size, c.n_groups)))) for i in range(0, c.n_groups, cfg.batch_size))
+            n_batches = math.ceil(c.n_groups / cfg.batch_size)
         gen_state = torch.get_rng_state()
         torch.manual_seed(1234)  # same noise / time draws at every validation -> comparable curves
-        pbar = tqdm(loader, total=min(len(loader), max_batches), desc=f"valid [{self.phase}]", leave=False, dynamic_ncols=True)
+        pbar = tqdm(loader, total=min(n_batches, max_batches), desc=f"valid [{self.phase}]", leave=False, dynamic_ncols=True)
         for i, batch in enumerate(pbar):
             if i >= max_batches:
                 break
@@ -375,9 +412,7 @@ class Trainer:
                 if self.phase == "A":
                     _, logs = self.loss.phase_a(m, batch, None)
                 else:
-                    bank_state = (m.bank.codes.clone(), m.bank.ptr.clone(), m.bank.count.clone())
                     _, logs = self.loss.phase_b(m, batch, None, 1.0)
-                    m.bank.codes.copy_(bank_state[0]); m.bank.ptr.copy_(bank_state[1]); m.bank.count.copy_(bank_state[2])
             avg.add(logs)
             pbar.set_postfix({k: f"{v:.3f}" for k, v in avg.mean().items() if k in TQDM_KEYS_A + TQDM_KEYS_B})
         out = avg.mean()
@@ -439,7 +474,7 @@ class Trainer:
                 if boundary:
                     self.save_checkpoint("phase_a.pt")
                     self.log.info(f"[phase] representation phase finished at step {self.step}; codecs and grounder "
-                                  f"are now frozen, training the flow spokes")
+                                  f"are now frozen, training the writers and the reader")
                 if self.step % cfg.save_every == 0 or boundary or self.step == total:
                     self.save_checkpoint()
                 if boundary or self.step >= total:
@@ -478,11 +513,12 @@ class Trainer:
             pts = [(h["step"], h[key]) for h in hist if key in h and (phase is None or h.get("phase") == phase)]
             return ([p[0] for p in pts], [p[1] for p in pts]) if pts else ([], [])
 
-        panels = [("loss", "A", "phase A total loss"), ("txt_ce", "A", "text codec CE"), ("aud_sem", "A", "speech codec MSE"),
+        panels = [("loss", "A", "phase A total loss"), ("txt_ce", "A", "text codec CE"), ("sem_mse", "A", "speech codec MSE"),
                   ("ground", "A", "grounding InfoNCE"), ("unexplained", "A", "latent variance NOT explained by the hub"),
-                  ("agree", "A", "text-speech hub agreement"),
-                  ("loss", "B", "phase B total loss"), ("cfm_txt", "B", "CFM text spoke"), ("cfm_aud", "B", "CFM speech spoke"),
-                  ("cfm_img", "B", "CFM image spoke"), ("swap", "B", "hub-swap CFM"), ("dock", "B", "docking FGW value (train only)")]
+                  ("read", "A", "reader error on the hub code (no image)"),
+                  ("loss", "B", "phase B total loss"), ("cfm_txt", "B", "CFM text writer"), ("cfm_aud", "B", "CFM speech writer"),
+                  ("cfm_img", "B", "CFM image writer"), ("read_aud", "B", "reader error, speech"),
+                  ("bt_read", "B", "back-translation: read synthetic speech (train only)")]
         fig, axes = plt.subplots(3, 4, figsize=(19, 11))
         for ax, (key, ph, title) in zip(axes.ravel(), panels):
             xs, ys = series(tr, key, ph)
@@ -517,15 +553,16 @@ class Trainer:
         axes[1].set_title("lexical-tonality gate per language (training)")
         axes[1].set_ylim(-0.02, 1.02)
         axes[1].legend(fontsize=8)
-        for k, lab in (("dock_alpha", "alpha (W weight)"), ("pi_row_entropy", "coupling row entropy"), ("pi_conf", "coupling confidence")):
+        for k, lab in (("bt_write", "write: real speech, pseudo code"), ("bt_read", "read: synthetic speech, real code"),
+                       ("bt_shift", "transport shift of the pseudo codes"), ("slot_use_txt", "slot use (text)")):
             xs, ys = series(tr, k)
             if xs:
                 axes[2].plot(xs, ys, label=lab)
-        axes[2].set_title("docking: Gromov -> Wasserstein anneal")
+        axes[2].set_title("hub-space back-translation and slot use")
         axes[2].legend(fontsize=8)
         for ax in axes:
             ax.set_xlabel("step")
             ax.grid(alpha=0.25)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "metrics_gates_docking.png"), dpi=130)
+        fig.savefig(os.path.join(out, "metrics_gates_backtranslation.png"), dpi=130)
         plt.close(fig)

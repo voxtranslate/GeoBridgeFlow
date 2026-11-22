@@ -27,67 +27,61 @@ from .utils import get_logger, load_json, save_json
 Variant = Tuple[str, Dict]
 
 GROUPS: Dict[str, Dict] = {
-    "anchor": {
-        "question": "What should the hub be anchored to?  (N1: barycentric visual interlingua)",
+    "hub": {
+        "question": "What should the hub be, and what makes it say exactly what the sentence says?",
         "variants": [
-            ("bary (ours)", {}),
-            ("bary, contrastive grounding only (no explanatory term)", {"w_expl": 0.0}),
-            ("bary, independent slots (no inhibition of return)", {"hub_inhibit": 0.0}),
-            ("bary, sharp attention from the start (no anneal)", {"hub_temp_start": 1.0}),
-            ("global visual pivot", {"hub_mode": "global"}),
-            ("free learned anchor (FlowBind-style)", {"hub_mode": "free"}),
+            ("barycentric hub, mutual sufficiency (ours)", {}),
+            ("no minimality (reader does not shape the hub)", {"w_min": 0.0}),
+            ("no sufficiency (no explainer loss)", {"w_expl": 0.0}),
+            ("independent slots (no inhibition of return)", {"hub_inhibit": 0.0}),
+            ("sharp attention from the start (no anneal)", {"hub_temp_start": 1.0}),
+            ("global visual pivot (scene-level)", {"hub_mode": "global"}),
             ("text anchor (image-pivoted)", {"hub_mode": "text"}),
+            ("free learned anchor (FlowBind-style)", {"hub_mode": "free"}),
         ]},
-    "docking": {
-        "question": "How should unpaired island speech be attached to the hub?  (N3: Gromov->Wasserstein docking)",
+    "read": {
+        "question": "How should a source be read into the hub at test time?",
         "variants": [
-            ("G->W anneal, balanced marginals, pinned (ours)", {}),
-            ("no docking (bridge pairs only)", {"dock_mode": "none"}),
-            ("semi-relaxed marginals", {"dock_marginal": "semi"}),
-            ("semi-relaxed, pseudo-pairs only (no docking loss)", {"dock_marginal": "semi", "w_dock": 0.0}),
-            ("pure Gromov-Wasserstein", {"dock_mode": "gw"}),
-            ("pure Wasserstein", {"dock_mode": "w"}),
-            ("no anchor pinning", {"dock_pin": False}),
-            ("docking loss only (no pseudo-pairs)", {"dock_pseudo_pair": False}),
-            ("pseudo-pairs only (no docking loss)", {"w_dock": 0.0}),
+            ("image-free reader, one pass (ours)", {}),
+            ("backward ODE of the flow, trained with ODE hub-swap", {"read_mode": "ode", "exposure": "ode"}),
+            ("reader, writers never trained on read hubs", {"exposure": "none"}),
+        ]},
+    "island": {
+        "question": "What should be done with the unpaired speech of the island language?",
+        "variants": [
+            ("hub-space back-translation, transport-rectified (ours)", {}),
+            ("back-translation without the transport step", {"bt_rectify": 0.0}),
+            ("bridge pairs only (unpaired speech unused in phase B)", {"bt_weight": 0.0}),
+            ("fused Gromov-Wasserstein docking instead", {"bt_weight": 0.0, "dock_mode": "g2w"}),
+            ("pure Gromov-Wasserstein docking instead (roadmap)", {"bt_weight": 0.0, "dock_mode": "gw"}),
         ]},
     "bridge": {
-        "question": "How many image-speech bridge pairs does the island need, with and without docking?",
-        "variants": [("20% bridge, docking (reference)", {"bridge_frac": 0.2})] + [
-            (f"{int(100 * f)}% bridge, {'docking' if d == 'g2w' else 'no docking'}" if f < 1.0 else
-             "100% bridge (every island utterance paired; nothing left to dock)", {"bridge_frac": f, "dock_mode": d})
-            for f in (0.0, 0.01, 0.05, 0.2, 1.0) for d in ("g2w", "none")
-            if not (f == 1.0 and d == "none") and not (f == 0.2 and d == "g2w")]},
+        "question": "How many image-speech bridge pairs does the island need, with and without back-translation?",
+        "variants": [("20% bridge, back-translation (reference)", {"bridge_frac": 0.2})] + [
+            (f"{int(100 * f)}% bridge, {'back-translation' if w else 'bridge pairs only'}", {"bridge_frac": f, "bt_weight": w})
+            for f in (0.01, 0.05, 0.2) for w in (1.0, 0.0) if not (f == 0.2 and w == 1.0)] + [
+            ("100% bridge (every island utterance paired)", {"bridge_frac": 1.0})]},
     "tone": {
-        "question": "Does lexical tone need its own gated path into the hub?  (N5: lexical-tonality gate)",
+        "question": "Does lexical tone need its own gated path into the hub?",
         "variants": [
             ("gated tone stream (ours)", {}),
             ("tone stream always on (no gate)", {"tone_mode": "on"}),
             ("no tone stream (single stream)", {"tone_mode": "off"}),
             ("gate without the sparsity price", {"w_gate": 0.0}),
             ("no paralinguistic bypass", {"use_bypass": False, "w_orth": 0.0}),
-            ("bypass without decorrelation", {"w_orth": 0.0}),
         ]},
     "text_unit": {
-        "question": "Which text unit feeds the compressor?  (N6: grapheme-byte compressor)",
+        "question": "Which text unit feeds the compressor?",
         "variants": [
             ("grapheme clusters over bytes (ours)", {}),
             ("raw bytes", {"text_unit": "byte"}),
             ("BPE learned on the hub language", {"text_unit": "bpe"}),
         ]},
-    "transitive": {
-        "question": "What makes two spokes agree on the hub at test time?  (N4: transitive hub-swap)",
-        "variants": [
-            ("hub-swap CFM (ours)", {}),
-            ("no cross-spoke term", {"swap_frac": 0.0, "w_swap": 0.0}),
-            ("plain ODE cycle (roadmap; vacuous by invertibility)", {"swap_frac": 0.0, "w_swap": 0.0, "naive_cycle_weight": 1.0}),
-            ("hub-swap + differentiable 2-hop", {"twohop_weight": 0.25}),
-        ]},
     "private": {
-        "question": "Do the spokes need private (non-hub) degrees of freedom?  (N2: hub (+) private flows)",
+        "question": "Do the writers need private (non-hub) degrees of freedom?",
         "variants": [
             ("hub + private Gaussian tokens (ours)", {}),
-            ("private tokens fixed to zero (deterministic spokes)", {"private_noise": False}),
+            ("private tokens fixed to zero (deterministic writers)", {"private_noise": False}),
         ]},
     "lora": {
         "question": "How much language-specific capacity do the velocity fields need?",
@@ -108,23 +102,23 @@ GROUPS: Dict[str, Dict] = {
 # headline columns: (pattern, short name, higher-is-better)
 COLUMNS: List[Tuple[str, str, bool]] = [
     ("aud_{L}>txt_{H}/bleu", "island ST BLEU", True),
-    ("aud_{L}>txt_{H}/bleu_multi", "island ST BLEU (multi-ref)", True),
     ("aud_{L}>txt_{H}/chrf", "island ST chrF++", True),
     ("aud_{L}>txt_{H}/content_acc", "island ST content acc", True),
     ("aud_{L}>txt_{H}/color_acc", "island ST tone-word acc", True),
     ("aud_{L}>txt_{H}/flat_color_acc", "  ... with pitch removed", True),
     ("aud_{L}>img/r1", "island speech->image R@1", True),
-    ("aud_{L}>txt_{H}/hub_r1", "island speech->text hub R@1", True),
+    ("aud_{L}>img_gen/r1", "island speech->written image R@1", True),
+    ("aud_{H}>txt_{H}/content_acc", "hub ASR content acc", True),
     ("aud_{H}>txt_{H}/wer", "hub ASR WER", False),
     ("img>txt_{H}/bleu_multi", "captioning BLEU (multi-ref)", True),
+    ("txt_{H}>txt_{T}/content_acc", "MT hub->written content acc", True),
     ("txt_{H}>txt_{T}/bleu", "MT hub->written BLEU", True),
     ("txt_{T}>txt_{H}/bleu", "MT written->hub BLEU", True),
+    ("txt_{H}>img_gen/r1", "text->written image R@1", True),
     ("txt_{H}>aud_{L}/rt_bleu", "TTS into island (round-trip BLEU)", True),
     ("txt_{H}>aud_{L}/rt_content_acc", "TTS into island (round-trip content)", True),
-    ("codec_txt_{T}/cer", "text codec CER (written lang)", False),
     ("tone/gate_{L}", "gate (island)", True),
     ("tone/gate_{H}", "gate (hub lang)", False),
-    ("tone/reliance_{L}", "tone reliance (island)", True),
 ]
 
 

@@ -9,7 +9,7 @@ Cache layout (``<data_root>/cache/<dataset_tag>/``)
     vision_<tag>/tokens.npy          [n_images, P+1, D_v]  float16   (last token = global)
     audio_<tag>/sem.npy              [frames, D_s]         float16   deep-layer ("semantic") stream, 25 Hz
     audio_<tag>/tone.npy             [frames, 4]           float32   tone stream (see audio_dsp.tone_features)
-    audio_<tag>/mel.npy              [2*frames, n_mels]    float16   50 fps log-mel for the renderer
+    mel_<spec>_<tag>/mel.npy         [mel frames, n_mels]  float16   renderer targets in the vocoder's feature space
     audio_<tag>/spk.npy, f0stats.npy [n_utts, D_spk], [n_utts, 2]    paralinguistic bypass inputs
     audio_<tag>/index.json           uid -> [row, frame offset, n_frames]
     audio_<tag>/stats.json           per-dimension mean / std of every stream (train split)
@@ -104,6 +104,26 @@ def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger) -> 
     return out
 
 
+def cache_thumbs(cfg, builder, manifest: Dict, vdir: str, logger) -> str:
+    """Small RGB thumbnails of every image (uint8 [n, S, S, 3]): targets of the preview pixel decoder."""
+    path = os.path.join(vdir, f"thumbs_{cfg.thumb_size}.npy")
+    if os.path.exists(path):
+        return path
+    n, S = len(manifest["images"]), cfg.thumb_size
+    out = np.zeros((n, S, S, 3), dtype=np.uint8)
+    if hasattr(builder, "render"):
+        for i in range(n):
+            out[i] = np.asarray(builder.render(i, S))
+    else:
+        for grp in tqdm(builder.image_groups(manifest["images"]), desc="thumbnails", dynamic_ncols=True):
+            for i, img in grp["loader"]():
+                out[i] = np.asarray(img.resize((S, S)))
+    np.save(path + ".tmp.npy", out)
+    os.replace(path + ".tmp.npy", path)
+    logger.info(f"[cache] thumbnails {out.shape} -> {path}")
+    return path
+
+
 def fit_anchor(tokens: np.ndarray, train_idx: np.ndarray, d: int, path: str) -> Dict[str, torch.Tensor]:
     """Frozen anchor projection: PCA to d dims with ONE global scale, i.e. an isometry (up to scale) of the
     vision geometry restricted to its top-d subspace.  Fitted once in float64 via eigh of the covariance,
@@ -192,6 +212,58 @@ class SSLFrontend:
         return out
 
 
+def prep_wave(cfg, wav: np.ndarray, sr: int) -> np.ndarray:
+    """Resample, trim silence, truncate: the one waveform every stream of an utterance is computed from."""
+    wav = dsp.resample(wav, sr, cfg.sample_rate)
+    wav = dsp.trim_silence(wav, cfg.trim_silence_db, cfg.sample_rate)[: int(cfg.max_audio_sec * cfg.sample_rate)]
+    if len(wav) < cfg.sample_rate // 10:
+        wav = np.pad(wav, (0, cfg.sample_rate // 10 - len(wav)))
+    return np.ascontiguousarray(wav, dtype=np.float32)
+
+
+_ST5 = {}
+
+
+def compute_mel(cfg, wav: np.ndarray, n_frames: int) -> np.ndarray:
+    """Log-mel of an utterance, resampled in time to exactly round(n_frames * mel_fps / 25) frames."""
+    if cfg.mel_spec == "speecht5":  # the feature space of the pretrained SpeechT5 HiFi-GAN vocoder
+        if "fe" not in _ST5:
+            from transformers import SpeechT5FeatureExtractor
+
+            _ST5["fe"] = SpeechT5FeatureExtractor()
+        mel = _ST5["fe"](audio_target=wav, sampling_rate=cfg.sample_rate, return_tensors="np")["input_values"][0]
+    else:
+        mel = dsp.log_mel(torch.from_numpy(wav).float(), cfg.sample_rate, 1024, cfg.mel_hop, cfg.n_mels).numpy()
+    return dsp._pool_frames(mel, max(1, int(round(n_frames * cfg.mel_fps / 25.0)))).astype(np.float16)
+
+
+def cache_mel(cfg, builder, manifest: Dict, splits: Dict, adir: str, logger) -> str:
+    """Mel targets of the renderer, in the feature space of the configured vocoder.  A separate, cheap pass
+    (no speech encoder), so switching vocoder never re-extracts the expensive streams."""
+    out = os.path.join(cfg.cache_dir, f"mel_{cfg.mel_spec}_{os.path.basename(adir)[6:]}")
+    if os.path.exists(os.path.join(out, "index.json")):
+        return out
+    os.makedirs(out, exist_ok=True)
+    frames = {k: v[2] for k, v in load_json(os.path.join(adir, "index.json")).items()}
+    utts = [u for u in manifest["utts"] if u["has_audio"] and u["uid"] in frames]
+    mels, index, off = [], {}, 0
+    for grp in tqdm(builder.audio_groups(utts), desc=f"mel ({cfg.mel_spec})", dynamic_ncols=True):
+        for uid, wav, sr in grp["loader"]():
+            m = compute_mel(cfg, prep_wave(cfg, wav, sr), frames[uid])
+            index[uid] = [off, int(m.shape[0])]
+            mels.append(m)
+            off += m.shape[0]
+    arr = np.concatenate(mels)
+    np.save(os.path.join(out, "mel.npy"), arr)
+    img_split = splits["images"]
+    train = [index[u["uid"]] for u in utts if img_split[manifest["images"][u["img"]]["id"]] == "train"][:3000] or list(index.values())[:3000]
+    sample = np.concatenate([np.asarray(arr[o: o + n], np.float32) for o, n in train])
+    save_json({"mel_mean": float(sample.mean()), "mel_std": float(sample.std() + 1e-4), "fps": cfg.mel_fps}, os.path.join(out, "stats.json"))
+    save_json(index, os.path.join(out, "index.json"))
+    logger.info(f"[cache] mel ({cfg.mel_spec}, {cfg.mel_fps} fps): {len(index)} utterances -> {out}")
+    return out
+
+
 def speech_tag(cfg) -> str:
     if cfg.speech_encoder == "mfcc":
         return "mfcc"
@@ -206,7 +278,6 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
     utts = [u for u in manifest["utts"] if u["has_audio"]]
     groups = builder.audio_groups(utts)
     fe = None
-    max_len = int(cfg.max_audio_sec * cfg.sample_rate)
     pbar = tqdm(total=sum(len(g["uids"]) for g in groups), desc="speech features", dynamic_ncols=True)
     for grp in groups:
         cp = os.path.join(out, "chunks", _tag(grp["key"]) + ".npz")
@@ -215,7 +286,7 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
             continue
         if fe is None:
             fe = MFCCFrontend(cfg) if cfg.speech_encoder == "mfcc" else SSLFrontend(cfg, device)
-        uids, sems, tones, mels, spks, f0s, lens = [], [], [], [], [], [], []
+        uids, sems, tones, spks, f0s, lens = [], [], [], [], [], []
         buf: List[Tuple[str, np.ndarray]] = []
 
         def flush() -> None:
@@ -227,24 +298,18 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
                 uid, wav = buf[i]
                 n = sem.shape[0]
                 tone, f0s_ = dsp.tone_features(wav, n, cfg.sample_rate)
-                mel = dsp.log_mel(torch.from_numpy(wav).float(), cfg.sample_rate, 1024, cfg.mel_hop, cfg.n_mels).numpy()
-                mel = dsp._pool_frames(mel, 2 * n) if cfg.cache_mel else np.zeros((0, cfg.n_mels), np.float32)
                 uids.append(uid); sems.append(sem.astype(np.float16)); tones.append(tone)
-                mels.append(mel.astype(np.float16)); spks.append(spk.astype(np.float32)); f0s.append(f0s_); lens.append(n)
+                spks.append(spk.astype(np.float32)); f0s.append(f0s_); lens.append(n)
             buf.clear()
 
         for uid, wav, sr in grp["loader"]():
-            wav = dsp.resample(wav, sr, cfg.sample_rate)
-            wav = dsp.trim_silence(wav, cfg.trim_silence_db, cfg.sample_rate)[:max_len]
-            if len(wav) < cfg.sample_rate // 10:
-                wav = np.pad(wav, (0, cfg.sample_rate // 10 - len(wav)))
-            buf.append((uid, np.ascontiguousarray(wav, dtype=np.float32)))
+            buf.append((uid, prep_wave(cfg, wav, sr)))
             if len(buf) >= cfg.feat_batch_size:
                 flush()
             pbar.update(1)
         flush()
         np.savez(cp + ".tmp.npz", uids=np.array(uids), lens=np.array(lens), sem=np.concatenate(sems),
-                 tone=np.concatenate(tones), mel=np.concatenate(mels), spk=np.stack(spks), f0=np.stack(f0s))
+                 tone=np.concatenate(tones), spk=np.stack(spks), f0=np.stack(f0s))
         os.replace(cp + ".tmp.npz", cp)
     pbar.close()
 
@@ -256,23 +321,19 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
     d_s, d_spk = zs[0]["sem"].shape[1], zs[0]["spk"].shape[1]
     sem = np.lib.format.open_memmap(os.path.join(out, "sem.npy"), "w+", np.float16, (total, d_s))
     tone = np.lib.format.open_memmap(os.path.join(out, "tone.npy"), "w+", np.float32, (total, 4))
-    mel = np.lib.format.open_memmap(os.path.join(out, "mel.npy"), "w+", np.float16,
-                                    (2 * total if cfg.cache_mel else 0, cfg.n_mels))
     spk, f0 = np.zeros((n_utt, d_spk), np.float32), np.zeros((n_utt, 2), np.float32)
     index: Dict[str, List[int]] = {}
     off = row = 0
     for z in zs:
         m = int(z["lens"].sum())
         sem[off: off + m], tone[off: off + m] = z["sem"], z["tone"]
-        if cfg.cache_mel:
-            mel[2 * off: 2 * (off + m)] = z["mel"]
         o = off
         for uid, n, s, f in zip(z["uids"].tolist(), z["lens"].tolist(), z["spk"], z["f0"]):
             index[uid] = [row, o, int(n)]
             spk[row], f0[row] = s, f
             o += int(n); row += 1
         off += m
-    sem.flush(); tone.flush(); mel.flush()
+    sem.flush(); tone.flush()
     np.save(os.path.join(out, "spk.npy"), spk)
     np.save(os.path.join(out, "f0stats.npy"), f0)
 
@@ -286,11 +347,6 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
     stats = {"sem_mean": xs.mean(0), "sem_std": xs.std(0) + 1e-4, "dim": d_s, "spk_dim": d_spk,
              "spk_mean": spk.mean(0), "spk_std": spk.std(0) + 1e-4,
              "f0_mean": f0.mean(0), "f0_std": f0.std(0) + 1e-4, "frame_rate": 25.0}
-    if cfg.cache_mel:
-        ms = np.concatenate([np.asarray(mel[2 * o: 2 * (o + n)], np.float32) for _, o, n in pick])
-        stats.update(mel_mean=float(ms.mean()), mel_std=float(ms.std() + 1e-4))
-    else:
-        stats.update(mel_mean=0.0, mel_std=1.0)
     save_json(stats, os.path.join(out, "stats.json"))
     save_json(index, os.path.join(out, "index.json"))  # written last: marks the cache as complete
     for c in chunk_files:
@@ -300,27 +356,31 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
 
 
 class AudioStore:
-    """Read-only random access to the cached speech streams."""
+    """Read-only random access to the cached speech streams (and, if given, the mel targets)."""
 
-    def __init__(self, path: str, use_mel: bool = True) -> None:
+    def __init__(self, path: str, mel_path: Optional[str] = None) -> None:
         self.index: Dict[str, List[int]] = load_json(os.path.join(path, "index.json"))
         self.stats = {k: (np.array(v, dtype=np.float32) if isinstance(v, list) else v)
                       for k, v in load_json(os.path.join(path, "stats.json")).items()}
+        self.stats.update(mel_mean=0.0, mel_std=1.0)
         self.sem = np.load(os.path.join(path, "sem.npy"), mmap_mode="r")
         self.tone = np.load(os.path.join(path, "tone.npy"), mmap_mode="r")
-        mel_p = os.path.join(path, "mel.npy")
-        self.mel = np.load(mel_p, mmap_mode="r") if use_mel and os.path.exists(mel_p) else None
-        if self.mel is not None and self.mel.shape[0] == 0:
-            self.mel = None
+        self.mel, self.mel_index = None, {}
+        if mel_path:
+            self.mel = np.load(os.path.join(mel_path, "mel.npy"), mmap_mode="r")
+            self.mel_index = load_json(os.path.join(mel_path, "index.json"))
+            ms = load_json(os.path.join(mel_path, "stats.json"))
+            self.stats.update(mel_mean=ms["mel_mean"], mel_std=ms["mel_std"])
         self.spk = np.load(os.path.join(path, "spk.npy"))
         self.f0 = np.load(os.path.join(path, "f0stats.npy"))
 
-    def get(self, uid: str, max_frames: int) -> Dict[str, np.ndarray]:
+    def get(self, uid: str, max_frames: int, mel_fps: float = 50.0) -> Dict[str, np.ndarray]:
         row, off, n = self.index[uid]
-        n = min(n, max_frames)
-        out = {"sem": np.array(self.sem[off: off + n], dtype=np.float32),
-               "tone": np.array(self.tone[off: off + n], dtype=np.float32),
+        n_use = min(n, max_frames)
+        out = {"sem": np.array(self.sem[off: off + n_use], dtype=np.float32),
+               "tone": np.array(self.tone[off: off + n_use], dtype=np.float32),
                "spk": self.spk[row], "f0": self.f0[row]}
         if self.mel is not None:
-            out["mel"] = np.array(self.mel[2 * off: 2 * (off + n)], dtype=np.float32)
+            mo, mn = self.mel_index[uid]
+            out["mel"] = np.array(self.mel[mo: mo + min(mn, int(round(n_use * mel_fps / 25.0)))], dtype=np.float32)
         return out

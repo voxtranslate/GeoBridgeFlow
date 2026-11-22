@@ -36,8 +36,9 @@ from .layers import MLP, Block, Resampler, sincos, standardize_tokens
 
 
 class MelRenderer(nn.Module):
-    """(segmental features, tone contour, bypass code) at 25 Hz -> log-mel at 50 fps.  Frame-synchronous, so
-    no duration model is needed; the waveform is obtained with Griffin-Lim (or any mel vocoder)."""
+    """(segmental features, tone contour, bypass code) at 25 Hz -> log-mel at the vocoder's frame rate.
+    Frame-synchronous, so no duration model is needed; the waveform comes from the vocoder that owns the mel
+    feature space (pretrained HiFi-GAN for ``mel_spec="speecht5"``, Griffin-Lim for the internal mel)."""
 
     def __init__(self, sem_dim: int, bypass_dim: int, width: int, n_mels: int):
         super().__init__()
@@ -45,9 +46,9 @@ class MelRenderer(nn.Module):
         self.convs = nn.ModuleList([nn.Conv1d(width, width, 5, padding=2) for _ in range(4)])
         self.out = nn.Linear(width, n_mels)
 
-    def forward(self, sem: torch.Tensor, tone3: torch.Tensor, bypass: torch.Tensor) -> torch.Tensor:
+    def forward(self, sem: torch.Tensor, tone3: torch.Tensor, bypass: torch.Tensor, out_len: int) -> torch.Tensor:
         x = torch.cat([sem, tone3, bypass.unsqueeze(1).expand(-1, sem.shape[1], -1)], -1)
-        h = self.inp(x).repeat_interleave(2, dim=1).transpose(1, 2)
+        h = F.interpolate(self.inp(x).transpose(1, 2), size=out_len, mode="linear", align_corners=False)
         for conv in self.convs:
             h = h + F.gelu(conv(h))
         return self.out(h.transpose(1, 2))
@@ -184,14 +185,14 @@ class AudioCodec(nn.Module):
         l_voi = (F.binary_cross_entropy_with_logits(out["pros"][..., 1:2].float(), voiced, reduction="none") * m).sum() / denom
         l_en = ((out["pros"][..., 2:3] - tone[..., 3:4]).abs() * m).sum() / denom
         l_dur = (self.dur_head(z.detach().mean(1)).squeeze(-1) - (torch.log(n_frames.float()) - math.log(50.0))).abs().mean()
-        res = {"z": z, "sem_mse": l_sem, "f0_l1": l_f0, "voiced_bce": l_voi, "dur_l1": l_dur, "bypass": p,
+        res = {"z": z, "sem_mse": l_sem, "f0_l1": l_f0, "dur_l1": l_dur,
                "loss": l_sem + 0.5 * (l_f0 + l_voi + l_en) + 0.5 * l_dur}
         # mel renderer (teacher-forced on real streams; independent of the latent)
         if "mel" in aud and cfg.w_mel > 0:
             tone3 = torch.stack([tone[..., 0], tone[..., 1], tone[..., 3]], -1)
-            mel_hat = self.renderer(sem, tone3, p.detach())
+            mel_hat = self.renderer(sem, tone3, p.detach(), aud["mel"].shape[1])
             mel = (aud["mel"] - self.mel_mean) / self.mel_std
-            mm = mask.repeat_interleave(2, dim=1).unsqueeze(-1).float()
+            mm = (torch.arange(mel.shape[1], device=mel.device).unsqueeze(0) < aud["mel_len"].unsqueeze(1)).unsqueeze(-1).float()
             res["mel_l1"] = ((mel_hat - mel).abs() * mm).sum() / mm.sum().clamp_min(1) / mel.shape[-1]
             res["loss"] = res["loss"] + cfg.w_mel * res["mel_l1"]
         # decorrelate what goes to the hub from what bypasses it
@@ -208,15 +209,16 @@ class AudioCodec(nn.Module):
     @torch.no_grad()
     def synthesize_mel(self, z: torch.Tensor, lang: torch.Tensor, spk: torch.Tensor, f0: torch.Tensor,
                        n_frames: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        """latent (+ a reference speaker for the bypass) -> log-mel [B, 2T, n_mels], frame counts, streams."""
+        """latent (+ a reference speaker for the bypass) -> log-mel [B, T_mel, n_mels], frame counts, streams."""
         n_frames = n_frames if n_frames is not None else self.predict_frames(z)
         p = self.bypass_code(spk, f0)
         out = self.decode(z, lang, n_frames, p)
         pros = out["pros"]
         voiced = (torch.sigmoid(pros[..., 1]) > 0.5).float()
         tone3 = torch.stack([pros[..., 0] * voiced, voiced, pros[..., 2]], -1)
-        mel = self.renderer(out["sem"], tone3, p) * self.mel_std + self.mel_mean
-        return mel, n_frames, {"sem": out["sem"], "tone3": tone3}
+        ratio = self.cfg.mel_fps / 25.0
+        mel = self.renderer(out["sem"], tone3, p, int(round(out["sem"].shape[1] * ratio))) * self.mel_std + self.mel_mean
+        return mel, n_frames, {"sem": out["sem"], "tone3": tone3, "mel_len": torch.round(n_frames.float() * ratio).long()}
 
 
 def cross_correlation(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:

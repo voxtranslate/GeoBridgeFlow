@@ -35,7 +35,8 @@ class _GroupDataset(Dataset):
 
     def __getitem__(self, i: int) -> Dict:
         g = self.groups[i]
-        return {"img": g["img"], "cap": g["cap"], "views": g["train_views"] if self.train else g["valid_views"]}
+        return {"img": g["img"], "cap": g["cap"], "views": g["train_views"] if self.train else g["valid_views"],
+                "train": self.train}
 
 
 class _IslandDataset(Dataset):
@@ -88,9 +89,13 @@ class GeoBridgeData:
         # ---- frozen-feature caches (computed once)
         vdir = feats.cache_vision(cfg, self.builder, self.manifest, device, self.log)
         self.vision = np.load(os.path.join(vdir, "tokens.npy"), mmap_mode="r")
+        self.thumbs = None
+        if cfg.w_pix > 0 and cfg.image_spoke:
+            self.thumbs = np.load(feats.cache_thumbs(cfg, self.builder, self.manifest, vdir, self.log), mmap_mode="r")
         self.vision_dim, self.n_vis_tokens = int(self.vision.shape[2]), int(self.vision.shape[1])
         adir = feats.cache_audio(cfg, self.builder, self.manifest, self.splits, device, self.log)
-        self.audio = feats.AudioStore(adir, use_mel=need_mel and cfg.cache_mel)
+        mdir = feats.cache_mel(cfg, self.builder, self.manifest, self.splits, adir, self.log) if need_mel and cfg.w_mel > 0 else None
+        self.audio = feats.AudioStore(adir, mdir)
         self.sem_dim, self.spk_dim = int(self.audio.stats["dim"]), int(self.audio.stats["spk_dim"])
         train_imgs = np.array([i for i, s in enumerate(self.img_split) if s == "train"])
         self.anchor = feats.fit_anchor(self.vision, train_imgs, cfg.latent_dim,
@@ -210,6 +215,7 @@ class GeoBridgeData:
                     continue
             self.groups[split].append(g)
         self.group_of = {(g["img"], g["cap"]): g for gs in self.groups.values() for g in gs}
+        self.replay_pool = sorted({ui for g in self.groups["train"] for m, _, ui in g["train_views"] if m == "txt"})
         self.caps_of_img: Dict[int, List[Dict]] = {}
         for g in by_key.values():
             self.caps_of_img.setdefault(g["img"], []).append(g)
@@ -240,25 +246,25 @@ class GeoBridgeData:
     def _collate_audio(self, ids: Sequence[int], items: Sequence[int]) -> Optional[Dict]:
         if not ids:
             return None
-        recs = [self.audio.get(self.utts[i]["uid"], self.max_frames) for i in ids]
+        recs = [self.audio.get(self.utts[i]["uid"], self.max_frames, self.cfg.mel_fps) for i in ids]
         T, n = max(r["sem"].shape[0] for r in recs), len(recs)
         sem = torch.zeros(n, T, self.sem_dim)
         tone = torch.zeros(n, T, 4)
         mask = torch.zeros(n, T, dtype=torch.bool)
-        has_mel = "mel" in recs[0]
-        mel = torch.zeros(n, 2 * T, self.cfg.n_mels) if has_mel else None
         for j, r in enumerate(recs):
             t = r["sem"].shape[0]
             sem[j, :t], tone[j, :t], mask[j, :t] = torch.from_numpy(r["sem"]), torch.from_numpy(r["tone"]), True
-            if has_mel:
-                mel[j, : 2 * t] = torch.from_numpy(r["mel"])
         out = {"sem": sem, "tone": tone, "mask": mask,
                "spk": torch.from_numpy(np.stack([r["spk"] for r in recs])),
                "f0": torch.from_numpy(np.stack([r["f0"] for r in recs])),
                "lang": torch.tensor([self.lang2id[self.utts[i]["lang"]] for i in ids]),
                "item": torch.tensor(list(items)), "utt": torch.tensor(list(ids))}
-        if has_mel:
-            out["mel"] = mel
+        if "mel" in recs[0]:
+            lens = [r["mel"].shape[0] for r in recs]
+            mel = torch.zeros(n, max(lens), self.cfg.n_mels)
+            for j, r in enumerate(recs):
+                mel[j, : lens[j]] = torch.from_numpy(r["mel"])
+            out["mel"], out["mel_len"] = mel, torch.tensor(lens)
         return out
 
     def collate_groups(self, batch: Sequence[Dict]) -> Dict:
@@ -271,6 +277,13 @@ class GeoBridgeData:
         out = {"B": len(batch), "img": img, "img_idx": torch.tensor([b["img"] for b in batch]),
                "cap": torch.tensor([b["cap"] for b in batch]),
                "txt": self._collate_text(t_ids, t_items), "aud": self._collate_audio(a_ids, a_items)}
+        train = bool(batch[0].get("train"))
+        if self.thumbs is not None and train:
+            out["thumb"] = torch.from_numpy(np.stack([np.asarray(self.thumbs[b["img"]]) for b in batch]))
+        if self.cfg.text_replay > 0 and train and self.replay_pool:
+            # text is cheap: the text codec also sees extra captions that take no part in grounding
+            pick = self._rng.integers(len(self.replay_pool), size=self.cfg.text_replay)
+            out["replay"] = self._collate_text([self.replay_pool[i] for i in pick], [-1] * len(pick))
         if self.cfg.hub_mode == "text":  # text-anchor baseline: one hub-language caption of the SAME IMAGE,
             piv = []                      # never the same caption index (that would be a parallel sentence)
             for b in batch:

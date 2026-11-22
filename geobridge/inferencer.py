@@ -3,12 +3,12 @@
 ``Inferencer(cfg).run_all()`` writes to ``<run_dir>/inference/``:
 
   outputs/translations.md|json     every text-producing direction, with references
-  outputs/speech/*.wav + *.png     synthesised speech (Griffin-Lim) with mel and pitch contour
+  outputs/speech/*.wav + *.png     synthesised speech (pretrained HiFi-GAN or Griffin-Lim) with mel and pitch contour
   outputs/private_diversity.json   one hub code, several private codes; hub interpolation
   01_slot_attention.png            where each hub slot looks, for text / speech / island speech of one caption
   02_flow_trajectories.png         ODE paths hub <-> modality (PCA), straightness, speed profile
   03_hub_manifold.png              all languages and modalities in hub coordinates (PCA + t-SNE)
-  04_docking_coupling.png          transport plans island <-> hub at alpha = 0, .5, 1, with the true matches
+  04_hub_alignment.png             island speech vs hub-language text in hub space: transport plans against the true partners
   05_tone.png                      learned tonality gates, tone-reliance, pitch-scaling response
   06_speech_attribution.png        which frames (segmental vs tone stream) drive which hub slot
   07_text_attribution.png          which graphemes drive which hub slot
@@ -19,6 +19,8 @@
   12_language_lora.png             how far each language moves each layer of the shared velocity fields
   13_hub_vs_private.png            what the hub tokens and the private tokens of a speech read-out encode
   14_codec_reconstruction.png      speech codec: natural vs reconstructed streams and rendered mel
+  15_generated_images.png          preview images written from text, speech and island speech, next to the true image
+  16_read_write_modes.png          reader vs backward-ODE reading; writing from the explainer's draft (t0 sweep)
   report.json                      every number behind the figures
 """
 from __future__ import annotations
@@ -84,7 +86,7 @@ class Inferencer:
         sub = self.data.unitizer.collate(texts)
         sub["lang"] = torch.full((len(texts),), self.model.lang2id[lang], dtype=torch.long)
         sub = _to(sub, self.device)
-        return self.model.to_hub("txt", self.model.encode("txt", sub), sub["lang"])
+        return self.model.read("txt", self.model.encode("txt", sub), sub["lang"])
 
     @torch.no_grad()
     def translate_text(self, texts: List[str], src: str, tgt: str, temp: Optional[float] = None) -> List[str]:
@@ -93,7 +95,7 @@ class Inferencer:
     @torch.no_grad()
     def utterances_to_hub(self, utt_ids: List[int]) -> Tuple[torch.Tensor, Dict]:
         sub = _to(self.data._collate_audio(utt_ids, list(range(len(utt_ids)))), self.device)
-        return self.model.to_hub("aud", self.model.encode("aud", sub), sub["lang"]), sub
+        return self.model.read("aud", self.model.encode("aud", sub), sub["lang"]), sub
 
     @torch.no_grad()
     def speech_to_text(self, utt_ids: List[int], tgt: str) -> List[str]:
@@ -104,9 +106,19 @@ class Inferencer:
         """hub [1, K, d] -> (waveform, log-mel, z-scored F0 contour) in the voice of ``ref_utt``."""
         ref = _to(self.data._collate_audio([ref_utt], [0]), self.device)
         mel, n_frames, _, streams = self.model.hub_to_speech(hub, lang, ref["spk"], ref["f0"])
-        m = mel[0, : 2 * int(n_frames[0])].float().cpu()
-        wav = dsp.griffin_lim(m, self.cfg.sample_rate, 1024, self.cfg.mel_hop).numpy()
-        return wav, m.numpy(), streams["tone3"][0, : int(n_frames[0]), 0].float().cpu().numpy()
+        m = mel[0, : int(streams["mel_len"][0])].float().cpu()
+        return self.vocode(m), m.numpy(), streams["tone3"][0, : int(n_frames[0]), 0].float().cpu().numpy()
+
+    @torch.no_grad()
+    def vocode(self, mel: torch.Tensor) -> np.ndarray:
+        """log-mel [T, n_mels] -> waveform, with the vocoder that owns the mel feature space."""
+        if self.cfg.mel_spec == "speecht5":
+            if not hasattr(self, "_vocoder"):
+                from transformers import SpeechT5HifiGan
+
+                self._vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").eval()
+            return self._vocoder(mel.float()).cpu().numpy()
+        return dsp.griffin_lim(mel, self.cfg.sample_rate, 1024, self.cfg.mel_hop).numpy()
 
     def evaluate(self, split: str = "test", max_items: int = 0) -> Dict[str, float]:
         path = os.path.join(self.cfg.run_dir, f"eval_{split}.json")
@@ -124,9 +136,10 @@ class Inferencer:
         self.groups = self.data.eval_groups(split, 400)
         self.store = self.evaluator.collect(self.model, split, 400)
         steps = [self.save_outputs, self.fig_slot_attention, self.fig_flow_trajectories, self.fig_hub_manifold,
-                 self.fig_docking_coupling, self.fig_tone, self.fig_speech_attribution, self.fig_text_attribution,
+                 self.fig_hub_alignment, self.fig_tone, self.fig_speech_attribution, self.fig_text_attribution,
                  self.fig_retrieval, self.fig_ode_steps, self.fig_fertility, self.fig_hub_agreement,
-                 self.fig_language_lora, self.fig_hub_vs_private, self.fig_codec_reconstruction]
+                 self.fig_language_lora, self.fig_hub_vs_private, self.fig_codec_reconstruction,
+                 self.fig_generated_images, self.fig_read_write_modes]
         for fn in steps:
             try:
                 fn()
@@ -171,17 +184,19 @@ class Inferencer:
 
     @torch.no_grad()
     def _ground(self, g: Dict, mod: str, lang: str):
-        """Grounder attention (needs the image) and the ODE hub estimate (does not) for one view."""
+        """Grounder attention (needs the image) and the reader's hub code (does not) for one view."""
         ui = self._view_utt(g, mod, lang)
         batch = _to(self.data.collate_groups([{"img": g["img"], "cap": g["cap"], "views": [(mod, lang, ui)]}]), self.device)
         sub = batch[mod]
         V = self.model.hub.project(batch["img"])
         z = self.model.encode(mod, sub)
-        o = self.model.paired_hub(mod, z, sub["lang"], V)
-        hub_ode = self.model.to_hub(mod, z, sub["lang"])
-        implied = torch.softmax(torch.einsum("nkd,npd->nkp", F.normalize(hub_ode.float(), dim=-1),
+        _, attn = self.model.hub.attend(self.model.hub.queries(z, mod, sub["lang"]), V)
+        hub_read = self.model.read(mod, z, sub["lang"])
+        implied = torch.softmax(torch.einsum("nkd,npd->nkp", F.normalize(hub_read.float(), dim=-1),
                                              F.normalize(V[:, :-1].float(), dim=-1)) / 0.05, dim=-1)
-        return o["attn"][0].float().cpu().numpy(), implied[0].cpu().numpy(), hub_ode, V
+        weight = hub_read.float().norm(dim=-1)[0]  # an empty (null) slot has a code near the origin
+        implied = (implied[0] * (weight / weight.sum().clamp_min(1e-6)).unsqueeze(-1)).sum(0)
+        return attn[0].float().cpu().numpy(), implied.cpu().numpy(), hub_read, V
 
     # ================================================================== saved outputs
     @torch.no_grad()
@@ -282,9 +297,9 @@ class Inferencer:
                                       interpolation="nearest")
                 axes[r, k + 1].set_title(f"slot {k} (grounder)", fontsize=6.5)
             axes[r, K + 1].imshow(img, alpha=0.45)
-            axes[r, K + 1].imshow(self._attn_grid(implied.mean(0)), cmap="viridis", alpha=0.75,
+            axes[r, K + 1].imshow(self._attn_grid(implied), cmap="viridis", alpha=0.75,
                                   extent=(0, img.size[0], img.size[1], 0), interpolation="nearest")
-            axes[r, K + 1].set_title("ODE hub -> patches\n(no image used)", fontsize=6.5)
+            axes[r, K + 1].set_title("reader hub -> patches\n(no image used)", fontsize=6.5)
             for a in axes[r]:
                 a.axis("off")
         fig.suptitle("Barycentric visual interlingua: each hub slot is a barycentre of frozen patch tokens", fontsize=10)
@@ -324,7 +339,7 @@ class Inferencer:
             panels.append(("txt", H, +1, "hub -> text (write)"))
         for L in (self.island or [H]):
             if ("aud", L) in self.store["views"]:
-                panels.append(("aud", L, -1, f"speech:{L} -> hub (read)"))
+                panels.append(("aud", L, -1, f"speech:{L} -> hub (backward ODE)"))
         for ax, (mod, lang, direction, title) in zip(axes[:2], panels[:2]):
             rec = self.store["views"][(mod, lang)]
             n = min(24, len(rec["z"]))
@@ -440,7 +455,7 @@ class Inferencer:
 
     # ================================================================== 04 docking coupling
     @torch.no_grad()
-    def fig_docking_coupling(self) -> None:
+    def fig_hub_alignment(self) -> None:
         import matplotlib.pyplot as plt
 
         views, cfg, H = self.store["views"], self.cfg, self.hub_lang
@@ -471,17 +486,17 @@ class Inferencer:
             name = {0.0: "pure Gromov-Wasserstein", 0.5: "fused", 1.0: "pure Wasserstein"}[alpha]
             ax.set_title(f"alpha = {alpha} ({name})\nargmax = true partner: {acc:.0f}%  mass on true pairs: {mass:.0f}%", fontsize=9)
             ax.set_xlabel(f"hub codes of {H} text (first {len(keep)} = true partners, cyan)")
-            ax.set_ylabel(f"island speech ({self.island[0]}), read by backward ODE")
+            ax.set_ylabel(f"island speech ({self.island[0]}), read with no image")
         axes[3].scatter(C1.flatten().numpy(), C2[: len(keep), : len(keep)].flatten().numpy(), s=3, alpha=0.3)
         rho = float(np.corrcoef(C1.flatten().numpy(), C2[: len(keep), : len(keep)].flatten().numpy())[0, 1])
         axes[3].set_title(f"relational geometry: island vs hub pairwise distances\n(Gromov premise) Pearson r = {rho:.3f}", fontsize=9)
         axes[3].set_xlabel("distance between two island utterances (hub coords)")
         axes[3].set_ylabel("distance between their true partners")
         fig.tight_layout()
-        fig.savefig(os.path.join(self.out, "04_docking_coupling.png"), dpi=120)
+        fig.savefig(os.path.join(self.out, "04_hub_alignment.png"), dpi=120)
         plt.close(fig)
         res["relational_isometry_r"] = rho
-        self.report["docking_coupling"] = res
+        self.report["hub_alignment"] = res
 
     # ================================================================== 05 tone
     @torch.no_grad()
@@ -504,14 +519,14 @@ class Inferencer:
         for i, l in enumerate(spoken):
             utts = self.store["views"][("aud", l)]["utt"][:96].tolist()
             sub = _to(self.data._collate_audio(utts, list(range(len(utts)))), self.device)
-            base = model.to_hub("aud", model.encode("aud", sub), sub["lang"])
+            base = model.read("aud", model.encode("aud", sub), sub["lang"])
             ref = ((base - base.roll(1, 0)) ** 2).mean()
             disp, accs = [], []
             for s in scales:
                 tone = sub["tone"].clone()
                 tone[..., 0] *= s
                 tone[..., 2] *= s
-                hub = model.to_hub("aud", model.encode("aud", dict(sub, tone=tone)), sub["lang"])
+                hub = model.read("aud", model.encode("aud", dict(sub, tone=tone)), sub["lang"])
                 disp.append(float(((hub - base) ** 2).mean() / ref.clamp_min(1e-8)))
                 if cfg.dataset == "synthworld":
                     hy = self.evaluator._gen_text(model, hub.cpu(), H)
@@ -564,7 +579,7 @@ class Inferencer:
             tone = sub["tone"].clone().requires_grad_(True)
             with torch.enable_grad():
                 z = model.audio.encode(sem, tone, sub["mask"], sub["lang"])
-                hub, _ = model.spokes["aud"].read(z, sub["lang"], grad=True)
+                hub = model.hub.reader(z, "aud", sub["lang"])
                 sal_s, sal_t = [], []
                 for k in range(K):
                     gs, gt = torch.autograd.grad((hub[0, k] ** 2).sum(), [sem, tone], retain_graph=True)
@@ -606,7 +621,7 @@ class Inferencer:
             with torch.enable_grad():
                 h0 = model.text.embed_units(sub["units"]).detach().requires_grad_(True)
                 z = model.text.encode_from_embeddings(h0, sub["unit_mask"])
-                hub, _ = model.spokes["txt"].read(z, sub["lang"], grad=True)
+                hub = model.hub.reader(z, "txt", sub["lang"])
                 sal = torch.stack([(torch.autograd.grad((hub[0, k] ** 2).sum(), h0, retain_graph=True)[0] * h0).abs().sum(-1)[0]
                                    for k in range(K)])
             S = sal.detach().cpu().numpy()
@@ -674,9 +689,9 @@ class Inferencer:
             z = model.encode("aud", sub)
             xs, ys = [1, 2, 4, 8, 16], []
             for s in xs:
-                hub = model.to_hub("aud", z, sub["lang"], steps=s)
+                hub = model.read("aud", z, sub["lang"], steps=s)
                 lid = torch.full((len(utts),), model.lang2id[H], dtype=torch.long, device=self.device)
-                zt = model.from_hub("txt", hub, lid, temp=cfg.eval_temp, steps=s)
+                zt = model.write("txt", hub, lid, temp=cfg.eval_temp, steps=s)
                 m, _ = self.evaluator._score_text(model.text.generate(zt, lid), gs, H, same_lang=(src[1] == H))
                 ys.append(m.get("content_acc", m.get("bleu", 0.0)))
             axes[0].plot(xs, ys, marker="o")
@@ -819,8 +834,9 @@ class Inferencer:
     # ================================================================== 13 hub vs private
     @torch.no_grad()
     def fig_hub_vs_private(self) -> None:
-        """Linear probes on the two halves of a speech read-out: the hub tokens should carry what is said,
-        the private tokens who says it (speaker labels exist on SynthWorld)."""
+        """Linear probes on three codes of the same utterances: the reader's hub code (what is used at test
+        time), and the hub / private halves of the backward-ODE read-out.  The hub should carry what is said
+        and not who says it (speaker labels exist on SynthWorld)."""
         import matplotlib.pyplot as plt
         from sklearn.linear_model import LogisticRegression
 
@@ -835,8 +851,9 @@ class Inferencer:
             z = rec["z"].to(self.device)
             lid = torch.full((len(z),), model.lang2id[lang], dtype=torch.long, device=self.device)
             parts = [model.spokes["aud"].read(z[i:i + 128], lid[i:i + 128]) for i in range(0, len(z), 128)]
-            hub = torch.cat([p[0] for p in parts]).flatten(1).cpu().numpy()
-            priv = torch.cat([p[1] for p in parts]).flatten(1).cpu().numpy()
+            codes = {"reader hub": torch.cat([model.hub.reader(z[i:i + 128], "aud", lid[i:i + 128]) for i in range(0, len(z), 128)]).flatten(1).cpu().numpy(),
+                     "ODE hub": torch.cat([p[0] for p in parts]).flatten(1).cpu().numpy(),
+                     "ODE private": torch.cat([p[1] for p in parts]).flatten(1).cpu().numpy()}
             targets = {}
             if len(set(spk)) > 1:
                 targets["speaker"] = np.array([sorted(set(spk)).index(x) for x in spk])
@@ -849,22 +866,22 @@ class Inferencer:
                 if len(set(y[tr])) < 2:
                     continue
                 accs = {}
-                for pname, X in (("hub", hub), ("private", priv)):
+                for pname, X in codes.items():
                     mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-6
                     clf = LogisticRegression(max_iter=300, C=0.5).fit((X[tr] - mu) / sd, y[tr])
                     accs[pname] = 100.0 * float((clf.predict((X[~tr] - mu) / sd) == y[~tr]).mean())
                 chance = 100.0 * float(np.bincount(y[~tr]).max() / (~tr).sum())
                 res[f"{lang}/{tname}"] = {**accs, "majority_class": chance}
-                bars.append((accs["hub"], accs["private"], chance))
+                bars.append((accs["reader hub"], accs["ODE hub"], accs["ODE private"], chance))
                 labels.append(f"{lang}\n{tname}")
         if bars:
             x = np.arange(len(bars))
-            axes[0].bar(x - 0.27, [b[0] for b in bars], 0.27, label="hub tokens", color="#1f77b4")
-            axes[0].bar(x, [b[1] for b in bars], 0.27, label="private tokens", color="#ff7f0e")
-            axes[0].bar(x + 0.27, [b[2] for b in bars], 0.27, label="majority class", color="#bbbbbb")
+            for j, (lab, col) in enumerate((("reader hub (test-time read)", "#1f77b4"), ("ODE hub", "#9ecae1"),
+                                            ("ODE private tokens", "#ff7f0e"), ("majority class", "#bbbbbb"))):
+                axes[0].bar(x + (j - 1.5) * 0.2, [b[j] for b in bars], 0.2, label=lab, color=col)
             axes[0].set_xticks(x, labels, fontsize=8)
             axes[0].set_ylabel("linear-probe accuracy (%)")
-            axes[0].set_title("what each half of the speech read-out encodes (held-out half of the test set)", fontsize=9)
+            axes[0].set_title("what a speech read-out encodes (linear probes, held-out half of the test set)", fontsize=9)
             axes[0].legend(fontsize=8)
         # norm of the private read-out vs a standard Gaussian (the training-time prior of the private tokens)
         for i, lang in enumerate([l for l in model.langs if ("aud", l) in self.store["views"]]):
@@ -909,7 +926,8 @@ class Inferencer:
             if "mel" in sub:
                 tone = sub["tone"]
                 tone3 = torch.stack([tone[..., 0], tone[..., 1], tone[..., 3]], -1)
-                mel_hat = (model.audio.renderer(model.audio.norm_sem(sub["sem"]), tone3, p) * model.audio.mel_std + model.audio.mel_mean)[0]
+                mel_hat = (model.audio.renderer(model.audio.norm_sem(sub["sem"]), tone3, p, sub["mel"].shape[1])
+                           * model.audio.mel_std + model.audio.mel_mean)[0]
                 axes[2, c].imshow(sub["mel"][0].float().cpu().numpy().T, aspect="auto", origin="lower", cmap="magma")
                 axes[2, c].set_title("natural log-mel", fontsize=8)
                 axes[3, c].imshow(mel_hat.float().cpu().numpy().T, aspect="auto", origin="lower", cmap="magma")
@@ -919,6 +937,87 @@ class Inferencer:
         fig.savefig(os.path.join(self.out, "14_codec_reconstruction.png"), dpi=120)
         plt.close(fig)
         self.report["codec_reconstruction"] = res
+
+
+    # ================================================================== 15 generated images
+    @torch.no_grad()
+    def fig_generated_images(self) -> None:
+        import matplotlib.pyplot as plt
+
+        model, H = self.model, self.hub_lang
+        if "img" not in model.spokes or not hasattr(model, "pixel"):
+            return
+        views = [("txt", H), ("aud", H)] + [("aud", L) for L in self.island]
+        ex = self._examples(5, views) or self._examples(5, views[:1])
+        cols = [v for v in views if all(self._view_utt(g, *v) is not None for g in ex)]
+        fig, axes = plt.subplots(len(ex), 2 + 2 * len(cols), figsize=(2.0 * (2 + 2 * len(cols)), 2.2 * len(ex)), squeeze=False)
+        for r, g in enumerate(ex):
+            batch = _to(self.data.collate_groups([{"img": g["img"], "cap": g["cap"], "views": []}]), self.device)
+            lat = model.image_latent(model.hub.project(batch["img"]))
+            axes[r, 0].imshow(self._image(g["img"], 128))
+            axes[r, 0].set_title((self.evaluator._ref(g, H) or "")[:30], fontsize=6.5)
+            axes[r, 1].imshow(model.pixel(lat)[0].permute(1, 2, 0).float().cpu().numpy())
+            axes[r, 1].set_title("decoder on the TRUE latent\n(upper bound of the preview)", fontsize=6)
+            for c, (mod, lang) in enumerate(cols):
+                ui = self._view_utt(g, mod, lang)
+                hub = self.text_to_hub([self.data.utts[ui]["text"]], lang) if mod == "txt" else self.utterances_to_hub([ui])[0]
+                for k in range(2):  # two private draws: same content, different layout
+                    _, rgb = model.hub_to_image(hub)
+                    axes[r, 2 + 2 * c + k].imshow(rgb[0].permute(1, 2, 0).float().cpu().numpy())
+                    axes[r, 2 + 2 * c + k].set_title(f"written from {mod}:{lang}" + (" (2nd draw)" if k else ""), fontsize=6)
+            for a in axes[r]:
+                a.axis("off")
+        fig.suptitle("Image writing: hub code -> image latent (flow) -> preview decoder.  Low-resolution preview by design.", fontsize=9)
+        fig.tight_layout()
+        fig.savefig(os.path.join(self.out, "15_generated_images.png"), dpi=120)
+        plt.close(fig)
+
+    # ================================================================== 16 read / write modes
+    @torch.no_grad()
+    def fig_read_write_modes(self) -> None:
+        import matplotlib.pyplot as plt
+
+        model, cfg, H = self.model, self.cfg, self.hub_lang
+        srcs = [("aud", L) for L in self.island if ("aud", L) in self.store["views"]]
+        if ("aud", H) in self.store["views"]:
+            srcs.append(("aud", H))
+        if not srcs:
+            return
+        res: Dict = {}
+        fig, axes = plt.subplots(1, 2, figsize=(13, 4.4))
+        t0s = [0.0, 0.25, 0.5, 0.75, 1.0]
+        for i, (mod, lang) in enumerate(srcs):
+            rec = self.store["views"][(mod, lang)]
+            n = min(160, len(rec["z"]))
+            gs = [self.store["groups"][g] for g in rec["g"][:n].tolist()]
+            z = rec["z"][:n].to(self.device)
+            lid = torch.full((n,), model.lang2id[lang], dtype=torch.long, device=self.device)
+            tgt = torch.full((n,), model.lang2id[H], dtype=torch.long, device=self.device)
+
+            def score(hub: torch.Tensor, t0: float) -> float:
+                torch.manual_seed(0)
+                m, _ = self.evaluator._score_text(model.text.generate(model.write("txt", hub, tgt, temp=cfg.eval_temp, t0=t0), tgt),
+                                                  gs, H, same_lang=(lang == H))
+                return m.get("content_acc", m.get("bleu", 0.0))
+
+            modes = {"reader (one pass)": model.read(mod, z, lid, mode="amortized"), "backward ODE": model.read(mod, z, lid, mode="ode")}
+            by_mode = {k: score(h, 0.0) for k, h in modes.items()}
+            by_t0 = [score(modes["reader (one pass)"], t) for t in t0s]
+            res[f"{mod}:{lang}"] = {"read_mode": by_mode, "draft_t0": dict(zip(map(str, t0s), by_t0))}
+            axes[0].bar(np.arange(2) + i * 0.38, list(by_mode.values()), 0.38, label=f"{mod}:{lang} -> text:{H}")
+            axes[1].plot(t0s, by_t0, marker="o", label=f"{mod}:{lang} -> text:{H}")
+        axes[0].set_xticks(np.arange(2) + 0.19 * (len(srcs) - 1), ["reader (one pass)", "backward ODE"])
+        axes[0].set_title("how the source is read into the hub", fontsize=9)
+        axes[0].legend(fontsize=8)
+        axes[1].set_title("writing from the explainer's draft: ODE started at time t0\n(0 = from the source, 1 = the draft itself, no ODE step)", fontsize=9)
+        axes[1].set_xlabel("t0")
+        axes[1].legend(fontsize=8)
+        for ax in axes:
+            ax.set_ylabel("content accuracy (%)" if cfg.dataset == "synthworld" else "BLEU")
+        fig.tight_layout()
+        fig.savefig(os.path.join(self.out, "16_read_write_modes.png"), dpi=120)
+        plt.close(fig)
+        self.report["read_write_modes"] = res
 
 
 def _write_wav(path: str, wav: np.ndarray, sr: int) -> None:

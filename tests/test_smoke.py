@@ -157,12 +157,49 @@ def test_flat_pitch_equals_closed_gate_and_hub_codes_stay_in_the_image_hull(tiny
         flat = m.audio.encode(aud["sem"], dsp.flatten_tone(aud["tone"]), aud["mask"], aud["lang"], gate_override=1.0)
         closed = m.audio.encode(aud["sem"], aud["tone"], aud["mask"], aud["lang"], gate_override=0.0)
         assert torch.allclose(flat, closed, atol=1e-5)       # the gated path is bias-free by construction
-        V = m.hub.project(batch["img"])[aud["item"]]
-        out = m.paired_hub("aud", m.encode("aud", aud), aud["lang"], V)
-    attn, hub = out["attn"], out["hub"]
+        V = m.hub.project(batch["img"])
+        q = m.hub.queries(m.encode("aud", aud), "aud", aud["lang"])
+        hub, attn = m.hub.attend(q, V[aud["item"]])
+        score, own = m.hub.ground(q, m.hub.keys(V), aud["item"])
+    assert torch.allclose(own, attn, atol=1e-5)               # one-pass grounding = the own-image attention
+    assert score.shape == (len(aud["item"]), batch["B"])
     assert attn.shape[-1] == V.shape[1] - 1                   # patches only: the global token is not offered
     assert (attn >= 0).all() and (attn.sum(-1) <= 1 + 1e-4).all()   # the rest of each row is the null option
-    zero = torch.zeros_like(V[:, :1])
-    pts = torch.cat([V[:, :-1], zero], 1)
+    pts = torch.cat([V[aud["item"]][:, :-1], torch.zeros_like(V[aud["item"]][:, :1])], 1)
     lo, hi = pts.min(1).values.unsqueeze(1), pts.max(1).values.unsqueeze(1)
     assert ((hub >= lo - 1e-4) & (hub <= hi + 1e-4)).all()    # barycentres lie in the hull of the patches + origin
+
+
+def test_reader_needs_no_image_and_cache_matches_live_computation(tiny_run):
+    cfg, tr = tiny_run
+    m = tr.model.eval()
+    cache = tr.cache["valid"]
+    assert cache.n_groups == len(tr.data.groups["valid"])
+    b = cache.batch([0, 1, 2])
+    raw = tr.data.collate_groups([{"img": g["img"], "cap": g["cap"], "views": g["valid_views"]} for g in tr.data.groups["valid"][:3]])
+    with torch.no_grad():
+        z_live = m.encode("txt", raw["txt"])
+        hub_live = m.paired_hub("txt", z_live, raw["txt"]["lang"], m.hub.project(raw["img"])[raw["txt"]["item"]])
+        read = m.read("txt", b["txt"]["z"], b["txt"]["lang"])            # latent in, hub code out: no image
+    assert torch.allclose(b["txt"]["z"], z_live, atol=1e-4) and torch.allclose(b["txt"]["hub"], hub_live, atol=1e-4)
+    assert read.shape == b["txt"]["hub"].shape == (z_live.shape[0], cfg.hub_slots, cfg.latent_dim)
+    assert (b["txt"]["item"] == raw["txt"]["item"]).all()
+
+
+def test_back_translation_and_draft_writing(tiny_run):
+    from geobridge.losses import GeoBridgeLoss
+
+    cfg, tr = tiny_run
+    m = tr.model.eval()
+    c = tr.cache["train"]
+    isl = c.island_batch(list(range(8)))
+    loss, logs = GeoBridgeLoss(cfg, m.lang2id).back_translate(m, isl, c.sample_hubs)
+    assert torch.isfinite(loss) and {"bt_write", "bt_read", "bt_shift"} <= set(logs)
+    hub = c.sample_hubs(4)
+    lang = torch.zeros(4, dtype=torch.long)
+    with torch.no_grad():
+        draft = m.hub.explainer(hub, 0, lang)
+        assert torch.allclose(m.write("txt", hub, lang, t0=1.0), draft)   # t0 = 1: the draft itself, no ODE step
+        assert m.write("txt", hub, lang, t0=0.5).shape == draft.shape
+        z_img, rgb = m.hub_to_image(hub)
+    assert rgb.shape == (4, 3, cfg.thumb_size, cfg.thumb_size) and float(rgb.min()) >= 0 and float(rgb.max()) <= 1

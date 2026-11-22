@@ -1,22 +1,27 @@
 """The hub: a Barycentric Visual Interlingua (BVI), plus the anchors it is ablated against.
 
-An utterance (text or speech, any language) is turned into K_h *slot queries*.  Each slot attends over the
-frozen patch tokens of the image the utterance describes; the hub token of that slot is the attention-weighted
-**barycentre** of those frozen tokens:
+An utterance (text or speech, any language) is turned into K_h *slot queries*.  The slots attend, one after
+the other, over the frozen patch tokens of the image the utterance describes; the hub token of a slot is the
+attention-weighted **barycentre** of those frozen tokens:
 
         z*_k = sum_p  alpha_kp * v_p ,     alpha_k = softmax_p( <q_k, key(v_p)> / tau  -  inhibition_k )
 
-(slots attend one after the other; each is inhibited on what earlier slots took and may choose "null").
-A hub code is, by construction, a point of conv(V_image + origin)^{K_h}: it lives in the frozen vision geometry,
-contains no text, and is sentence-level (two captions of one image attend differently and get different
-codes).  It can be drawn on the image, which makes the interlingua directly inspectable.
+(each slot is inhibited on what earlier slots took and may choose "null").  A hub code is, by construction,
+a point of conv(V_image + origin)^{K_h}: it lives in the frozen vision geometry, contains no text, and is
+sentence-level.  It can be drawn on the image, which makes the interlingua directly inspectable.
 
-The grounder is trained with three terms.  (i) A late-interaction InfoNCE between utterances and images: which
-patch does each slot find.  (ii) An **explanatory** term: a small predictor must reconstruct the utterance latent
-from the hub code alone, so the slots have to cover *everything that was said*, in a consistent order.  The
-contrastive term cannot do this by itself: it is satisfied as soon as one slot finds one matching patch, and
-the hub then describes a single object per sentence (measured: 0 % of two-object captions had both objects
-covered).  (iii) A same-language text<->speech agreement term.  No loss ever pairs two languages.
+Mutual sufficiency.  The grounder is trained so that the hub code is the information the sentence and the
+image have in common:
+
+    L_ground  contrastive, under the same sequential attention - the code is found in the right image
+    L_expl    Explainer(z*) must reconstruct the utterance latent - the code says everything the sentence says
+    L_min     an image-free Reader(utterance) must predict z*     - the code says nothing the sentence does not
+    L_agree   text and speech of one caption (same language) get the same code
+
+L_min is what removes slots that look at objects the sentence never mentions: such a token cannot be
+predicted from the sentence, a mentioned object or a null slot can.  The Reader is not thrown away: it is the
+test-time read path (utterance -> hub in one pass, no image, no ODE), and the Explainer is the writer's draft.
+No loss ever pairs two languages.
 
 Anchors available for the ablation (``cfg.hub_mode``):
     bary    (ours) utterance-conditioned barycentres of frozen patch tokens
@@ -59,8 +64,11 @@ class VisualInterlingua(nn.Module):
         self.null_bias = nn.Parameter(torch.zeros(()))
         self.null_enabled = True   # the trainer switches it off for the first part of phase A (not a parameter)
         self.temp_scale = 1.0      # > 1 early in phase A: soft attention, annealed to the sharp final value
-        self.free_out = nn.Linear(W, d)          # used by hub_mode == "free"
-        self.explainer = Explainer(cfg, n_lang)
+        self.explainer = Explainer(cfg, n_lang)   # hub -> utterance latent  (sufficiency; later the writer's draft)
+        self.reader = HubReader(cfg, n_lang)      # utterance latent -> hub  (minimality; later the read path)
+        if cfg.hub_mode == "free":                # the unconstrained anchor exists only where it is used
+            self.free_out = nn.Linear(W, d)
+            self.free_img = nn.Linear(d, d)
         side = int(round((self.P - 1) ** 0.5))
         self.grid = (side, side) if side * side == self.P - 1 else (1, self.P - 1)
 
@@ -117,41 +125,36 @@ class VisualInterlingua(nn.Module):
             return torch.full(q.shape[:-1], -1e4, device=q.device, dtype=torch.float32)
         return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.tau + self.null_bias
 
-    def attend(self, q: torch.Tensor, V: torch.Tensor, keys: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
-        """q [n, K, W], V [n, P, d] (the utterance's own image) -> hub [n, K, d], attention [n, K, P-1].
+    def ground(self, q: torch.Tensor, keys: torch.Tensor, item: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """One pass for both things the grounder needs.
 
-        Three properties, each of which was needed in practice:
-        * patches only - the global token is the mean of the image; a slot that settles on it turns the hub
-          back into a scene-level pivot (one code per image);
-        * sequential with inhibition of return - slot k is penalised on the patches slots < k already took, so
-          the slots enumerate the things a sentence mentions instead of all piling onto the most salient one
-          (independent slots covered both objects of a two-object caption in 0 % of cases);
-        * a null option - a slot with nothing left to say attends to a learned null key whose value is the
-          origin of the anchored space, so its hub token is 0 and attention rows may sum to less than one.
-          The option is offered only after the slots have learned their roles, and attention is then charged
-          a small price: offered from the start, later slots retreat to null and never come back.
-        The attention starts soft (temperature x ``hub_temp_start``) and is annealed to its sharp final value
-        during that first stage: a sharp softmax gives the explanatory loss no gradient towards a patch the
-        slot is not already on.
+        q [n, K, W] slot queries, keys [B, P, W] patch keys of every image of the batch, item [n] the image of
+        each utterance.  Returns
+          score [n, B]     how well every image supports the slot sequence (contrastive logits), and
+          attn  [n, K, P-1] the attention on the utterance's own image (its hub code is attn @ patches),
+        both read off the same sequential, inhibited attention.  Three properties were each needed in practice:
+        * patches only - the global token is the image mean; a slot that settles on it makes the hub scene-level;
+        * sequential with inhibition of return, and a score computed under that same attention - with the usual
+          "best patch per slot, independently" score every slot is fully credited for re-finding one object;
+        * a null option (hub token = origin), offered only after the slots have learned their roles, and soft
+          attention annealed to sharp - a sharp softmax gives no gradient towards a patch not yet attended.
         """
-        keys = self.keys(V) if keys is None else keys
-        logits = torch.einsum("nkw,npw->nkp", q, keys[:, :-1]).float() / self.tau
-        attn = self._sequential(logits, self._null_logits(q))
-        return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
-
-    def similarity(self, q: torch.Tensor, keys: torch.Tensor) -> torch.Tensor:
-        """Score of every utterance against every image, under the SAME sequential, inhibited attention that
-        builds the hub code: each slot is credited with the match it finds among the patches earlier slots
-        left free (a null slot contributes nothing).  With the usual "best patch per slot, independently" score
-        every slot gets full credit for re-finding the same object, and nothing rewards a second slot for
-        finding the second thing a sentence mentions.   q [n, K, W], keys [B, P, W] -> [n, B]"""
         cos = torch.einsum("nkw,bpw->nbkp", q, keys[:, :-1]).float()
         null = self._null_logits(q).unsqueeze(1).expand(-1, keys.shape[0], -1)
         attn = self._sequential(cos / self.tau, null)
-        return (attn * cos).sum(-1).mean(-1)
+        score = (attn * cos).sum(-1).mean(-1)
+        own = attn[torch.arange(q.shape[0], device=q.device), item]
+        return score, own
 
-    def free_code(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:
-        return self.free_out(self.slot_features(z, mod, lang))
+    def attend(self, q: torch.Tensor, V: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Own-image path only (cache building, figures): q [n, K, W], V [n, P, d] -> hub [n, K, d], attn."""
+        logits = torch.einsum("nkw,npw->nkp", q, self.keys(V)[:, :-1]).float() / self.tau
+        attn = self._sequential(logits, self._null_logits(q))
+        return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
+
+    def free_code(self, z: torch.Tensor, mod: str, lang: torch.Tensor, scene: torch.Tensor) -> torch.Tensor:
+        """Unconstrained learned anchor (baseline): average of an utterance code and an image code."""
+        return 0.5 * (self.free_out(self.slot_features(z, mod, lang)) + self.free_img(scene))
 
     # ------------------------------------------------------------------ retrieval in hub space
     @staticmethod
@@ -164,59 +167,50 @@ class VisualInterlingua(nn.Module):
         return (best * w.unsqueeze(1)).sum(-1) / w.sum(-1, keepdim=True).clamp_min(1e-6)
 
 
-class Explainer(nn.Module):
-    """hub code [n, K_h, d] -> predicted modality latent [n, N, d].  Only used in phase A, to make the grounder
-    select the patches that explain the utterance (the t = 0 view of flow matching: what the hub does not
-    determine is unexplained variance of the latent).  Discarded afterwards; the flows take over."""
+class _SlotTransformer(nn.Module):
+    """n_out learned queries read a set of n_in tokens (shared shape of the Explainer and the Reader)."""
 
-    def __init__(self, cfg, n_lang: int):
+    def __init__(self, cfg, n_lang: int, n_in: int, n_out: int, layers: int):
         super().__init__()
         W, d = cfg.hub_width, cfg.latent_dim
         self.inp = nn.Linear(d, W)
-        self.slot_pos = nn.Parameter(torch.randn(cfg.hub_slots, W) * 0.02)
+        self.in_pos = nn.Parameter(torch.randn(n_in, W) * 0.02)
         self.mod_emb = nn.Embedding(2, W)
         self.lang_emb = nn.Embedding(n_lang, W)
-        self.queries = nn.Parameter(torch.randn(cfg.n_tokens, W) * 0.02)
-        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W) for _ in range(2)])
+        self.queries = nn.Parameter(torch.randn(n_out, W) * 0.02)
+        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W) for _ in range(layers)])
         self.norm = nn.LayerNorm(W)
         self.out = nn.Linear(W, d)
 
-    def forward(self, hub: torch.Tensor, mod: int, lang: torch.Tensor) -> torch.Tensor:
-        ctx = self.inp(hub) + self.slot_pos + self.mod_emb.weight[mod] + self.lang_emb(lang).unsqueeze(1)
-        q = self.queries.unsqueeze(0).expand(hub.shape[0], -1, -1)
+    def forward(self, x: torch.Tensor, mod: int, lang: torch.Tensor) -> torch.Tensor:
+        ctx = self.inp(x) + self.in_pos + self.mod_emb.weight[mod] + self.lang_emb(lang).unsqueeze(1)
+        q = self.queries.unsqueeze(0).expand(x.shape[0], -1, -1)
         for blk in self.blocks:
             q = blk(q, ctx=ctx)
         return self.out(self.norm(q))
 
 
-class HubBank(nn.Module):
-    """FIFO memory of hub codes produced from image-paired utterances: the empirical hub distribution that
-    unpaired islands are docked onto.  Stored as buffers, so it is checkpointed with the model."""
+class Explainer(_SlotTransformer):
+    """hub code [n, K_h, d] -> expected utterance latent [n, N, d].
 
-    def __init__(self, size: int, k: int, d: int):
-        super().__init__()
-        self.register_buffer("codes", torch.zeros(size, k, d))
-        self.register_buffer("ptr", torch.zeros((), dtype=torch.long))
-        self.register_buffer("count", torch.zeros((), dtype=torch.long))
+    Phase A: sufficiency - the hub code alone must reconstruct the utterance (the t = 0 view of flow matching:
+    what the hub does not determine is unexplained variance of the latent).  Afterwards it is the writer's
+    *draft*: generation may start from the interpolation between the source and this prediction."""
 
-    @torch.no_grad()
-    def push(self, z: torch.Tensor) -> None:
-        z = z.detach().float()
-        size = self.codes.shape[0]
-        if z.shape[0] >= size:
-            z = z[-size:]
-        idx = (self.ptr + torch.arange(z.shape[0], device=z.device)) % size
-        self.codes[idx] = z
-        self.ptr.copy_((self.ptr + z.shape[0]) % size)
-        self.count.copy_(torch.clamp(self.count + z.shape[0], max=size))
+    def __init__(self, cfg, n_lang: int):
+        super().__init__(cfg, n_lang, cfg.hub_slots, cfg.n_tokens, 2)
 
-    @torch.no_grad()
-    def sample(self, n: int) -> torch.Tensor:
-        c = int(self.count)
-        idx = torch.randperm(c, device=self.codes.device)[: min(n, c)]
-        return self.codes[idx]
 
-    @torch.no_grad()
-    def mean(self) -> torch.Tensor:
-        c = max(1, int(self.count))
-        return self.codes[:c].mean(0, keepdim=True)
+class HubReader(_SlotTransformer):
+    """utterance latent [n, N, d] -> hub code [n, K_h, d], with no image.
+
+    Phase A: minimality - the grounded hub code must be predictable from the utterance alone.  Phase B and test
+    time: the read path.  Reading is a function (one code per sentence), so it is amortised in one pass;
+    writing is a distribution (many realisations per code), so it is a flow.  The reader regresses onto codes
+    that do not depend on the speaker, so the hub it returns carries no speaker identity."""
+
+    def __init__(self, cfg, n_lang: int):
+        super().__init__(cfg, n_lang, cfg.n_tokens, cfg.hub_slots, cfg.hub_layers)
+
+    def forward(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
+        return super().forward(z, VisualInterlingua.MODS[mod], lang)

@@ -4,9 +4,10 @@ Text out      BLEU / chrF++ (sacrebleu) against the parallel reference and again
               WER / CER for same-language transcription; exact content accuracy on SynthWorld.
 Hub space     recall@k of utterance -> image (hub code explained by gallery patches), cross-lingual
               speech -> text retrieval.
+Image out     the image latent written from a hub code, retrieved among the true image latents (recall@k).
 Speech out    feature-level round trip: hub -> speech latent -> decoded frame features and predicted pitch ->
-              re-encoded -> hub -> text, scored against the reference ("self-transcribed", an intrinsic proxy
-              for ASR-BLEU that needs no external recogniser and is not satisfied by ODE invertibility).
+              re-encoded -> read -> hub -> text, scored against the reference ("self-transcribed", an intrinsic
+              proxy for ASR-BLEU that needs no external recogniser).
 Tone          learned gate per language, tone-reliance index (how far the hub code moves when the pitch
               contour is removed), and the translation score with the contour removed.
 """
@@ -73,30 +74,32 @@ class Evaluator:
 
     # ---- one pass over the split: read every view into hub coordinates
     @torch.no_grad()
-    def collect(self, model, split: str, max_items: int = 0, flat_tone: bool = True, steps: Optional[int] = None) -> Dict:
+    def collect(self, model, split: str, max_items: int = 0, flat_tone: bool = True, steps: Optional[int] = None,
+                read_mode: Optional[str] = None) -> Dict:
         data, dev = self.data, self.device
         groups = data.eval_groups(split, max_items)
-        store: Dict = {"groups": groups, "views": {}, "img_of_group": [], "V": {}, "img_hub": []}
+        store: Dict = {"groups": groups, "views": {}, "img_of_group": [], "V": {}, "Z": {}, "img_hub": []}
         g0 = 0
         for part, batch in data.eval_batches(groups, 64):
             batch = _to(batch, dev)
             V = model.hub.project(batch["img"])
+            lat = model.image_latent(V)
             for j, g in enumerate(part):
                 store["img_of_group"].append(g["img"])
                 if g["img"] not in store["V"]:
-                    store["V"][g["img"]] = V[j].float().cpu()
+                    store["V"][g["img"]], store["Z"][g["img"]] = V[j].float().cpu(), lat[j].float().cpu()
             if "img" in model.spokes:
-                store["img_hub"].append(model.to_hub("img", model.image_latent(V), steps=steps).float().cpu())
+                store["img_hub"].append(model.read("img", lat, steps=steps).float().cpu())
             for mod in ("txt", "aud"):
                 sub = batch[mod]
                 if sub is None:
                     continue
                 z = model.encode(mod, sub)
-                hub = model.to_hub(mod, z, sub["lang"], steps=steps)
+                hub = model.read(mod, z, sub["lang"], mode=read_mode, steps=steps)
                 hub_flat = None
                 if mod == "aud" and flat_tone:
                     sub_f = dict(sub, tone=dsp.flatten_tone(sub["tone"]))
-                    hub_flat = model.to_hub("aud", model.encode("aud", sub_f), sub["lang"], steps=steps)
+                    hub_flat = model.read("aud", model.encode("aud", sub_f), sub["lang"], mode=read_mode, steps=steps)
                 for li in sub["lang"].unique().tolist():
                     sel = (sub["lang"] == li).nonzero().squeeze(1)
                     rec = store["views"].setdefault((mod, model.langs[li]), {"g": [], "hub": [], "z": [], "utt": [],
@@ -117,6 +120,7 @@ class Evaluator:
         store["img_hub"] = torch.cat(store["img_hub"]) if store["img_hub"] else None
         store["img_ids"] = sorted(store["V"])
         store["gallery"] = torch.stack([store["V"][i] for i in store["img_ids"]])
+        store["gallery_lat"] = torch.stack([store["Z"][i] for i in store["img_ids"]])
         return store
 
     # ---- helpers
@@ -135,7 +139,7 @@ class Evaluator:
             if not self.cfg.private_noise:
                 priv = torch.zeros_like(priv)
             lang_id = torch.full((h.shape[0],), model.lang2id[lang], dtype=torch.long, device=self.device)
-            z = model.from_hub("txt", h, lang_id, private=priv)
+            z = model.write("txt", h, lang_id, private=priv)
             out += model.text.generate(z, lang_id)
         return out
 
@@ -180,11 +184,11 @@ class Evaluator:
     # ---- main entry
     @torch.no_grad()
     def evaluate(self, model, split: str = "valid", max_items: int = 0, quick: bool = False,
-                 save_path: Optional[str] = None, steps: Optional[int] = None) -> Dict[str, float]:
+                 save_path: Optional[str] = None, steps: Optional[int] = None, read_mode: Optional[str] = None) -> Dict[str, float]:
         cfg, data = self.cfg, self.data
         was_training = model.training
         model.eval()
-        store = self.collect(model, split, max_items, flat_tone=True, steps=steps)
+        store = self.collect(model, split, max_items, flat_tone=True, steps=steps, read_mode=read_mode)
         groups, views = store["groups"], store["views"]
         M: Dict[str, float] = {}
         samples: Dict[str, List[Dict]] = {}
@@ -238,6 +242,21 @@ class Evaluator:
             sc = torch.cat([model.hub.hub_to_image_scores(rec["hub"][i:i + 32].to(self.device), gal).cpu()
                             for i in range(0, len(rec["hub"]), 32)])
             M.update({f"{mod}_{lang}>img/{k}": v for k, v in recall_at_k(sc, target).items()})
+        if "img" in model.spokes:  # the image-writing direction: generated image latent vs the true ones
+            lat = F.normalize(store["gallery_lat"].flatten(1), dim=-1)
+            gen = torch.Generator().manual_seed(0)
+            for (mod, lang), rec in views.items():
+                if (mod == "txt" and lang in cfg.island_langs and not cfg.use_island_text) or \
+                        (quick and not (lang in island or (mod == "txt" and lang in hub_langs))):
+                    continue
+                target = torch.tensor([img_index[store["img_of_group"][g]] for g in rec["g"].tolist()])
+                outs = []
+                for i in range(0, len(rec["hub"]), 64):
+                    h = rec["hub"][i:i + 64].to(self.device)
+                    priv = torch.randn(h.shape[0], cfg.private_slots, cfg.latent_dim, generator=gen).to(self.device) * cfg.eval_temp
+                    outs.append(model.write("img", h, private=priv if cfg.private_noise else torch.zeros_like(priv)).float().cpu())
+                sc = F.normalize(torch.cat(outs).flatten(1), dim=-1) @ lat.t()
+                M.update({f"{mod}_{lang}>img_gen/{k}": v for k, v in recall_at_k(sc, target).items()})
         for L in island:
             for H in hub_langs:
                 a, t = views[("aud", L)], views[("txt", H)]
@@ -307,7 +326,7 @@ class Evaluator:
             pick = torch.randint(len(tgt_ref["spk"]), (b,), generator=gen)  # a real voice of language S
             spk, f0 = tgt_ref["spk"][pick].to(dev), tgt_ref["f0"][pick].to(dev)
             priv = torch.randn(b, cfg.private_slots, cfg.latent_dim, generator=gen).to(dev) * cfg.eval_temp
-            z = model.from_hub("aud", hub, lid, private=priv if cfg.private_noise else torch.zeros_like(priv))
+            z = model.write("aud", hub, lid, private=priv if cfg.private_noise else torch.zeros_like(priv))
             n_frames = model.audio.predict_frames(z)
             p = model.audio.bypass_code(spk, f0)
             out = model.audio.decode(z, lid, n_frames, p)
@@ -317,7 +336,7 @@ class Evaluator:
             dz[:, 1:-1] = (zf0[:, 2:] - zf0[:, :-2]) / 2
             tone = torch.stack([zf0, voiced, dz * voiced, out["pros"][..., 2]], -1) * out["mask"].unsqueeze(-1)
             z2 = model.audio.encode(out["sem"], tone, out["mask"], lid, sem_is_normed=True)
-            hub2 = model.to_hub("aud", z2, lid)
+            hub2 = model.read("aud", z2, lid)
             hyps += self._gen_text(model, hub2.cpu(), H)
         return hyps, src["g"][:n].tolist()
 

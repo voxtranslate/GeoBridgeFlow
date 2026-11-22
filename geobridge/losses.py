@@ -1,21 +1,26 @@
 """All training objectives of GeoBridge-Flow in one class.
 
-Phase A - representation (codecs + grounder)
-    L_A = w_text_rec * L_text  +  w_audio_rec * L_audio(sem, prosody, duration, mel, orth, gate price)
-        + w_ground * L_ground  +  w_expl * L_expl  +  w_agree * L_agree  [+ w_slot_div * L_div]
+Phase A - representation (codecs, grounder, explainer, reader, preview decoder)
+    L_A = w_text_rec * L_text + w_audio_rec * L_audio(segmental, prosody, duration, mel, orth, gate price)
+        + w_ground * L_ground        the hub code is found in the right image          (contrastive)
+        + w_expl   * L_expl          the hub code explains the sentence                (sufficiency)
+        + w_read   * L_read          an image-free reader predicts the hub code
+        + w_min    * L_min           ... and the hub code must be predictable by it    (minimality)
+        + w_agree  * L_agree  + w_pix * L_pix
 
-Phase B - transport (flow spokes; codecs and grounder frozen)
-    L_B = w_cfm * (L_cfm^txt + L_cfm^aud + L_cfm^img)          hub (+) private conditional flow matching
-        + w_swap * L_swap                                       transitive hub-swap (cross-spoke exposure)
-        + w_dock * L_dock  +  w_pseudo * L_pseudo               Gromov->Wasserstein docking of the island
-        [+ twohop_weight * L_2hop  + naive_cycle_weight * L_cycle]   optional / diagnostic
+Phase B - transport (writers = flows, plus the reader), computed on *cached* latents: the frozen codecs and the
+grounder are not run again.
+    L_B = w_cfm * (L_cfm^txt + L_cfm^aud + L_cfm^img)     hub (+) private flow matching; a share of the views
+                                                          is written from a *read* hub (exposure)
+        + w_read * L_read                                  keeps the reader on the grounded codes
+        + bt_weight * (L_bt_write + L_bt_read)             hub-space back-translation of unpaired island speech
+        [+ w_dock * L_dock + naive_cycle_weight * L_cycle] ablation / diagnostic terms, off by default
 
 No term ever pairs two different languages: cross-lingual transfer can only pass through the hub.
 """
 from __future__ import annotations
 
-import math
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -23,24 +28,41 @@ import torch.nn.functional as F
 from .models import ot
 
 
+def _pad_time(x: torch.Tensor, L: int) -> torch.Tensor:
+    return F.pad(x, (0, 0, 0, L - x.shape[1])) if x.dim() == 3 else F.pad(x, (0, L - x.shape[1]))
+
+
 def cat_audio(a: Optional[Dict], b: Optional[Dict]) -> Optional[Dict]:
     """Concatenate two collated speech sub-batches (padding the time axis)."""
     if a is None or b is None:
         return a if b is None else b
     T = max(a["sem"].shape[1], b["sem"].shape[1])
+    Tm = max(a["mel"].shape[1], b["mel"].shape[1]) if "mel" in a and "mel" in b else 0
     out = {}
     for k in a:
         if k not in b:
             continue
         x, y = a[k], b[k]
-        if k in ("sem", "tone", "mask", "mel"):
-            L = 2 * T if k == "mel" else T
-            x = F.pad(x, (0, 0, 0, L - x.shape[1])) if x.dim() == 3 else F.pad(x, (0, L - x.shape[1]))
-            y = F.pad(y, (0, 0, 0, L - y.shape[1])) if y.dim() == 3 else F.pad(y, (0, L - y.shape[1]))
-        if k == "item":
-            y = torch.full_like(y, -1)
+        if k in ("sem", "tone", "mask", "mel"):  # time axes; "mel_len" travels along untouched
+            L = Tm if k == "mel" else T
+            x, y = _pad_time(x, L), _pad_time(y, L)
         out[k] = torch.cat([x, y], 0)
     return out
+
+
+def cat_text(a: Optional[Dict], b: Optional[Dict], pad_id: int) -> Optional[Dict]:
+    """Concatenate two collated text sub-batches (padding units and bytes with their pad ids)."""
+    if a is None or b is None:
+        return a if b is None else b
+    L, T = max(a["units"].shape[1], b["units"].shape[1]), max(a["bytes"].shape[1], b["bytes"].shape[1])
+
+    def pad(d: Dict) -> Dict:
+        return {"units": F.pad(d["units"], (0, 0, 0, L - d["units"].shape[1]), value=pad_id),
+                "unit_mask": F.pad(d["unit_mask"], (0, L - d["unit_mask"].shape[1])),
+                "bytes": F.pad(d["bytes"], (0, T - d["bytes"].shape[1]), value=256), "lang": d["lang"]}
+
+    pa, pb = pad(a), pad(b)
+    return {k: torch.cat([pa[k], pb[k]], 0) for k in pa}
 
 
 def same_lang_pairs(txt: Optional[Dict], aud: Optional[Dict]) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -61,22 +83,24 @@ def same_lang_pairs(txt: Optional[Dict], aud: Optional[Dict]) -> Tuple[torch.Ten
 class GeoBridgeLoss:
     def __init__(self, cfg, lang2id: Dict[str, int]):
         self.cfg = cfg
-        self.island_ids = [lang2id[l] for l in cfg.island_langs if l in lang2id]
         self.hub_ids = [lang2id[l] for l in cfg.hub_langs if l in lang2id]
-        self.last_coupling: Optional[Dict[str, torch.Tensor]] = None  # kept for the inferencer's figures
 
     # ============================================================================ phase A
     def phase_a(self, model, batch: Dict, island: Optional[Dict] = None) -> Tuple[torch.Tensor, Dict[str, float]]:
-        cfg, logs = self.cfg, {}
-        total = batch["img"].new_zeros(())
-        V = model.hub.project(batch["img"])
-        keys = model.hub.keys(V)
+        cfg, hub, logs = self.cfg, model.hub, {}
+        V = hub.project(batch["img"])
+        keys = hub.keys(V)
+        total = V.new_zeros(())
         txt, aud = batch["txt"], batch["aud"]
         z: Dict[str, torch.Tensor] = {}
-        if txt is not None:
-            r = model.text.loss(txt)
+
+        # ---- codecs (one forward per modality: paired views + replay text / unpaired island speech)
+        txt_all = cat_text(txt, batch.get("replay"), model.text.unit_pad)
+        if txt_all is not None:
+            r = model.text.loss(txt_all)
             total = total + cfg.w_text_rec * r["loss"]
-            z["txt"] = r["z"]
+            if txt is not None:
+                z["txt"] = r["z"][: txt["units"].shape[0]]
             logs.update(txt_ce=r["loss"].item(), txt_acc=r["byte_acc"].item())
         aud_all = cat_audio(aud, island["aud"] if island is not None else None)
         if aud_all is not None:
@@ -84,61 +108,58 @@ class GeoBridgeLoss:
             total = total + cfg.w_audio_rec * r["loss"]
             if aud is not None:
                 z["aud"] = r["z"][: aud["sem"].shape[0]]
-            logs.update(aud_sem=r["sem_mse"].item(), aud_f0=r["f0_l1"].item(), aud_dur=r["dur_l1"].item())
-            for k in ("mel_l1", "orth", "gate_pen"):
-                if k in r:
-                    logs[k] = r[k].item()
+            logs.update({k: r[k].item() for k in ("sem_mse", "f0_l1", "dur_l1", "mel_l1", "orth", "gate_pen") if k in r})
 
-        # ---- grounding: which patches does each utterance talk about?
-        sims, items, outs, expl = [], [], {}, []
+        # ---- grounding: one attention pass gives the contrastive scores and the hub code
+        scores, items, codes = [], [], {}
+        released = hub.null_enabled  # minimality starts when the dense stage ends
         for mod, sub in (("txt", txt), ("aud", aud)):
             if mod not in z:
                 continue
-            o = model.paired_hub(mod, z[mod], sub["lang"], V[sub["item"]])
-            o["bary"], _ = model.hub.attend(o["q"], V[sub["item"]])
-            outs[mod] = o
-            sims.append(model.hub.similarity(o["q"], keys))
+            q = hub.queries(z[mod], mod, sub["lang"])
+            score, attn = hub.ground(q, keys, sub["item"])
+            code = torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[sub["item"]][:, :-1])
+            codes[mod] = code
+            scores.append(score)
             items.append(sub["item"])
-            if cfg.w_expl > 0:  # the hub code alone must explain the utterance
-                pred = model.hub.explainer(o["bary"], model.hub.MODS[mod], sub["lang"])
-                expl.append(((pred.float() - z[mod].detach().float()) ** 2).mean(dim=(1, 2)))
-        if sims:
-            logits = torch.cat(sims).float() / cfg.ground_temp
+            mid = hub.MODS[mod]
+            if cfg.w_expl > 0:  # sufficiency: the code alone reconstructs the utterance latent
+                unexp = F.mse_loss(hub.explainer(code, mid, sub["lang"]).float(), z[mod].detach().float())
+                total = total + cfg.w_expl * unexp
+                logs[f"unexplained_{mod}"] = unexp.item()
+            pred = hub.reader(z[mod].detach(), mod, sub["lang"]).float()
+            l_read = F.mse_loss(pred, code.detach().float())
+            total = total + cfg.w_read * l_read
+            logs[f"read_{mod}"] = l_read.item()
+            if cfg.w_min > 0 and released:  # minimality: nothing in the code that the sentence does not say
+                total = total + cfg.w_min * F.mse_loss(code.float(), pred.detach())
+            logs[f"slot_use_{mod}"] = attn.sum(-1).mean().item()
+        if scores:
+            logits = torch.cat(scores) / cfg.ground_temp
             item = torch.cat(items)
-            B = batch["B"]
             same = batch["img_idx"][item].unsqueeze(1) == batch["img_idx"].unsqueeze(0)  # [n, B]
-            pos = F.one_hot(item, B).bool()
-            l_u2i = F.cross_entropy(logits.masked_fill(same & ~pos, -1e4), item)
+            pos = F.one_hot(item, batch["B"]).bool()
+            masked = logits.masked_fill(same & ~pos, -1e4)
+            l_u2i = F.cross_entropy(masked, item)
             logp = logits.t().log_softmax(dim=1)                                          # [B, n]
-            has = same.t().any(1)
-            l_i2u = -torch.logsumexp(logp.masked_fill(~same.t(), -1e4), dim=1)[has].mean()
+            l_i2u = -torch.logsumexp(logp.masked_fill(~same.t(), -1e4), dim=1)[same.t().any(1)].mean()
             ground = 0.5 * (l_u2i + l_i2u)
-            attn = torch.cat([o["attn"] for o in outs.values()])
-            a = F.normalize(attn, dim=-1)
-            sim = a @ a.transpose(1, 2)
-            K = sim.shape[-1]
-            div = (sim.sum(dim=(1, 2)) - sim.diagonal(dim1=1, dim2=2).sum(1)).mean() / max(1, K * (K - 1))
-            total = total + cfg.w_ground * ground + cfg.w_slot_div * div
-            if cfg.w_null > 0 and model.hub.null_enabled:  # pay for attention: unused slots retire to null
-                use = attn.sum(-1).mean()
-                total = total + cfg.w_null * use
-                logs["slot_use"] = use.item()
-            if expl:
-                unexplained = torch.cat(expl).mean()  # latents are unit-variance: this is 1 - R^2
-                total = total + cfg.w_expl * unexplained
-                logs["unexplained"] = unexplained.item()
-            logs.update(ground=ground.item(), slot_div=div.item(),
-                        ground_acc=(logits.masked_fill(same & ~pos, -1e4).argmax(1) == item).float().mean().item())
+            total = total + cfg.w_ground * ground
+            logs.update(ground=ground.item(), ground_acc=(masked.argmax(1) == item).float().mean().item())
             it, ia = same_lang_pairs(txt, aud)
-            if len(it) and "txt" in outs and "aud" in outs:
-                agree = F.mse_loss(outs["txt"]["bary"][it], outs["aud"]["bary"][ia])
+            if len(it) and len(codes) == 2 and cfg.w_agree > 0:
+                agree = F.mse_loss(codes["txt"][it], codes["aud"][ia])
                 total = total + cfg.w_agree * agree
                 logs["agree"] = agree.item()
-            if cfg.hub_mode == "free":
-                hub = torch.cat([o["hub"] for o in outs.values()])
-                var = F.relu(1.0 - hub.float().flatten(1).std(0)).mean()
-                total = total + cfg.w_free_hub_var * var
-                logs["free_var"] = var.item()
+            logs["unexplained"] = sum(v for k, v in logs.items() if k.startswith("unexplained_")) / len(codes)
+            logs["read"] = sum(v for k, v in logs.items() if k.startswith("read_")) / len(codes)
+
+        # ---- preview pixel decoder (frozen image latent -> thumbnail)
+        if "thumb" in batch and hasattr(model, "pixel"):
+            target = batch["thumb"].permute(0, 3, 1, 2).float() / 255.0
+            pix = F.l1_loss(model.pixel(model.image_latent(V)).float(), target)
+            total = total + cfg.w_pix * pix
+            logs["pix_l1"] = pix.item()
         gates = model.audio.gate().detach()
         for name, i in model.lang2id.items():
             logs[f"gate_{name}"] = gates[i].item()
@@ -146,196 +167,181 @@ class GeoBridgeLoss:
         return total, logs
 
     # ============================================================================ phase B
-    def _text_anchor(self, model, batch, z, mod, sub, pairs) -> Tuple[torch.Tensor, torch.Tensor]:
+    def text_anchor(self, z: Dict[str, torch.Tensor], mod: str, sub: Dict, pairs, pivot: Optional[Dict],
+                    n_items: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Text-anchor baseline: which text latent serves as the hub of each view, and whether one exists."""
-        n = z[mod].shape[0]
-        dev = z[mod].device
+        n, dev = z[mod].shape[0], z[mod].device
         hub_lang = torch.tensor([int(l) in self.hub_ids for l in sub["lang"].tolist()], device=dev)
         anchor = z[mod].clone() if mod == "txt" else torch.zeros_like(z[mod])
-        valid = hub_lang.clone() if mod == "txt" else torch.zeros(n, dtype=torch.bool, device=dev)
+        ok = hub_lang.clone() if mod == "txt" else torch.zeros(n, dtype=torch.bool, device=dev)
         if mod == "aud" and "txt" in z and len(pairs[0]):  # hub-language speech: its own transcript
             anchor[pairs[1]] = z["txt"][pairs[0]]
-            valid[pairs[1]] = True
-        piv = batch.get("pivot")
-        if piv is not None and "pivot" in z:  # everything else: a caption of the same image (image pivot)
-            row = torch.full((batch["B"],), -1, dtype=torch.long, device=dev)
-            row[piv["item"]] = torch.arange(len(piv["item"]), device=dev)
+            ok[pairs[1]] = True
+        if pivot is not None and "pivot" in z:  # everything else: a caption of the same image (image pivot)
+            row = torch.full((n_items,), -1, dtype=torch.long, device=dev)
+            row[pivot["item"]] = torch.arange(len(pivot["item"]), device=dev)
             r = row[sub["item"]]
-            use = (~valid) & (r >= 0)
+            use = (~ok) & (r >= 0)
             anchor[use] = z["pivot"][r[use]]
-            valid = valid | use
-        return anchor, valid
+            ok = ok | use
+        return anchor, ok
 
-    def phase_b(self, model, batch: Dict, island: Optional[Dict], progress: float) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def phase_b(self, model, batch: Dict, island: Optional[Dict], progress: float,
+                bank: Optional[Callable[[int], torch.Tensor]] = None) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """``batch`` comes from the latent cache: per modality the latents ``z``, the grounded hub codes
+        ``hub``, ``lang``, ``item`` and ``ok``; plus the image latents ``img_lat`` [B, N, d]."""
         cfg, logs = self.cfg, {}
-        sp = model.spokes
-        free = cfg.hub_mode == "free"
-        txt, aud = batch["txt"], batch["aud"]
-        with torch.no_grad():
-            V = model.hub.project(batch["img"])
-            z = {m: model.encode(m, s) for m, s in (("txt", txt), ("aud", aud)) if s is not None}
-            if cfg.hub_mode == "text" and batch.get("pivot") is not None:
-                z["pivot"] = model.encode("txt", batch["pivot"])
-            z_img = model.image_latent(V)
-        pairs = same_lang_pairs(txt, aud)
-        hubs: Dict[str, torch.Tensor] = {}
-        valid: Dict[str, torch.Tensor] = {}
-        with torch.set_grad_enabled(free):
-            for mod, sub in (("txt", txt), ("aud", aud)):
-                if mod not in z:
-                    continue
-                piv_z, ok = (None, None)
-                if cfg.hub_mode == "text":
-                    piv_z, ok = self._text_anchor(model, batch, z, mod, sub, pairs)
-                hubs[mod] = model.paired_hub(mod, z[mod], sub["lang"], V[sub["item"]], piv_z)["hub"]
-                valid[mod] = ok if ok is not None else torch.ones(z[mod].shape[0], dtype=torch.bool, device=V.device)
+        sp, reader = model.spokes, model.hub.reader
+        views = {m: batch[m] for m in ("txt", "aud") if batch.get(m) is not None}
+        dev = batch["img_lat"].device
+        total = batch["img_lat"].new_zeros(())
 
-        total = V.new_zeros(())
-        # ---- hub (+) private conditional flow matching on every image-paired view
-        for mod, sub in (("txt", txt), ("aud", aud)):
-            if mod not in z:
-                continue
-            w = valid[mod].float()
-            l, _ = sp[mod].cfm_loss(sp[mod].source(hubs[mod]), z[mod], sub["lang"], weight=w)
-            total = total + cfg.w_cfm * l
-            logs[f"cfm_{mod}"] = l.item()
-        if "img" in sp and hubs:
-            h_all = torch.cat([hubs[m][valid[m]] for m in hubs])
-            it_all = torch.cat([(txt if m == "txt" else aud)["item"][valid[m]] for m in hubs])
-            if len(h_all) > batch["B"]:
-                pick = torch.randperm(len(h_all), device=V.device)[: batch["B"]]
-                h_all, it_all = h_all[pick], it_all[pick]
-            lang0 = torch.zeros(len(h_all), dtype=torch.long, device=V.device)
-            l, _ = sp["img"].cfm_loss(sp["img"].source(h_all), z_img[it_all], lang0)
-            total = total + cfg.w_cfm * l
-            logs["cfm_img"] = l.item()
-        if free:
-            hub = torch.cat(list(hubs.values()))
-            var = F.relu(1.0 - hub.float().flatten(1).std(0)).mean()
+        # ---- grounded hub codes (cached; the unconstrained 'free' anchor is computed live and trained)
+        hubs: Dict[str, torch.Tensor] = {}
+        for mod, sub in views.items():
+            if cfg.hub_mode == "free":
+                hubs[mod] = model.hub.free_code(sub["z"], mod, sub["lang"], batch["scene"][sub["item"]])
+            else:
+                hubs[mod] = sub["hub"]
+        if cfg.hub_mode == "free" and hubs:
+            var = F.relu(1.0 - torch.cat(list(hubs.values())).float().flatten(1).std(0)).mean()
             total = total + cfg.w_free_hub_var * var
             logs["free_var"] = var.item()
 
-        # ---- transitive hub-swap: train each spoke on hub codes *read by the other spoke's ODE*
-        it, ia = pairs
-        if cfg.w_swap > 0 and cfg.swap_frac > 0 and len(it) > 1:
-            n = max(1, int(round(cfg.swap_frac * len(it))))
-            sel = torch.randperm(len(it), device=V.device)[:n]
-            st, sa = it[sel], ia[sel]
-            h_from_t, _ = sp["txt"].read(z["txt"][st], txt["lang"][st], steps=cfg.train_ode_steps)
-            h_from_a, _ = sp["aud"].read(z["aud"][sa], aud["lang"][sa], steps=cfg.train_ode_steps)
-            l1, _ = sp["aud"].cfm_loss(sp["aud"].source(h_from_t), z["aud"][sa], aud["lang"][sa])
-            l2, _ = sp["txt"].cfm_loss(sp["txt"].source(h_from_a), z["txt"][st], txt["lang"][st])
-            swap = 0.5 * (l1 + l2)
-            total = total + cfg.w_swap * swap
-            logs["swap"] = swap.item()
-            with torch.no_grad():
-                logs["hub_gap"] = F.mse_loss(h_from_t, h_from_a).item()
-        if cfg.twohop_weight > 0 and len(it) > 1:
-            l2h = self.twohop(model, z["txt"][it], txt["lang"][it], z["aud"][ia], aud["lang"][ia])
-            total = total + cfg.twohop_weight * l2h
-            logs["twohop"] = l2h.item()
-        if cfg.naive_cycle_weight > 0 and len(it) > 1:
-            lc = self.naive_cycle(model, "txt", z["txt"][it], txt["lang"][it], "aud", aud["lang"][ia],
+        # ---- reader stays on the grounded codes; its (detached) outputs are the read hubs for exposure
+        reads: Dict[str, torch.Tensor] = {}
+        for mod, sub in views.items():
+            r = reader(sub["z"], mod, sub["lang"])
+            l_read = F.mse_loss(r[sub["ok"]].float(), hubs[mod][sub["ok"]].detach().float())
+            total = total + cfg.w_read * l_read
+            logs[f"read_{mod}"] = l_read.item()
+            reads[mod] = r.detach()
+
+        # ---- exposure: a share of the views is written from a hub that was *read*, as it will be at test time
+        pairs = same_lang_pairs(views.get("txt"), views.get("aud"))
+        src = {m: hubs[m] for m in views}
+        if cfg.exposure != "none" and cfg.p_read > 0:
+            for mod, sub in views.items():
+                other = "aud" if mod == "txt" else "txt"
+                u = torch.rand(sub["z"].shape[0], device=dev)
+                mine, theirs = (pairs[0], pairs[1]) if mod == "txt" else (pairs[1], pairs[0])
+                new = src[mod].clone()
+                if cfg.exposure == "reader":
+                    self_read = u < cfg.p_read / 2
+                    new[self_read] = reads[mod][self_read].to(new.dtype)
+                    if len(mine):  # the same caption read from the other modality
+                        cross = (u[mine] >= cfg.p_read / 2) & (u[mine] < cfg.p_read)
+                        new[mine[cross]] = reads[other][theirs[cross]].to(new.dtype)
+                elif len(mine):  # "ode": hub read by the other spoke's backward flow (costly; ablation)
+                    cross = u[mine] < cfg.p_read
+                    if cross.any():
+                        o = views[other]
+                        h, _ = sp[other].read(o["z"][theirs[cross]], o["lang"][theirs[cross]], steps=cfg.train_ode_steps)
+                        new[mine[cross]] = h.to(new.dtype)
+                src[mod] = new
+
+        # ---- hub (+) private conditional flow matching
+        for mod, sub in views.items():
+            l = sp[mod].cfm_loss(sp[mod].source(src[mod]), sub["z"], sub["lang"], weight=sub["ok"].float())
+            total = total + cfg.w_cfm * l
+            logs[f"cfm_{mod}"] = l.item()
+        if "img" in sp and views:
+            h_all = torch.cat([src[m][views[m]["ok"]] for m in views])
+            it_all = torch.cat([views[m]["item"][views[m]["ok"]] for m in views])
+            if len(h_all) > batch["B"]:
+                pick = torch.randperm(len(h_all), device=dev)[: batch["B"]]
+                h_all, it_all = h_all[pick], it_all[pick]
+            l = sp["img"].cfm_loss(sp["img"].source(h_all), batch["img_lat"][it_all],
+                                   torch.zeros(len(h_all), dtype=torch.long, device=dev))
+            total = total + cfg.w_cfm * l
+            logs["cfm_img"] = l.item()
+
+        # ---- unpaired island speech
+        if island is not None and bank is not None:
+            if cfg.bt_weight > 0 and progress >= cfg.bt_warmup_frac:
+                l_bt, bl = self.back_translate(model, island, bank)
+                total = total + cfg.bt_weight * l_bt
+                logs.update(bl)
+            if cfg.dock_mode != "none" and progress >= cfg.dock_warmup_frac:
+                l_dock, dl = self.dock(model, island, bank, progress)
+                total = total + cfg.w_dock * l_dock
+                logs.update(dl)
+        if cfg.naive_cycle_weight > 0 and len(pairs[0]) > 1:
+            t, a = views["txt"], views["aud"]
+            lc = self.naive_cycle(model, "txt", t["z"][pairs[0]], t["lang"][pairs[0]], "aud", a["lang"][pairs[1]],
                                   steps=cfg.train_ode_steps, grad=True)
             total = total + cfg.naive_cycle_weight * lc
             logs["naive_cycle"] = lc.item()
-
-        # ---- docking the unpaired island onto the hub
-        if hubs:
-            model.bank.push(torch.cat([hubs[m][valid[m]] for m in hubs]))
-        if island is not None and cfg.dock_mode != "none" and progress >= cfg.dock_warmup_frac \
-                and int(model.bank.count) >= min(cfg.dock_bank_batch, cfg.dock_bank_size) // 2:
-            pin = None
-            if cfg.dock_pin and "aud" in z and self.island_ids:
-                is_isl = torch.isin(aud["lang"], torch.tensor(self.island_ids, device=V.device))
-                if is_isl.any():
-                    pin = (z["aud"][is_isl], aud["lang"][is_isl], hubs["aud"][is_isl].detach())
-            d_loss, p_loss, dl = self.dock(model, island["aud"], progress, pin)
-            total = total + cfg.w_dock * d_loss + cfg.w_pseudo * p_loss
-            logs.update(dl)
         logs["loss"] = total.item()
         return total, logs
 
-    # ============================================================================ docking (N3)
+    # ============================================================================ hub-space back-translation
+    def back_translate(self, model, island: Dict, bank: Callable[[int], torch.Tensor]) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Both directions of back-translation, with the hub as the pivot language.
+
+        write   real unpaired speech z_u, pseudo code h = Reader(z_u)      -> the writer learns  h -> z_u
+        read    real hub code h (from any language), synthetic speech Write(h) -> the reader learns  Write(h) -> h
+
+        The target side of each direction is real.  Pseudo codes drift towards frequent content when they are
+        fed back on themselves, so before use they are moved part of the way along the entropic optimal
+        transport map onto a batch of real hub codes (balanced marginals: the batch of pseudo codes has to
+        cover the real distribution; ``bt_rectify`` is the displacement, 0 = off, 1 = full transport)."""
+        cfg = self.cfg
+        reader, spoke = model.hub.reader, model.spokes["aud"]
+        z_u, lang_u = island["z"], island["lang"]
+        n = z_u.shape[0]
+        real = bank(cfg.bt_bank_mult * n).to(z_u.dtype)
+        logs: Dict[str, float] = {}
+        with torch.no_grad():
+            h = reader(z_u, "aud", lang_u)
+            if cfg.bt_rectify > 0:
+                with torch.autocast(device_type=z_u.device.type, enabled=False):
+                    cost = ot.scale_free(torch.cdist(h.float().flatten(1), real.float().flatten(1)) ** 2)
+                    a = torch.full((n,), 1.0 / n, device=z_u.device)
+                    b = torch.full((real.shape[0],), 1.0 / real.shape[0], device=z_u.device)
+                    Pi = ot.log_sinkhorn(cost, a, b, cfg.bt_eps, cfg.dock_sinkhorn_iters)
+                    rows = Pi / Pi.sum(1, keepdim=True).clamp_min(1e-30)
+                    moved = (rows @ real.float().flatten(1)).view_as(h)
+                    logs["bt_shift"] = ((moved - h.float()) ** 2).mean().item()
+                    logs["bt_plan_entropy"] = ot.coupling_stats(Pi)["row_entropy"]
+                h = (h.float() + cfg.bt_rectify * (moved - h.float())).to(z_u.dtype)
+            synth = spoke.write(real[:n], lang_u, temp=1.0, steps=cfg.train_ode_steps)
+        l_write = spoke.cfm_loss(spoke.source(h), z_u, lang_u)
+        l_read = F.mse_loss(reader(synth, "aud", lang_u).float(), real[:n].float())
+        logs.update(bt_write=l_write.item(), bt_read=l_read.item())
+        return l_write + l_read, logs
+
+    # ============================================================================ ablation: fused-GW docking
     def alpha(self, progress: float) -> float:
         cfg = self.cfg
-        if cfg.dock_mode == "gw":
-            return 0.0
-        if cfg.dock_mode == "w":
-            return 1.0
-        s = (progress - cfg.dock_warmup_frac) / max(1e-6, cfg.dock_anneal_frac)
-        s = min(1.0, max(0.0, s))
-        s = s * s * (3 - 2 * s)  # smoothstep
-        return cfg.dock_alpha_start + (cfg.dock_alpha_end - cfg.dock_alpha_start) * s
+        if cfg.dock_mode in ("gw", "w"):
+            return 0.0 if cfg.dock_mode == "gw" else 1.0
+        s = min(1.0, max(0.0, (progress - cfg.dock_warmup_frac) / max(1e-6, cfg.dock_anneal_frac)))
+        return cfg.dock_alpha_start + (cfg.dock_alpha_end - cfg.dock_alpha_start) * s * s * (3 - 2 * s)
 
-    def dock(self, model, isl: Dict, progress: float, pin=None) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
-        """Gromov->Wasserstein docking.
-
-        Island speech is read by its own spoke's backward ODE into hub coordinates.  Its batch is coupled to a
-        sample of the hub bank by an entropic fused-GW plan whose cost starts as pure relational geometry
-        (alpha = 0: trust only the shape of the island) and is annealed towards the model-induced Wasserstein
-        cost (alpha -> 1: trust where the island currently sits).  The plan is used twice:
-        (i) as a differentiable docking loss on the ODE end-points (envelope theorem), and
-        (ii) to draw pseudo-pairs for coupling-guided flow matching, weighted by the plan's own confidence.
-        """
+    def dock(self, model, island: Dict, bank: Callable[[int], torch.Tensor], progress: float) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Entropic fused Gromov-Wasserstein between the reader's codes for unpaired island speech and real hub
+        codes, as a loss on the reader (envelope theorem).  Kept as the ablation of the original proposal:
+        pure GW is blind to where the island sits, and neither variant has beaten the bridge pairs alone."""
         cfg = self.cfg
-        spoke = model.spokes["aud"]
-        with torch.no_grad():
-            z_u = model.encode("aud", isl)
-        lang_u = isl["lang"]
-        h_u, _ = spoke.read(z_u, lang_u, grad=cfg.w_dock > 0, steps=cfg.train_ode_steps)
-        Y = model.bank.sample(cfg.dock_bank_batch).to(h_u.dtype)
-        mu = model.bank.mean()
-        n_u, n_b = h_u.shape[0], Y.shape[0]
-        src, tgt, R = h_u, Y, None
-        if pin is not None:
-            z_p, lang_p, hub_p = pin
-            with torch.no_grad():
-                h_p, _ = spoke.read(z_p, lang_p, steps=cfg.train_ode_steps)
-            src, tgt = torch.cat([h_u, h_p]), torch.cat([Y, hub_p.to(Y.dtype)])
-            n_p = h_p.shape[0]
-            R = torch.zeros(n_u + n_p, n_b + n_p, device=h_u.device)
-            R[n_u:, :] = cfg.dock_pin_cost
-            R[n_u + torch.arange(n_p), n_b + torch.arange(n_p)] = 0.0
-        with torch.autocast(device_type=h_u.device.type, enabled=False):
-            fs = (src.float() - mu.float()).flatten(1)
-            ft = (tgt.float() - mu.float()).flatten(1)
-            C1 = ot.scale_free(ot.pairwise_cos_dist(fs))
-            C2 = ot.scale_free(ot.pairwise_cos_dist(ft))
+        h = model.hub.reader(island["z"], "aud", island["lang"])
+        Y = bank(cfg.bt_bank_mult * h.shape[0])
+        with torch.autocast(device_type=h.device.type, enabled=False):
+            mu = Y.float().mean(0, keepdim=True)
+            fs, ft = (h.float() - mu).flatten(1), (Y.float() - mu).flatten(1)
+            C1, C2 = ot.scale_free(ot.pairwise_cos_dist(fs)), ot.scale_free(ot.pairwise_cos_dist(ft))
             M = ot.scale_free(ot.pairwise_cos_dist(fs, ft))
             alpha = self.alpha(progress)
-            # warm start from the model-induced plan: from a uniform start the GW iteration sits on the
-            # uniform plan, which is a stationary point (every row then prefers the same "central" columns)
             a = torch.full((fs.shape[0],), 1.0 / fs.shape[0], device=fs.device)
-            init = a.unsqueeze(1) * torch.softmax(-(M.detach() + (R if R is not None else 0.0)) / cfg.dock_eps, dim=1)
+            init = a.unsqueeze(1) * torch.softmax(-M.detach() / cfg.dock_eps, dim=1)  # uniform is a fixed point
             Pi = ot.solve_fgw(C1.detach(), C2, M.detach(), alpha, cfg.dock_eps, cfg.dock_outer_iters,
-                              cfg.dock_sinkhorn_iters, cfg.dock_marginal, R, init=init)
+                              cfg.dock_sinkhorn_iters, cfg.dock_marginal, init=init)
             value, gw, w = ot.fgw_value(C1, C2, Pi, M, alpha)
-        logs = {"dock": value.item(), "dock_gw": gw.item(), "dock_w": w.item(), "dock_alpha": alpha}
-        logs.update({f"pi_{k}": v for k, v in ot.coupling_stats(Pi[:n_u]).items()})
-        self.last_coupling = {"Pi": Pi.detach().cpu(), "n_island": n_u, "n_bank": n_b}
-        pseudo = h_u.new_zeros(())
-        if cfg.dock_pseudo_pair and cfg.w_pseudo > 0:
-            rows = Pi[:n_u] / Pi[:n_u].sum(1, keepdim=True).clamp_min(1e-30)
-            j = torch.multinomial(rows, 1).squeeze(1)
-            conf = ot.row_confidence(Pi[:n_u])
-            pseudo, _ = spoke.cfm_loss(spoke.source(tgt[j].detach()), z_u, lang_u, weight=conf)
-            logs.update(pseudo=pseudo.item(), pi_conf=conf.mean().item())
-        return value, pseudo, logs
+        stats = ot.coupling_stats(Pi)
+        return value, {"dock": value.item(), "dock_alpha": alpha, "pi_row_entropy": stats["row_entropy"],
+                       "pi_used_cols": stats["used_cols"]}
 
-    # ============================================================================ optional / diagnostic terms
-    def twohop(self, model, z_t, lang_t, z_a, lang_a) -> torch.Tensor:
-        """Differentiable 2-hop hub-swap reconstruction: read both views, exchange the hub parts, keep each
-        view's own private code, write back, and ask for the original latents.  Unlike a plain ODE cycle this
-        is not satisfied by construction: it holds only if the two spokes agree on the hub content."""
-        sp = model.spokes
-        n = self.cfg.train_ode_steps
-        ht, pt = sp["txt"].read(z_t, lang_t, grad=True, steps=n)
-        ha, pa = sp["aud"].read(z_a, lang_a, grad=True, steps=n)
-        za = sp["aud"].write(ht, lang_a, private=pa, grad=True, steps=n)
-        zt = sp["txt"].write(ha, lang_t, private=pt, grad=True, steps=n)
-        return F.mse_loss(za, z_a) + F.mse_loss(zt, z_t) + F.mse_loss(ht, ha)
-
+    # ============================================================================ diagnostic
     def naive_cycle(self, model, m1: str, z1, lang1, m2: str, lang2, steps: Optional[int] = None,
                     grad: bool = False) -> torch.Tensor:
         """The cycle of the original roadmap:  z_1 -> hub -> z_2 -> hub -> z_1  through ODE maps only.
