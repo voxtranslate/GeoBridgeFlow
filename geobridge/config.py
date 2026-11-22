@@ -128,7 +128,7 @@ class Config:
 
     # ------------------------------------------------------------------ docking (N3)
     dock_mode: str = "g2w"               # g2w (ours) | gw | w | none
-    dock_marginal: str = "semi"          # semi (semi-relaxed, ours) | balanced (log-Sinkhorn)
+    dock_marginal: str = "balanced"      # balanced (log-Sinkhorn, default) | semi (semi-relaxed: collapses, see docs)
     dock_eps: float = 0.05
     dock_outer_iters: int = 10
     dock_sinkhorn_iters: int = 50

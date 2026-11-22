@@ -11,10 +11,14 @@ Fused objective (alpha in [0, 1], optional pinning cost R):
     alpha = 1  pure Wasserstein with a cross-set cost M (sharp once the two sets share coordinates)
 
 Marginals
-    balanced       Pi 1 = a,  Pi^T 1 = b           (log-domain Sinkhorn inner loop)
+    balanced       Pi 1 = a,  Pi^T 1 = b           (log-domain Sinkhorn inner loop)        <- default
     semi-relaxed   Pi 1 = a,  column marginal free (closed-form row-softmax inner step)
-The semi-relaxed form lets an island batch use only the part of the hub bank it actually corresponds to,
-instead of being forced to cover content it does not contain.
+
+The column constraint is what keeps docking from degenerating.  With the bank side free, the plan may send
+every island sample to the same few hub codes; since the Wasserstein part of the cost is induced by the model
+being trained, that choice is self-reinforcing.  Measured on SynthWorld: the share of bank codes in use fell
+from 88 % to 6 % during training and island translation dropped to chance, whereas the balanced plan kept
+90 % of the codes in use.  Semi-relaxed is kept as an ablation.
 """
 from __future__ import annotations
 

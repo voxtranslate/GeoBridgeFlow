@@ -41,14 +41,15 @@ GROUPS: Dict[str, Dict] = {
     "docking": {
         "question": "How should unpaired island speech be attached to the hub?  (N3: Gromov->Wasserstein docking)",
         "variants": [
-            ("G->W anneal, semi-relaxed, pinned (ours)", {}),
+            ("G->W anneal, balanced marginals, pinned (ours)", {}),
+            ("no docking (bridge pairs only)", {"dock_mode": "none"}),
+            ("semi-relaxed marginals", {"dock_marginal": "semi"}),
+            ("semi-relaxed, pseudo-pairs only (no docking loss)", {"dock_marginal": "semi", "w_dock": 0.0}),
             ("pure Gromov-Wasserstein", {"dock_mode": "gw"}),
             ("pure Wasserstein", {"dock_mode": "w"}),
-            ("balanced marginals (log-Sinkhorn)", {"dock_marginal": "balanced"}),
             ("no anchor pinning", {"dock_pin": False}),
             ("docking loss only (no pseudo-pairs)", {"dock_pseudo_pair": False}),
             ("pseudo-pairs only (no docking loss)", {"w_dock": 0.0}),
-            ("no docking (bridge pairs only)", {"dock_mode": "none"}),
         ]},
     "bridge": {
         "question": "How many image-speech bridge pairs does the island need, with and without docking?",

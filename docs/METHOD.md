@@ -8,7 +8,7 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
 | Roadmap | Problem found | What the code does instead |
 |---|---|---|
 | Hub = frozen SigLIP/DINOv2 geometry (one code per image) | An image-level pivot cannot carry *what was said*: five captions of one image share one code, so "translation" degenerates into captioning. This is the short, hallucinated output reported by Oneata & Kamper (2024). | **Barycentric visual interlingua**: a hub code is `K_h` attention-barycentres of the frozen patch tokens, selected by the utterance. Still text-free and frozen-geometry, but sentence-level. |
-| `L_EGW` "never coupled with flows" | It has been (GENOT; inter-modal bridges; GWL for the anneal). Also, pure GW is blind to *where* the island sits: it is invariant to isometries, so it cannot by itself make two languages land on the same code. | **Gromov→Wasserstein docking**: fused GW whose cost is annealed from relational (GW) to positional (model-induced W), semi-relaxed marginals, anchor pinning with the available bridge pairs, and the plan is also used to draw pseudo-pairs. Claimed as a combination in a new setting. |
+| `L_EGW` "never coupled with flows" | It has been (GENOT; inter-modal bridges; GWL for the anneal). Also, pure GW is blind to *where* the island sits: it is invariant to isometries, so it cannot by itself make two languages land on the same code. | **Gromov→Wasserstein docking**: fused GW whose cost is annealed from relational (GW) to positional (model-induced W), balanced marginals, anchor pinning with the available bridge pairs, warm start, and the plan is also used to draw pseudo-pairs. A combination in a new setting; **so far it has not beaten training on the bridge pairs alone** (see `RESULTS.md`). |
 | `L_Trans-Cycle` through ODE maps | Every map is invertible, so the loss is zero for any velocity field (AlignFlow; DDIB). It trains nothing. | **Transitive hub-swap**: each spoke is trained on hub codes *read by the other spoke's ODE* from the paired view. This removes the train/test mismatch of cross-modal conversion and is not satisfied by construction. The original cycle is kept as a diagnostic. |
 | Two speech streams: `z_sem` → hub, `z_pros` (with tone) bypasses the hub, and `z_sem ⟂ z_pros` | Self-contradictory for tonal languages: if tone bypasses the hub it cannot affect translation; if it is fused into `z_sem` the orthogonality penalty fights it. | **Three factors**: segmental content (always to the hub), lexical tone = speaker-normalised F0 contour (to the hub through a learned per-language gate), paralinguistics = pitch register + timbre (bypass, decorrelated from the hub-bound latent). |
 | Deterministic spokes | One hub code has many valid realisations (wordings, speakers). A bijection from the hub cannot represent that. | Spoke source is `[hub ; Gaussian private tokens]` (cf. MUNI, CrossFlow). |
@@ -160,9 +160,13 @@ bank**, a FIFO memory of hub codes produced from image-paired views. With centre
 
 ```
 Π = argmin_Π  (1−α) Σ_{ijkl} (C¹_ik − C²_jl)² Π_ij Π_kl + α ⟨M, Π⟩ + ⟨R, Π⟩ − ε H(Π)
-    s.t.  Π 1 = a                       (semi-relaxed: the bank side is free)      or  Π ∈ U(a, b)   (balanced)
+    s.t.  Π ∈ U(a, b)   (balanced, default)      or      Π 1 = a  (semi-relaxed: the bank side is free)
 ```
 
+- **Marginals.** The balanced constraint is what keeps docking from degenerating. With the bank side free the
+  plan may send every island sample to the same few hub codes, and because `M` is induced by the model being
+  trained that choice reinforces itself: the share of bank codes in use fell from 88 % to 6 % and island
+  translation dropped to chance. The balanced plan kept 90 % of the codes in use.
 - `α` is annealed from 0 (trust only the island's internal geometry) to `α_end` (trust where it currently sits).
 - `R` pins the bridge pairs present in the batch to their true hub codes (cost 0 on the true partner, `c_pin`
   elsewhere); through the GW term the pinned rows also constrain the unpaired rows.
@@ -207,3 +211,10 @@ All conversions go through the hub and use no image at test time.
 - Waveforms come from Griffin-Lim on a predicted mel; a neural vocoder is needed for natural speech.
 - GW coupling on minibatches is noisy and identifiable only up to the symmetries the pins and the shared backbone
   break; with zero bridge pairs nothing breaks them except the shared speech backbone.
+- Docking has not yet shown a gain over training on the bridge pairs alone (one seed, 20 % bridge budget). The
+  relational premise is weak for arbitrary word forms: only the *distribution* of what is said (which is
+  non-uniform, as in real captions) is shared across languages, not the geometry of its sounds.
+- The hub code still lets spare slots attend to objects a sentence does not mention, and the second mentioned
+  object is recovered far less reliably than the first.
+- Reading speech with the backward ODE does not separate speaker identity into the private tokens: a linear
+  probe finds the speaker in the hub part as easily as in the private part.

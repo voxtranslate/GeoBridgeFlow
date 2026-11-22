@@ -14,8 +14,9 @@ around a hub that contains no text at all.
 * Each modality is tied to the hub by a **bidirectional flow** (conditional flow matching) whose source is
   `[hub tokens ; private Gaussian tokens]`, with a rank-`r` LoRA per language on the velocity field.
 * Lexical **tone** reaches the hub through a learned per-language gate; pitch register and timbre bypass it.
-* A language that has only **unpaired speech** plus a handful of image-prompted utterances is **docked** onto the
-  hub by an annealed, semi-relaxed, anchor-pinned fused Gromov–Wasserstein coupling.
+* A language with **speech only** is attached through a small number of image-prompted utterances (bridge pairs).
+  Its remaining unpaired speech can additionally be **docked** onto the hub by an annealed, anchor-pinned fused
+  Gromov–Wasserstein coupling; in the experiments run so far this has not improved on the bridge pairs alone.
 * At test time nothing but the source is needed: read it into the hub with one ODE, write the target with another.
 
 `docs/LITERATURE_AUDIT.md` records which of the roadmap's citations and novelty claims survive a check against
