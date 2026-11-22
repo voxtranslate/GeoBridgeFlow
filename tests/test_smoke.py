@@ -160,8 +160,9 @@ def test_flat_pitch_equals_closed_gate_and_hub_codes_stay_in_the_image_hull(tiny
         V = m.hub.project(batch["img"])
         q = m.hub.queries(m.encode("aud", aud), "aud", aud["lang"])
         hub, attn = m.hub.attend(q, V[aud["item"]])
-        score, own = m.hub.ground(q, m.hub.keys(V), aud["item"])
+        score, own, logp = m.hub.ground(q, m.hub.keys(V), aud["item"])
     assert torch.allclose(own, attn, atol=1e-5)               # one-pass grounding = the own-image attention
+    assert torch.allclose(logp.exp().sum(-1), torch.ones_like(logp[..., 0]), atol=1e-4)   # patches + null = 1
     assert score.shape == (len(aud["item"]), batch["B"])
     assert attn.shape[-1] == V.shape[1] - 1                   # patches only: the global token is not offered
     assert (attn >= 0).all() and (attn.sum(-1) <= 1 + 1e-4).all()   # the rest of each row is the null option
@@ -193,8 +194,10 @@ def test_back_translation_and_draft_writing(tiny_run):
     m = tr.model.eval()
     c = tr.cache["train"]
     isl = c.island_batch(list(range(8)))
-    loss, logs = GeoBridgeLoss(cfg, m.lang2id).back_translate(m, isl, c.sample_hubs)
-    assert torch.isfinite(loss) and {"bt_write", "bt_read", "bt_shift"} <= set(logs)
+    loss, logs = GeoBridgeLoss(cfg, m.lang2id).back_translate(m, isl, c)
+    assert torch.isfinite(loss) and {"bt_write", "bt_read", "bt_relay", "bt_shift"} <= set(logs)
+    views = c.sample_views("txt", 5)
+    assert views["z"].shape[0] == views["hub"].shape[0] == views["lang"].shape[0] == 5
     hub = c.sample_hubs(4)
     lang = torch.zeros(4, dtype=torch.long)
     with torch.no_grad():
@@ -203,3 +206,69 @@ def test_back_translation_and_draft_writing(tiny_run):
         assert m.write("txt", hub, lang, t0=0.5).shape == draft.shape
         z_img, rgb = m.hub_to_image(hub)
     assert rgb.shape == (4, 3, cfg.thumb_size, cfg.thumb_size) and float(rgb.min()) >= 0 and float(rgb.max()) <= 1
+
+
+def test_counterfactual_credit_points_at_the_patch_that_would_explain_more():
+    from geobridge.losses import GeoBridgeLoss
+
+    torch.manual_seed(0)
+    cfg = Config.preset("synth_tiny")
+    loss = GeoBridgeLoss(cfg, {"sa": 0, "sb": 1, "sc": 2})
+    patches = torch.randn(1, 9, 6)
+    logits = torch.full((1, 1, 10), -12.0)                   # 9 patches + the null option (last)
+    logits[0, 0, 0] = 12.0                                   # the slot looks, sharply, at patch 0 ...
+    logits.requires_grad_(True)
+    logp = torch.log_softmax(logits, -1)
+    code = logp[..., :-1].exp() @ patches
+
+    def unexplained(c, rows=None):                           # ... but the "sentence" is explained by patch 3
+        return ((c - patches[:, 3:4]) ** 2).mean(dim=(1, 2))
+
+    err = unexplained(code)
+    plain = torch.autograd.grad(err.sum(), logits, retain_graph=True)[0][0, 0]
+    seek, weight = loss.seek(unexplained, err, code, logp, patches, allow_null=False)
+    credit = torch.autograd.grad(seek, logits)[0][0, 0]
+    assert plain.abs().max() < 1e-6                          # softmax Jacobian: no signal towards the unseen patch
+    assert weight > 0.5 and credit.argmin().item() == 3 and credit[3] < -0.1   # counterfactual credit: go to patch 3
+    # the code is already right: no candidate promises anything, nothing is pulled
+    logits2 = torch.full((1, 1, 10), -12.0)
+    logits2[0, 0, 3] = 12.0
+    logits2.requires_grad_(True)
+    logp2 = torch.log_softmax(logits2, -1)
+    code2 = logp2[..., :-1].exp() @ patches
+    seek2, weight2 = loss.seek(unexplained, unexplained(code2), code2, logp2, patches, allow_null=True)
+    assert weight2 < 1e-6 and abs(float(seek2)) < 1e-6
+    # a proposal that verifiably explains less is vetoed (here: the first-order ranking is deliberately misled)
+    def misleading(c, rows=None):                            # locally "more of patch 5 helps", but going there hurts
+        return unexplained(c, rows) + 4.0 * torch.relu((c - patches[:, 0:1]) * (patches[:, 5:6] - patches[:, 0:1])).mean(dim=(1, 2)) ** 2 \
+            - 0.5 * ((c - patches[:, 0:1]) * (patches[:, 5:6] - patches[:, 0:1])).mean(dim=(1, 2))
+    err3 = misleading(code)
+    _, w_free = loss.seek(misleading, err3, code, logp, patches, allow_null=False)
+    cfg.seek_verify = True
+    _, w_veto = loss.seek(misleading, err3, code, logp, patches, allow_null=False)
+    assert w_veto <= w_free
+
+
+def test_one_step_can_consume_several_batches(tiny_run):
+    from geobridge.trainer import StepReplica, Trainer, chunked
+
+    cfg, tr = tiny_run
+    assert [len(c) for c in chunked(range(5), 2)] == [2, 2, 1]
+    cfg2 = cfg.clone(exp_name="t_two", step_batches=2, phase_a_steps=4, phase_b_steps=4, eval_every=4, save_every=4)
+    tr2 = Trainer(cfg2, data=tr.data, resume=False)
+    assert isinstance(tr2.replica, StepReplica) and tr2.step_batches == 2
+    tr2.fit()
+    assert tr2.step == 8
+    assert tr2.epoch * len(tr2.sampler) + tr2.offset == 16   # 8 optimiser steps consumed 16 batches
+    # the replica computes exactly the loss of the batch it is pointed at
+    batch = tr.data.collate_groups([{"img": g["img"], "cap": g["cap"], "views": g["train_views"]}
+                                    for g in tr.data.groups["train"][:8]])
+    rep = tr.replica
+    tr.model.eval()
+    rep.job = {"batches": [None, batch], "islands": [None, None], "logs": [None, None], "phase": "A", "progress": 0.0, "bank": None}
+    with torch.no_grad():
+        torch.manual_seed(0)
+        via = rep(torch.tensor([1]))
+        torch.manual_seed(0)
+        direct, logs = tr.loss.phase_a(tr.model, batch, None)
+    assert torch.allclose(via, direct.reshape(1)) and rep.job["logs"][1]["loss"] == logs["loss"]

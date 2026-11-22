@@ -54,8 +54,11 @@ class GeoBridge(nn.Module):
         return mods + ([self.pixel] if hasattr(self, "pixel") else [])
 
     def phase_b_modules(self) -> List[nn.Module]:
-        """Writers and the reader.  (The unconstrained 'free' anchor is learned jointly with the flows.)"""
-        return [self.spokes, self.hub if self.cfg.hub_mode == "free" else self.hub.reader]
+        """Writers and the reader, which keeps training on the cached (now fixed) codes; the explainer too
+        when writing starts from its draft.  (The unconstrained 'free' anchor is learned jointly with the flows.)"""
+        if self.cfg.hub_mode == "free":
+            return [self.spokes, self.hub]
+        return [self.spokes, self.hub.reader] + ([self.hub.explainer] if self.cfg.draft_t0 > 0 else [])
 
     # ------------------------------------------------------------------ modality latents
     def encode(self, mod: str, sub: Dict[str, torch.Tensor], gate_override: Optional[float] = None) -> torch.Tensor:

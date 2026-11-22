@@ -4,27 +4,56 @@ Any-to-any conversion between **text, speech and images** for languages that hav
 around a hub that contains no text at all.
 
 ```
- text  ──grapheme-byte codec──▶ z_txt ◀──text spoke──┐
- speech ─tone-gated codec─────▶ z_aud ◀─speech spoke─┼──▶  hub z*  =  K barycentres of frozen
- image ──frozen vision tower──▶ z_img ◀─image spoke──┘               vision patch tokens
+ read  (one code per sentence)                        write (many realisations per code)
+ text   ─ grapheme-byte codec ─▶ z_txt ─ reader ─┐    ┌─ flow writer ─▶ z_txt ─▶ text
+ speech ─ tone-gated codec ────▶ z_aud ─ reader ─┼─▶ hub z* ─┼─ flow writer ─▶ z_aud ─▶ speech
+ image  ─ frozen vision tower ─▶ z_img ─ ODE ────┘    └─ flow writer ─▶ z_img ─▶ image
+                                   hub z* = K barycentres of frozen vision patch tokens
 ```
 
 * The hub code of an utterance is a set of attention-weighted **barycentres of frozen vision patch tokens**: it is
   text-free, language-agnostic, sentence-level, and can be drawn on the image.
-* Each modality is tied to the hub by a **bidirectional flow** (conditional flow matching) whose source is
-  `[hub tokens ; private Gaussian tokens]`, with a rank-`r` LoRA per language on the velocity field.
+* **Mutual sufficiency** makes the code say what the sentence says and nothing else: an explainer must
+  reconstruct the sentence from the code, an image-free reader must predict the code from the sentence, and
+  **counterfactual patch credit** points every slot at the patch that would explain more.
+* **Reading is a function, writing is a distribution.** The reader turns a source into its hub code in one pass,
+  without an image and without an ODE. Writers are conditional flows from `[hub tokens ; private Gaussian tokens]`
+  with a rank-`r` LoRA per language.
 * Lexical **tone** reaches the hub through a learned per-language gate; pitch register and timbre bypass it.
-* A language with **speech only** is attached through a small number of image-prompted utterances (bridge pairs).
-  Its remaining unpaired speech can additionally be **docked** onto the hub by an annealed, anchor-pinned fused
-  Gromov–Wasserstein coupling; in the experiments run so far this has not improved on the bridge pairs alone.
-* At test time nothing but the source is needed: read it into the hub with one ODE, write the target with another.
+* A language with **speech only** is attached through a few image-prompted utterances (bridge pairs); its
+  unpaired speech is used by **hub-space back-translation** with an optimal-transport rectification of the pseudo
+  codes and a relay to the text writers.
+* No loss ever pairs two languages, and a caption is visible in one language only during training.
 
 | Document | Content |
 |---|---|
+| `GeoBridgeFlow_single_cell.ipynb` | the whole project in **one notebook cell** for Kaggle (GPU T4 x2) and Colab |
 | `docs/RESULTS.md` | what has been measured so far (small CPU runs, one seed), what works and what does not |
-| `docs/LITERATURE_AUDIT.md` | which of the roadmap's citations and novelty claims survive a check against the sources |
 | `docs/METHOD.md` | equations, and every change made to the roadmap with the reason |
+| `docs/LITERATURE_AUDIT.md` | which of the roadmap's citations and novelty claims survive a check against the sources |
 | `docs/PAPER_PLAN.md` | claims mapped to the tables this code produces, controls reviewers will ask for, risks |
+
+## Notebook (Kaggle / Colab)
+
+`GeoBridgeFlow_single_cell.ipynb` holds one code cell: settings at the top, then the complete implementation,
+then the run. Paste the cell into a notebook and run it.
+
+* **Kaggle**: Accelerator *GPU T4 x2*, Internet *On*. Both GPUs are used: every training step runs one batch per
+  GPU, and the frozen vision and speech encoders run on both during feature extraction. Runs go to
+  `/kaggle/working/geobridge`, downloads and feature caches to the scratch disk.
+* **Colab**: a T4 runtime. `USE_DRIVE = True` keeps the run folder on Google Drive.
+* Running the cell again continues: downloads, the split file, feature caches, checkpoints and finished ablation
+  variants are found on disk, and training resumes at the step it had reached.
+
+The notebook is generated from the package and tested by executing the cell end to end on the tiny benchmark:
+
+```bash
+python scripts/build_notebook.py
+```
+
+```bash
+pytest -q tests/test_notebook.py
+```
 
 ## Install
 
@@ -60,7 +89,7 @@ python run.py infer --preset flickr8k_yo
 ```
 
 ```bash
-python run.py ablate --preset flickr8k_yo --groups anchor docking bridge tone --seeds 0 1 2
+python run.py ablate --preset synth --groups hub island tone --seeds 0 1 2
 ```
 
 Any field of `geobridge/config.py:Config` can be overridden, for example
@@ -68,9 +97,10 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 
 | Preset | Data | Meant for |
 |---|---|---|
-| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | the paper's main results (GPU) |
+| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | the main results (one large GPU) |
+| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab) |
 | `flickr8k_yo_cpu` | 1,200-image subset, small model | pipeline check on a laptop |
-| `synth` | SynthWorld, 2,400 scenes | controlled study |
+| `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
 | `synth_fast` | SynthWorld, 1,200 scenes, small model | ablations on a CPU |
 | `synth_tiny` | 240 scenes | unit tests (seconds) |
 
@@ -87,16 +117,18 @@ interruption.
 Re-running the command resumes from `last.pt`; `--resume_from <any step checkpoint>` resumes from that step.
 A checkpoint holds the model, the EMA, both optimisers, the AMP scaler, RNG states, the full history and the
 position inside the epoch, and the epoch order is a function of (seed, epoch), so the data stream continues where
-it stopped. Train-versus-valid curves are saved to `runs/<exp>/curves/` at every validation.
+it stopped. Train-versus-valid curves are saved to `runs/<exp>/curves/` at every validation. With several GPUs
+every step uses one batch per GPU (`n_gpu`, `step_batches`).
 
 **`eval`** scores every direction on the test split and writes `runs/<exp>/eval_test.json` with metrics and
 sample outputs.
 
-**`infer`** writes translations, synthesised speech (`.wav`), and fourteen interpretability figures to
-`runs/<exp>/inference/`: slot attention on the image, ODE trajectories, the hub manifold, transport plans against
-the true partners, tonality gates and pitch-scaling response, frame- and grapheme-level attribution, retrieval
+**`infer`** writes translations, synthesised speech (`.wav`), generated image previews and sixteen figures to
+`runs/<exp>/inference/`: slot attention on the image, ODE trajectories, the hub manifold, alignment of unpaired
+island speech, tonality gates and pitch-scaling response, frame- and grapheme-level attribution, retrieval
 galleries, quality against ODE steps, script fertility, hub agreement, per-language LoRA magnitudes, probes of
-hub versus private tokens, and codec reconstructions (see the docstring of `geobridge/inferencer.py`).
+hub versus private tokens, codec reconstructions, generated images, and read / write modes (see the docstring of
+`geobridge/inferencer.py`).
 
 **`ablate`** trains and evaluates every variant of every ablation group, sharing the representation phase
 between variants that do not change it, and writes Markdown, CSV and LaTeX tables and bar charts to
@@ -109,15 +141,18 @@ between variants that do not change it, and writes Markdown, CSV and LaTeX table
 | `geobridge/config.py` | `Config` dataclass, presets |
 | `geobridge/data/download.py` | pinned Hugging Face sources of the real benchmark |
 | `geobridge/data/flickr8k.py`, `synthworld.py` | benchmark builders (manifest, media access) |
-| `geobridge/data/features.py` | frozen front-ends, one-time feature cache, anchor projection |
+| `geobridge/data/features.py` | frozen front-ends (on all GPUs), one-time feature cache, anchor projection |
 | `geobridge/data/dataset.py` | persistent splits, view visibility rules, collation, loaders |
 | `geobridge/text_units.py`, `audio_dsp.py` | grapheme / byte / BPE units; YIN pitch, tone features, mel, Griffin-Lim |
-| `geobridge/models/` | `text_codec`, `audio_codec`, `hub`, `flow`, `ot`, `geobridge` |
+| `geobridge/models/` | `text_codec`, `audio_codec`, `hub` (grounder, explainer, reader), `flow`, `pixel`, `ot`, `geobridge` |
 | `geobridge/losses.py` | `GeoBridgeLoss`: every objective of both phases |
-| `geobridge/trainer.py` | `Trainer`: schedule, checkpoints, resume, validation, curves |
+| `geobridge/cache.py` | `LatentCache`: latents and hub codes for the transport phase |
+| `geobridge/trainer.py` | `Trainer`: schedule, multi-GPU step, checkpoints, resume, validation, curves |
 | `geobridge/metrics.py` | `Evaluator`: BLEU/chrF/WER, retrieval, speech round trip, tone metrics |
 | `geobridge/inferencer.py` | `Inferencer`: conversion API, saved outputs, figures |
 | `geobridge/ablation.py` | `AblationRunner`: groups, tables, plots |
+| `geobridge/cli.py`, `run.py` | pipeline stages and the command line |
+| `notebook/`, `scripts/build_notebook.py` | settings header, driver and generator of the single-cell notebook |
 | `tests/` | fast checks on SynthWorld (`pytest -q tests`) |
 | `scripts/paper_experiments.sh` | the complete GPU study (main table, DINOv2 anchor, all ablations, 3 seeds) |
 | `scripts/cpu_ablation_queue.sh` | the reduced single-seed ablation that produced `docs/RESULTS.md` |

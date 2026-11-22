@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Reference ablation on the CPU-sized SynthWorld preset: one seed, 1,500 flow steps per cell.
 # Usage: scripts/cpu_ablation_queue.sh <stream-id> "<group>:<variant substring>" ...
-# Cells already finished are skipped, so the script can be re-run or split over several streams.
+# Every invocation also runs the full model of the group (once; it is shared), so train that first with
+#   scripts/cpu_ablation_queue.sh 0 "private:__full_only__"
+# before starting several streams.  Finished cells are skipped, so the script can be re-run or split.
 set -u
 PY=${PYTHON:-python}
 STREAM=$1; shift

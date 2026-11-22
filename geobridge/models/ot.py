@@ -101,9 +101,3 @@ def coupling_stats(Pi: torch.Tensor) -> Dict[str, float]:
     return {"row_entropy": float(ent.mean() / math.log(Pi.shape[1])), "max_prob": float(rows.max(1).values.mean()),
             "used_cols": float((Pi.sum(0) > 0.5 / Pi.shape[1] / Pi.shape[0] * Pi.shape[0]).float().mean())}
 
-
-def row_confidence(Pi: torch.Tensor) -> torch.Tensor:
-    """1 - normalised row entropy: 1 = the island sample has one clear partner, 0 = it could be anything."""
-    rows = Pi / Pi.sum(1, keepdim=True).clamp_min(1e-30)
-    ent = -(rows * torch.log(rows.clamp_min(1e-30))).sum(1)
-    return (1.0 - ent / math.log(Pi.shape[1])).clamp(0.0, 1.0)

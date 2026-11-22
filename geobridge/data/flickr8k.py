@@ -25,7 +25,7 @@ import numpy as np
 
 from .download import download_sources
 
-LANG_INFO = {
+FLICKR_LANGS = {
     "en": {"tonal": False, "script": "Latin", "written": True, "spoken": True},
     "yo": {"tonal": True, "script": "Latin+tone marks (held out)", "written": False, "spoken": True},
     "hi": {"tonal": False, "script": "Devanagari (machine-translated, silver)", "written": True, "spoken": False},
@@ -97,7 +97,7 @@ class Flickr8kTri:
                 k = yo[img]["cap"]
                 utts.append({"uid": f"yo/{img}/{k}", "img": n, "cap": k, "lang": "yo", "text": yo[img]["text"],
                              "has_audio": True, "spk": "yo_S001", "src": f"yo/{img}_{k}"})
-        langs = {l: LANG_INFO[l] for l in cfg.all_langs if l in LANG_INFO}
+        langs = {l: FLICKR_LANGS[l] for l in cfg.all_langs if l in FLICKR_LANGS}
         return {"name": "flickr8k_yo", "langs": langs, "images": images, "utts": utts,
                 "meta": {"n_images_total": len(self.img_file)}}
 
@@ -148,12 +148,3 @@ class Flickr8kTri:
             tag = "yo_" if "yfacc" in fp else "en_"
             groups.append({"key": tag + os.path.basename(fp), "uids": [u for u, _ in rows], "loader": loader})
         return groups
-
-    def load_wave(self, utt: Dict) -> Tuple[np.ndarray, int]:
-        import pyarrow.parquet as pq
-        import soundfile as sf
-
-        fp, r = self.aud_file[utt["src"]]
-        col = pq.read_table(fp, columns=["audio"]).column("audio")
-        wav, sr = sf.read(io.BytesIO(col[r].as_py()["bytes"]), dtype="float32", always_2d=True)
-        return wav.mean(1), sr

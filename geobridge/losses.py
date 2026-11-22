@@ -4,6 +4,8 @@ Phase A - representation (codecs, grounder, explainer, reader, preview decoder)
     L_A = w_text_rec * L_text + w_audio_rec * L_audio(segmental, prosody, duration, mel, orth, gate price)
         + w_ground * L_ground        the hub code is found in the right image          (contrastive)
         + w_expl   * L_expl          the hub code explains the sentence                (sufficiency)
+        + w_seek   * L_seek          ... and every slot is pulled to the patch that would explain more
+                                     (counterfactual patch credit)
         + w_read   * L_read          an image-free reader predicts the hub code
         + w_min    * L_min           ... and the hub code must be predictable by it    (minimality)
         + w_agree  * L_agree  + w_pix * L_pix
@@ -13,14 +15,15 @@ grounder are not run again.
     L_B = w_cfm * (L_cfm^txt + L_cfm^aud + L_cfm^img)     hub (+) private flow matching; a share of the views
                                                           is written from a *read* hub (exposure)
         + w_read * L_read                                  keeps the reader on the grounded codes
-        + bt_weight * (L_bt_write + L_bt_read)             hub-space back-translation of unpaired island speech
+        + bt_weight * (L_bt_write + L_bt_read + bt_relay * L_bt_relay)   hub-space back-translation of unpaired
+                                                          island speech, relayed to the text writers
         [+ w_dock * L_dock + naive_cycle_weight * L_cycle] ablation / diagnostic terms, off by default
 
 No term ever pairs two different languages: cross-lingual transfer can only pass through the hub.
 """
 from __future__ import annotations
 
-from typing import Callable, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -111,29 +114,16 @@ class GeoBridgeLoss:
             logs.update({k: r[k].item() for k in ("sem_mse", "f0_l1", "dur_l1", "mel_l1", "orth", "gate_pen") if k in r})
 
         # ---- grounding: one attention pass gives the contrastive scores and the hub code
-        scores, items, codes = [], [], {}
+        scores, items, codes, attns, logps = [], [], {}, {}, {}
         released = hub.null_enabled  # minimality starts when the dense stage ends
         for mod, sub in (("txt", txt), ("aud", aud)):
             if mod not in z:
                 continue
             q = hub.queries(z[mod], mod, sub["lang"])
-            score, attn = hub.ground(q, keys, sub["item"])
-            code = torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[sub["item"]][:, :-1])
-            codes[mod] = code
+            score, attns[mod], logps[mod] = hub.ground(q, keys, sub["item"])
+            codes[mod] = torch.einsum("nkp,npd->nkd", attns[mod].to(V.dtype), V[sub["item"]][:, :-1])
             scores.append(score)
             items.append(sub["item"])
-            mid = hub.MODS[mod]
-            if cfg.w_expl > 0:  # sufficiency: the code alone reconstructs the utterance latent
-                unexp = F.mse_loss(hub.explainer(code, mid, sub["lang"]).float(), z[mod].detach().float())
-                total = total + cfg.w_expl * unexp
-                logs[f"unexplained_{mod}"] = unexp.item()
-            pred = hub.reader(z[mod].detach(), mod, sub["lang"]).float()
-            l_read = F.mse_loss(pred, code.detach().float())
-            total = total + cfg.w_read * l_read
-            logs[f"read_{mod}"] = l_read.item()
-            if cfg.w_min > 0 and released:  # minimality: nothing in the code that the sentence does not say
-                total = total + cfg.w_min * F.mse_loss(code.float(), pred.detach())
-            logs[f"slot_use_{mod}"] = attn.sum(-1).mean().item()
         if scores:
             logits = torch.cat(scores) / cfg.ground_temp
             item = torch.cat(items)
@@ -146,12 +136,48 @@ class GeoBridgeLoss:
             ground = 0.5 * (l_u2i + l_i2u)
             total = total + cfg.w_ground * ground
             logs.update(ground=ground.item(), ground_acc=(masked.argmax(1) == item).float().mean().item())
+
+            # the canonical code of a caption: where a transcript exists, the text-grounded code teaches speech
+            # (same language only); text is the cleaner view, and speech then inherits everything it covers
+            teacher = {m: c.detach() for m, c in codes.items()}
             it, ia = same_lang_pairs(txt, aud)
-            if len(it) and len(codes) == 2 and cfg.w_agree > 0:
-                agree = F.mse_loss(codes["txt"][it], codes["aud"][ia])
-                total = total + cfg.w_agree * agree
-                logs["agree"] = agree.item()
-            logs["unexplained"] = sum(v for k, v in logs.items() if k.startswith("unexplained_")) / len(codes)
+            if len(it) and len(codes) == 2:
+                if cfg.agree_mode == "teach":
+                    teacher["aud"] = teacher["aud"].clone()
+                    teacher["aud"][ia] = teacher["txt"][it]
+                if cfg.w_agree > 0:
+                    agree = F.mse_loss(codes["aud"][ia], teacher["txt"][it] if cfg.agree_mode == "teach" else codes["txt"][it])
+                    total = total + cfg.w_agree * agree
+                    logs["agree"] = agree.item()
+            for mod, sub in (("txt", txt), ("aud", aud)):
+                if mod not in codes:
+                    continue
+                mid = hub.MODS[mod]
+                if cfg.w_expl > 0:  # sufficiency: the code alone reconstructs the utterance latent
+                    target, lang = z[mod].detach().float(), sub["lang"]
+
+                    def unexplained(code: torch.Tensor, rows: Optional[torch.Tensor] = None) -> torch.Tensor:
+                        """Per-utterance unexplained variance of code [m, K, d] (for the utterances ``rows``)."""
+                        t, l = (target, lang) if rows is None else (target[rows], lang[rows])
+                        return ((hub.explainer(code, mid, l).float() - t) ** 2).mean(dim=(1, 2))
+
+                    err = unexplained(codes[mod])
+                    unexp = err.mean()
+                    total = total + cfg.w_expl * unexp
+                    logs[f"unexplained_{mod}"] = unexp.item()
+                    if cfg.w_seek > 0 and codes[mod].requires_grad:  # a training signal only (needs a gradient)
+                        seek, moved = self.seek(unexplained, err, codes[mod], logps[mod], V[sub["item"]][:, :-1], released)
+                        total = total + cfg.w_seek * seek
+                        logs[f"seek_{mod}"] = moved
+                pred = hub.reader(z[mod].detach(), mod, sub["lang"]).float()
+                l_read = F.mse_loss(pred, teacher[mod].float())
+                total = total + cfg.w_read * l_read
+                logs[f"read_{mod}"] = l_read.item()
+                if cfg.w_min > 0 and released:  # minimality: nothing in the code that the sentence does not say
+                    total = total + cfg.w_min * F.mse_loss(codes[mod].float(), pred.detach())
+                logs[f"slot_use_{mod}"] = attns[mod].sum(-1).mean().item()
+            if cfg.w_expl > 0:
+                logs["unexplained"] = sum(v for k, v in logs.items() if k.startswith("unexplained_")) / len(codes)
             logs["read"] = sum(v for k, v in logs.items() if k.startswith("read_")) / len(codes)
 
         # ---- preview pixel decoder (frozen image latent -> thumbnail)
@@ -165,6 +191,54 @@ class GeoBridgeLoss:
             logs[f"gate_{name}"] = gates[i].item()
         logs["loss"] = total.item()
         return total, logs
+
+    def seek(self, unexplained, err: torch.Tensor, code: torch.Tensor, logp: torch.Tensor, patches: torch.Tensor,
+             allow_null: bool) -> Tuple[torch.Tensor, float]:
+        """Counterfactual patch credit ("look where it would explain more").
+
+        A slot's hub token is a barycentre, so sufficiency reaches the attention only through the softmax
+        Jacobian  d code_k / d logit_p = a_kp (v_p - code_k): a patch the slot does not look at yet (a_kp ~ 0)
+        gets no credit, however much it would explain.  Once the contrastive loss (which is content with one
+        object) has made the slots sharp, the second thing a sentence says can stay unseen for ever.
+
+        propose  the counterfactual "slot k sits on patch p" is cheap to rank for all (k, p) at once:
+                     gain_kp = - < d err / d code_k ,  v_p - code_k >        (v = 0 for the null option)
+                 is the first-order drop of the utterance's unexplained variance.  Patches already taken by
+                 earlier slots are not candidates.  Every slot keeps its best candidate.
+        pull     cross-entropy on the slot's log-attention towards its candidate, weighted by
+                 gain^2 / (gain^2 + seek_gain^2): a code that already explains its sentence is left alone.
+                 The log-attention is not clamped, so the gradient (a - onehot) reaches unattended patches.
+        veto     (``seek_verify``, off by default) each proposed move is carried out and the explainer is run
+                 on it; a move that verifiably explains *less* is dropped.  Measured: fewer slots on objects
+                 the sentence does not mention, but also fewer second objects found, because the explainer has
+                 to co-adapt before a newly covered object pays off.  Requiring a verified *gain* up front
+                 switches the mechanism off altogether.
+
+        unexplained(code, rows) -> per-utterance error;  err = unexplained(code) [n];  code [n, K, d];
+        logp [n, K, P + 1] log-attention with the null option last;  patches [n, P, d].
+        Returns the loss and the mean weight (share of slots being moved)."""
+        cfg = self.cfg
+        n, K, _ = code.shape
+        rows = torch.arange(n, device=code.device)
+        scale = float(cfg.n_tokens * cfg.latent_dim)  # differentiate the sum of squares: O(1) values, safe in fp16
+        g = torch.autograd.grad(err.sum() * scale, code, retain_graph=True)[0].float() / scale   # [n, K, d]
+        with torch.no_grad():
+            attn = logp[..., :-1].exp()
+            here = (g * code.float()).sum(-1, keepdim=True)                                   # [n, K, 1]
+            gain = here - torch.einsum("nkd,npd->nkp", g, patches.float())                    # [n, K, P]
+            gain = gain.masked_fill(attn.cumsum(1) - attn > 0.5, -1e4)                        # taken by earlier slots
+            gain = torch.cat([gain, here if allow_null else torch.full_like(here, -1e4)], -1)  # the origin
+            best, idx = gain.max(-1)                                                          # [n, K]
+            w = best.clamp_min(0) ** 2
+            w = w / (w + cfg.seek_gain ** 2)
+            if cfg.seek_verify:
+                value = torch.cat([patches, torch.zeros_like(patches[:, :1])], 1)[rows.unsqueeze(1), idx]   # [n, K, d]
+                trial = code.detach().unsqueeze(1).repeat(1, K, 1, 1)                         # [n, move, slot, d]
+                k = torch.arange(K, device=code.device)
+                trial[:, k, k] = value.to(trial.dtype)                                        # move k replaces slot k
+                after = unexplained(trial.flatten(0, 1), rows.repeat_interleave(K)).view(n, K)
+                w = w * (after <= err.detach().unsqueeze(1) + cfg.seek_gain)
+        return -(w * logp.gather(-1, idx.unsqueeze(-1)).squeeze(-1).float()).mean(), float(w.mean())
 
     # ============================================================================ phase B
     def text_anchor(self, z: Dict[str, torch.Tensor], mod: str, sub: Dict, pairs, pivot: Optional[Dict],
@@ -187,9 +261,10 @@ class GeoBridgeLoss:
         return anchor, ok
 
     def phase_b(self, model, batch: Dict, island: Optional[Dict], progress: float,
-                bank: Optional[Callable[[int], torch.Tensor]] = None) -> Tuple[torch.Tensor, Dict[str, float]]:
+                bank=None) -> Tuple[torch.Tensor, Dict[str, float]]:
         """``batch`` comes from the latent cache: per modality the latents ``z``, the grounded hub codes
-        ``hub``, ``lang``, ``item`` and ``ok``; plus the image latents ``img_lat`` [B, N, d]."""
+        ``hub``, ``lang``, ``item`` and ``ok``; plus the image latents ``img_lat`` [B, N, d].  ``bank`` is the
+        latent cache itself (random real hub codes / views for the unpaired-speech terms)."""
         cfg, logs = self.cfg, {}
         sp, reader = model.spokes, model.hub.reader
         views = {m: batch[m] for m in ("txt", "aud") if batch.get(m) is not None}
@@ -208,14 +283,20 @@ class GeoBridgeLoss:
             total = total + cfg.w_free_hub_var * var
             logs["free_var"] = var.item()
 
-        # ---- reader stays on the grounded codes; its (detached) outputs are the read hubs for exposure
+        # ---- the reader keeps training, now on codes that no longer move; its (detached) outputs are the read
+        #      hubs for exposure
         reads: Dict[str, torch.Tensor] = {}
         for mod, sub in views.items():
+            ok, target = sub["ok"], hubs[mod].detach()
             r = reader(sub["z"], mod, sub["lang"])
-            l_read = F.mse_loss(r[sub["ok"]].float(), hubs[mod][sub["ok"]].detach().float())
+            l_read = F.mse_loss(r[ok].float(), target[ok].float())
             total = total + cfg.w_read * l_read
             logs[f"read_{mod}"] = l_read.item()
             reads[mod] = r.detach()
+            if cfg.draft_t0 > 0 and cfg.hub_mode == "bary":  # the explainer is refined only if writing starts from its draft
+                l_expl = F.mse_loss(model.hub.explainer(target[ok], model.hub.MODS[mod], sub["lang"][ok]).float(), sub["z"][ok].float())
+                total = total + cfg.w_expl * l_expl
+                logs[f"unexplained_{mod}"] = l_expl.item()
 
         # ---- exposure: a share of the views is written from a hub that was *read*, as it will be at test time
         pairs = same_lang_pairs(views.get("txt"), views.get("aud"))
@@ -240,7 +321,12 @@ class GeoBridgeLoss:
                         new[mine[cross]] = h.to(new.dtype)
                 src[mod] = new
 
-        # ---- hub (+) private conditional flow matching
+        # ---- hub (+) private conditional flow matching.  The hub part of the source is jittered: a writer has
+        #      to tolerate a code that was read with some error (the island reader's most of all).
+        if cfg.hub_jitter > 0:
+            for mod in src:
+                sigma = torch.rand(src[mod].shape[0], 1, 1, device=dev) * cfg.hub_jitter
+                src[mod] = src[mod] + sigma.to(src[mod].dtype) * torch.randn_like(src[mod])
         for mod, sub in views.items():
             l = sp[mod].cfm_loss(sp[mod].source(src[mod]), sub["z"], sub["lang"], weight=sub["ok"].float())
             total = total + cfg.w_cfm * l
@@ -276,40 +362,54 @@ class GeoBridgeLoss:
         return total, logs
 
     # ============================================================================ hub-space back-translation
-    def back_translate(self, model, island: Dict, bank: Callable[[int], torch.Tensor]) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Both directions of back-translation, with the hub as the pivot language.
+    def back_translate(self, model, island: Dict, bank) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Back-translation of unpaired island speech, with the hub as the pivot language.
 
-        write   real unpaired speech z_u, pseudo code h = Reader(z_u)      -> the writer learns  h -> z_u
-        read    real hub code h (from any language), synthetic speech Write(h) -> the reader learns  Write(h) -> h
+        write   real unpaired speech z_u, pseudo code h = Reader(z_u)          -> speech writer learns  h -> z_u
+        read    real hub code h, synthetic island speech s = Write(h)          -> reader learns         s -> h
+        relay   the same s, read back: h' = Reader(s); real text z_t of h      -> text writer learns    h' -> z_t
 
-        The target side of each direction is real.  Pseudo codes drift towards frequent content when they are
-        fed back on themselves, so before use they are moved part of the way along the entropic optimal
-        transport map onto a batch of real hub codes (balanced marginals: the batch of pseudo codes has to
-        cover the real distribution; ``bt_rectify`` is the displacement, 0 = off, 1 = full transport)."""
+        The target side of every direction is real.  ``relay`` is what connects the island to the writers of
+        the other languages: no caption exists in both, so without it a text writer only ever sees hub codes
+        read from its own language, never ones carrying the island reader's errors.
+
+        Pseudo codes drift towards frequent content when they are fed back on themselves, so before use they
+        are moved part of the way along the entropic optimal transport map onto a batch of real hub codes
+        (balanced marginals: the batch of pseudo codes has to cover the real distribution; ``bt_rectify`` is
+        the displacement, 0 = off, 1 = full transport).  ``bank`` is the latent cache."""
         cfg = self.cfg
         reader, spoke = model.hub.reader, model.spokes["aud"]
         z_u, lang_u = island["z"], island["lang"]
-        n = z_u.shape[0]
-        real = bank(cfg.bt_bank_mult * n).to(z_u.dtype)
+        n, dev = z_u.shape[0], z_u.device
         logs: Dict[str, float] = {}
+        text = bank.sample_views("txt", n) if cfg.bt_relay > 0 else None
+        real = (text["hub"] if text is not None else bank.sample_hubs(n)).to(dev, z_u.dtype)
         with torch.no_grad():
             h = reader(z_u, "aud", lang_u)
             if cfg.bt_rectify > 0:
-                with torch.autocast(device_type=z_u.device.type, enabled=False):
-                    cost = ot.scale_free(torch.cdist(h.float().flatten(1), real.float().flatten(1)) ** 2)
-                    a = torch.full((n,), 1.0 / n, device=z_u.device)
-                    b = torch.full((real.shape[0],), 1.0 / real.shape[0], device=z_u.device)
+                ref = bank.sample_hubs(cfg.bt_bank_mult * n).to(dev)
+                with torch.autocast(device_type=dev.type, enabled=False):
+                    cost = ot.scale_free(torch.cdist(h.float().flatten(1), ref.float().flatten(1)) ** 2)
+                    a = torch.full((n,), 1.0 / n, device=dev)
+                    b = torch.full((ref.shape[0],), 1.0 / ref.shape[0], device=dev)
                     Pi = ot.log_sinkhorn(cost, a, b, cfg.bt_eps, cfg.dock_sinkhorn_iters)
                     rows = Pi / Pi.sum(1, keepdim=True).clamp_min(1e-30)
-                    moved = (rows @ real.float().flatten(1)).view_as(h)
+                    moved = (rows @ ref.float().flatten(1)).view_as(h)
                     logs["bt_shift"] = ((moved - h.float()) ** 2).mean().item()
                     logs["bt_plan_entropy"] = ot.coupling_stats(Pi)["row_entropy"]
                 h = (h.float() + cfg.bt_rectify * (moved - h.float())).to(z_u.dtype)
-            synth = spoke.write(real[:n], lang_u, temp=1.0, steps=cfg.train_ode_steps)
+            synth = spoke.write(real, lang_u, temp=1.0, steps=cfg.train_ode_steps)
         l_write = spoke.cfm_loss(spoke.source(h), z_u, lang_u)
-        l_read = F.mse_loss(reader(synth, "aud", lang_u).float(), real[:n].float())
+        back = reader(synth, "aud", lang_u)
+        l_read = F.mse_loss(back.float(), real.float())
+        total = l_write + l_read
         logs.update(bt_write=l_write.item(), bt_read=l_read.item())
-        return l_write + l_read, logs
+        if text is not None:
+            writer = model.spokes["txt"]
+            l_relay = writer.cfm_loss(writer.source(back.detach()), text["z"].to(dev, z_u.dtype), text["lang"].to(dev))
+            total = total + cfg.bt_relay * l_relay
+            logs["bt_relay"] = l_relay.item()
+        return total, logs
 
     # ============================================================================ ablation: fused-GW docking
     def alpha(self, progress: float) -> float:
@@ -319,13 +419,13 @@ class GeoBridgeLoss:
         s = min(1.0, max(0.0, (progress - cfg.dock_warmup_frac) / max(1e-6, cfg.dock_anneal_frac)))
         return cfg.dock_alpha_start + (cfg.dock_alpha_end - cfg.dock_alpha_start) * s * s * (3 - 2 * s)
 
-    def dock(self, model, island: Dict, bank: Callable[[int], torch.Tensor], progress: float) -> Tuple[torch.Tensor, Dict[str, float]]:
+    def dock(self, model, island: Dict, bank, progress: float) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Entropic fused Gromov-Wasserstein between the reader's codes for unpaired island speech and real hub
         codes, as a loss on the reader (envelope theorem).  Kept as the ablation of the original proposal:
         pure GW is blind to where the island sits, and neither variant has beaten the bridge pairs alone."""
         cfg = self.cfg
         h = model.hub.reader(island["z"], "aud", island["lang"])
-        Y = bank(cfg.bt_bank_mult * h.shape[0])
+        Y = bank.sample_hubs(cfg.bt_bank_mult * h.shape[0]).to(h.device)
         with torch.autocast(device_type=h.device.type, enabled=False):
             mu = Y.float().mean(0, keepdim=True)
             fs, ft = (h.float() - mu).flatten(1), (Y.float() - mu).flatten(1)

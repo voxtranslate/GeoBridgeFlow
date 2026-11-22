@@ -11,7 +11,7 @@ import copy
 import hashlib
 import json
 import os
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import asdict, dataclass, fields
 from typing import Any, Dict, Tuple
 
 
@@ -22,6 +22,8 @@ class Config:
     out_root: str = "runs"
     seed: int = 0
     device: str = "auto"                 # auto | cpu | cuda | cuda:0 | mps
+    n_gpu: int = 0                       # GPUs used for training and feature extraction (0 = every visible one)
+    step_batches: int = 0                # batches per optimisation step (0 = one per GPU; >1 on one device = accumulation)
     amp: bool = True                     # mixed precision (cuda only); OT always runs in fp32
     num_workers: int = 2
     torch_threads: int = 0               # 0 = leave PyTorch default
@@ -110,6 +112,8 @@ class Config:
     hub_inhibit: float = 2.0             # inhibition of return, in units of the full cosine range (0 = independent slots)
     hub_temp_start: float = 6.0          # attention temperature multiplier at step 0 (annealed to 1 while dense)
     ground_temp: float = 0.07            # InfoNCE temperature
+    agree_mode: str = "mutual"           # text and speech of a caption pull each other's code (mutual) | text is the target (teach)
+    canonical_text: bool = True          # transport phase: speech with a same-language transcript takes the text-grounded code
     read_mode: str = "amortized"         # amortized (image-free reader, one pass) | ode (backward flow of the spoke)
 
     # ------------------------------------------------------------------ spokes (writers)
@@ -128,12 +132,14 @@ class Config:
     t_sampling: str = "uniform"          # uniform | logit_normal
     exposure: str = "reader"             # read hubs the writers are also trained on: reader | ode | none
     p_read: float = 0.5                  # share of paired views written from a read hub instead of the grounded one
+    hub_jitter: float = 0.15             # std (upper bound) of the noise added to the hub part of a writer's source
     image_spoke: bool = True
     thumb_size: int = 64                 # preview pixel decoder (image latent -> RGB)
     pix_width: int = 96
 
     # ------------------------------------------------------------------ unpaired island speech: hub-space back-translation
     bt_weight: float = 1.0               # 0 = use the bridge pairs only
+    bt_relay: float = 1.0                # relay term: text writers learn from codes read off synthetic island speech
     bt_warmup_frac: float = 0.2          # share of phase B before back-translation starts
     bt_rectify: float = 0.5              # how far pseudo hub codes are moved along the OT map onto real ones (0 = off)
     bt_eps: float = 0.05
@@ -160,6 +166,9 @@ class Config:
     w_ground: float = 1.0
     w_agree: float = 0.5
     w_expl: float = 1.0                  # sufficiency: the hub code must predict the utterance latent
+    w_seek: float = 0.5                  # counterfactual patch credit: pull each slot to the patch that would explain more
+    seek_gain: float = 0.02              # predicted drop of unexplained variance at which that pull is half on
+    seek_verify: bool = False            # also carry each proposed move out and drop it if it verifiably explains less
     w_read: float = 1.0                  # the image-free reader must predict the hub code
     w_min: float = 0.5                   # minimality: the hub code must be predictable by the reader
     w_pix: float = 1.0                   # preview pixel decoder (0 removes it and its thumbnails)
@@ -310,8 +319,8 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
-    "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_expl", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "agree_mode", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
+    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",
@@ -328,6 +337,13 @@ _SYNTH = dict(
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)
     "flickr8k_yo": dict(mel_spec="speecht5", text_replay=128),
+    # same benchmark on two 16 GB GPUs (Kaggle "GPU T4 x2"); also runs on a single T4 (Colab), one batch per step.
+    # Every step consumes one batch per GPU, so the schedule is counted in optimiser steps, not batches.
+    "flickr8k_yo_t4": dict(
+        mel_spec="speecht5", text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
+        phase_a_steps=16000, phase_b_steps=30000, eval_every=2000, save_every=1000, milestone_every=8000,
+        num_workers=2, eval_max_items=400,
+    ),
     # same benchmark, sized for a laptop / CPU sanity run
     "flickr8k_yo_cpu": dict(
         mel_spec="speecht5", text_replay=96, max_images=1200, latent_dim=96, hub_slots=6, private_slots=6, text_width=192, text_enc_layers=3,

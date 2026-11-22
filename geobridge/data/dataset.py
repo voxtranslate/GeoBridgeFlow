@@ -22,7 +22,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from ..text_units import TextUnitizer
-from ..utils import get_logger, load_json, save_json
+from ..utils import get_logger, load_json, save_json, worker_kwargs
 from . import features as feats
 
 
@@ -214,7 +214,6 @@ class GeoBridgeData:
                 if not g["train_views"]:
                     continue
             self.groups[split].append(g)
-        self.group_of = {(g["img"], g["cap"]): g for gs in self.groups.values() for g in gs}
         self.replay_pool = sorted({ui for g in self.groups["train"] for m, _, ui in g["train_views"] if m == "txt"})
         self.caps_of_img: Dict[int, List[Dict]] = {}
         for g in by_key.values():
@@ -300,14 +299,7 @@ class GeoBridgeData:
     def paired_loader(self, split: str = "train", shuffle: bool = True, batch_size: Optional[int] = None) -> DataLoader:
         ds = _GroupDataset(self, self.groups[split], train=(split == "train"))
         return DataLoader(ds, batch_size=batch_size or self.cfg.batch_size, shuffle=shuffle, drop_last=shuffle,
-                          num_workers=self.cfg.num_workers if shuffle else 0, collate_fn=self.collate_groups)
-
-    def island_loader(self) -> Optional[DataLoader]:
-        if len(self.island_ids) < 2:
-            return None
-        bs = min(self.cfg.island_batch_size, len(self.island_ids))
-        return DataLoader(_IslandDataset(self.island_ids), batch_size=bs, shuffle=True, drop_last=True,
-                          num_workers=0, collate_fn=self.collate_island)
+                          collate_fn=self.collate_groups, **worker_kwargs(self.cfg.num_workers if shuffle else 0))
 
     def eval_groups(self, split: str, max_items: int = 0, require: Sequence[Tuple[str, str]] = ()) -> List[Dict]:
         """Deterministic subset of caption groups that contain all required (modality, language) views."""

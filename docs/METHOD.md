@@ -1,18 +1,28 @@
 # GeoBridge-Flow: method
 
 Notation: `d` latent width, `K_h` hub slots, `K_p` private slots, `N = K_h + K_p`. A *view* is one utterance in one
-modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `file:symbol`.
+modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `file:symbol`. Measured effects are in
+`RESULTS.md`; this document describes what the code does and why.
+
+```
+ read  (a function: one code per sentence)            write (a distribution: many realisations per code)
+ text   ─ codec ─▶ z_txt ─ reader ─┐                  ┌─ flow writer ─▶ z_txt ─ byte decoder ─▶ text
+ speech ─ codec ─▶ z_aud ─ reader ─┼─▶ hub code z* ───┼─ flow writer ─▶ z_aud ─ renderer+vocoder ─▶ speech
+ image  ─ frozen tower ─▶ z_img ─ backward ODE ─┘     └─ flow writer ─▶ z_img ─ preview decoder ─▶ image
+```
 
 ## 0. What changed with respect to the roadmap, and why
 
 | Roadmap | Problem found | What the code does instead |
 |---|---|---|
-| Hub = frozen SigLIP/DINOv2 geometry (one code per image) | An image-level pivot cannot carry *what was said*: five captions of one image share one code, so "translation" degenerates into captioning. This is the short, hallucinated output reported by Oneata & Kamper (2024). | **Barycentric visual interlingua**: a hub code is `K_h` attention-barycentres of the frozen patch tokens, selected by the utterance. Still text-free and frozen-geometry, but sentence-level. |
-| `L_EGW` "never coupled with flows" | It has been (GENOT; inter-modal bridges; GWL for the anneal). Also, pure GW is blind to *where* the island sits: it is invariant to isometries, so it cannot by itself make two languages land on the same code. | **Gromov→Wasserstein docking**: fused GW whose cost is annealed from relational (GW) to positional (model-induced W), balanced marginals, anchor pinning with the available bridge pairs, warm start, and the plan is also used to draw pseudo-pairs. A combination in a new setting; **so far it has not beaten training on the bridge pairs alone** (see `RESULTS.md`). |
-| `L_Trans-Cycle` through ODE maps | Every map is invertible, so the loss is zero for any velocity field (AlignFlow; DDIB). It trains nothing. | **Transitive hub-swap**: each spoke is trained on hub codes *read by the other spoke's ODE* from the paired view. This removes the train/test mismatch of cross-modal conversion and is not satisfied by construction. The original cycle is kept as a diagnostic. |
-| Two speech streams: `z_sem` → hub, `z_pros` (with tone) bypasses the hub, and `z_sem ⟂ z_pros` | Self-contradictory for tonal languages: if tone bypasses the hub it cannot affect translation; if it is fused into `z_sem` the orthogonality penalty fights it. | **Three factors**: segmental content (always to the hub), lexical tone = speaker-normalised F0 contour (to the hub through a learned per-language gate), paralinguistics = pitch register + timbre (bypass, decorrelated from the hub-bound latent). |
-| Deterministic spokes | One hub code has many valid realisations (wordings, speakers). A bijection from the hub cannot represent that. | Spoke source is `[hub ; Gaussian private tokens]` (cf. MUNI, CrossFlow). |
-| "Single-stage training" | Flows trained on moving codec latents chase a moving target. | One run, two phases on a step schedule (A: codecs + grounder, B: flows), one resumable checkpoint stream. |
+| Hub = frozen SigLIP/DINOv2 geometry (one code per image) | An image-level pivot cannot carry *what was said*: five captions of one image share one code, so "translation" degenerates into captioning (the short, hallucinated outputs of Oneata & Kamper, 2024). | **Barycentric visual interlingua** (§2): a hub code is `K_h` attention-barycentres of the frozen patch tokens, selected by the utterance. Still text-free and inside the frozen geometry, but sentence-level. |
+| Nothing says *which* part of the image a sentence is about | A contrastive loss is satisfied by one distinctive object; spare slots drift to things the sentence never mentions. | **Mutual sufficiency** (§2): the code must explain the sentence (sufficiency) and be predictable from the sentence alone (minimality). **Counterfactual patch credit** gives the sufficiency loss a signal towards patches a slot is not looking at yet. |
+| Read the source with the backward ODE of its flow | Costs an ODE per read, leaks the speaker into the hub (a bijection has to put everything somewhere), and is the input distribution the writers were never trained on. | **Asymmetric read / write** (§3): reading is amortised by an image-free *reader* (one pass); writing stays a flow. The reader is the same network that enforces minimality, so it costs nothing extra. |
+| `L_Trans-Cycle` through ODE maps | Every map is invertible, so the loss is zero for any velocity field (AlignFlow; DDIB). It trains nothing. | **Read-hub exposure** (§4): writers are trained on hub codes the reader produced (own view, the other modality's view, and with jitter). The original cycle is kept as a diagnostic that shows it vanishes with the step size. |
+| `L_EGW`: entropic Gromov–Wasserstein docking of unpaired island speech | GW has been coupled with flows before (GENOT). Measured here: pure GW is blind to *where* the island sits and drives it to chance; the semi-relaxed plan collapses onto a few hub codes; the balanced fused plan is indistinguishable from no docking. | **Hub-space back-translation** (§5) with the hub as the pivot language, an optimal-transport *rectification* of the pseudo codes, and a *relay* to the text writers. GW docking is kept as an ablation. |
+| Two speech streams: `z_sem` → hub, `z_pros` (with tone) bypasses the hub, and `z_sem ⟂ z_pros` | Self-contradictory for tonal languages: if tone bypasses the hub it cannot affect translation; if it is fused into `z_sem` the orthogonality penalty fights it. | **Three factors** (§6): segmental content (always to the hub), lexical tone = speaker-normalised F0 contour (through a learned per-language gate), paralinguistics = pitch register + timbre (bypass, decorrelated from the hub-bound latent). |
+| Deterministic spokes | One hub code has many valid realisations (wordings, speakers). A bijection from the hub cannot represent that. | Writer source is `[hub ; Gaussian private tokens]` (cf. MUNI, CrossFlow). |
+| "Single-stage training" | Flows trained on moving codec latents chase a moving target. | One run, two phases on a step schedule (A: representation, B: transport on a **latent cache**), one resumable checkpoint stream. |
 | Text / speech pairs across languages may be used implicitly | The captions of an image are translations of each other, so a corpus with all languages visible is implicitly parallel through the image. | **Strict non-parallel protocol** (default): in training, a caption is visible in one language only. No loss pairs two languages. |
 
 ## 1. Frozen front-ends and latents
@@ -20,7 +30,7 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
 - **Vision** (`data/features.py:VisionFrontend`): a frozen tower gives a `g×g` grid of patch tokens plus a global
   token. They are mapped once by a frozen **anchor projection**: PCA to `d` dimensions with a single global scale,
   `v_p = s · Wᵀ(x_p − μ)`. It is an isometry up to scale on the top-`d` subspace, fitted in float64 from the
-  covariance (no SVD at training time) and never updated.
+  covariance and never updated.
 - **Speech** (`SSLFrontend`): deep hidden states of a multilingual SSL model at 25 Hz are the *segmental* stream
   `S`. The *tone* stream `F` has four values per frame: z-scored log-F0, voicing, Δlog-F0, z-scored log-energy.
   F0 is tracked with YIN and **standardised per utterance over voiced frames**, which removes the speaker's
@@ -29,22 +39,22 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
 - **Text** (`models/text_codec.py`): NFC text → extended grapheme clusters → each cluster embedded from its UTF-8
   bytes (mean ⊕ max pooling) → transformer → Perceiver resampler → `z_txt ∈ R^{N×d}`. A byte-level
   autoregressive decoder reconstructs the string. Sequence length is the number of written symbols for every
-  script.
+  script; there is no vocabulary to be out of.
 - **Speech codec** (`models/audio_codec.py`): `h = Linear(S) + Linear(voicing, energy)`, then the pitch FiLM
 
   `h ← h ⊙ (1 + γ_ℓ · tanh(W_s τ)) + γ_ℓ · tanh(W_b τ)`, with `τ = Conv(z-log-F0, Δlog-F0)` and `γ_ℓ = σ(a_ℓ)`,
 
-  then transformer → resampler → `z_aud ∈ R^{N×d}`. Three details matter and were found empirically:
-  (i) only the **pitch contour** is gated; voicing and energy mark syllable structure in every language, and
-  when they shared the gated path the gate stayed open everywhere; (ii) both FiLM terms are bounded and
-  bias-free, so `γ_ℓ` is an upper bound on what pitch can contribute and a flat contour is exactly a closed gate;
-  (iii) the decoder reconstructs **only the segmental stream** from `z_aud` and the bypass code
-  `p = MLP(speaker vector, register)`, so no reconstruction term asks for pitch. A prosody head predicts the
-  contour from `stopgrad(z_aud)`; a frame-synchronous renderer maps (segmental, contour, `p`) to a mel-spectrogram.
+  then transformer → resampler → `z_aud ∈ R^{N×d}`. (i) Only the **pitch contour** is gated; voicing and energy
+  mark syllable structure in every language. (ii) Both FiLM terms are bounded and bias-free, so `γ_ℓ` is an upper
+  bound on what pitch can contribute and a flat contour is exactly a closed gate. (iii) The decoder reconstructs
+  **only the segmental stream** from `z_aud` and the bypass code `p = MLP(speaker vector, register)`, so no
+  reconstruction term asks for pitch. A prosody head predicts the contour from `stopgrad(z_aud)`; a
+  frame-synchronous renderer maps (segmental, contour, `p`) to a mel-spectrogram in the feature space of the
+  vocoder (`mel_spec = speecht5`: the pretrained SpeechT5 HiFi-GAN; `internal`: Griffin-Lim).
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
 
-## 2. N1 — Barycentric visual interlingua (`models/hub.py`)
+## 2. Barycentric visual interlingua with mutual sufficiency (`models/hub.py`, `losses.py:phase_a`)
 
 For a view with latent `z` and paired image tokens `{v_p}`:
 
@@ -54,55 +64,70 @@ q_k   = Grounder(z, m, ℓ)_k                                   k = 1..K_h      
 z*_k  = Σ_p α_kp v_p                                           ∈ conv({v_p} ∪ {0})
 ```
 
-A hub code is therefore a point of `conv(V_image ∪ {0})^{K_h}` inside the frozen vision geometry. Five properties
-were each needed in practice (the numbers are from the controlled benchmark), and each can be switched off:
+A hub code is a point of `conv(V_image ∪ {0})^{K_h}` inside the frozen vision geometry: it contains no text, it
+is sentence-level, and it can be drawn on the image. Patches only (the global token is the image mean; offered,
+every slot settles on it), sequential attention with inhibition of return, a null option offered late, and a
+soft-to-sharp temperature are each needed and each can be switched off for the ablation.
 
-1. **Patches only.** The global token is the mean of the image; when it was offered, every slot settled on it and
-   the hub collapsed to one code per image (grounding stuck at 14 % where it otherwise reaches 55–70 %).
-2. **Sequential attention with inhibition of return.** Slot `k` is penalised on the patches slots `< k` took, so
-   the slots enumerate what a sentence mentions. Independent slots all pile onto the most salient mentioned
-   object.
-3. **A null option.** A slot with nothing left to say attends to a learned null key whose value is the origin of
-   the anchored space. It is offered only in the second half of phase A and attention is then charged a small
-   price (`w_null`); offered from the start, later slots retreat to null and, being saturated, never come back.
-4. **Soft-to-sharp attention.** The temperature starts at `hub_temp_start × τ` and is annealed geometrically to
-   `τ` during the first half of phase A. A sharp softmax gives the explanatory loss no gradient towards a patch
-   the slot is not already on; with the anneal, both objects of a two-object caption get their own slot in
-   75–81 % of cases (7–16 % without).
-5. **A contrastive score that uses the same attention** (below).
-
-Training:
+The grounder is trained so that the code is **what the sentence and the image have in common**:
 
 ```
-L_ground = InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k Σ_p α_kp(u, I) ⟨q_k(u), key(v_p(I))⟩
-           where α(u, I) is the sequential, inhibited attention of u on image I (both directions, same-image
-           duplicates masked).  Each slot is credited with the match it finds among the patches earlier slots
-           left free.  The usual "best patch per slot, independently" score gives every slot full credit for
-           re-finding the same object, so nothing rewards a second slot for the second thing a sentence says.
-L_expl   = ‖ P(z*, m, ℓ) − stopgrad(z) ‖²      a small predictor P must reconstruct the utterance latent from the
-           hub code alone; latents are unit-variance, so the value is the share of variance the hub leaves
-           unexplained (1 − R²)
-L_agree  = ‖ z*(text) − z*(speech) ‖²   for text and speech of the SAME caption in the SAME language
+L_ground  InfoNCE over the batch with  s(u, I) = (1/K_h) Σ_k Σ_p α_kp(u, I) ⟨q_k(u), key(v_p(I))⟩ ,
+          α(u, I) the same sequential, inhibited attention of u on image I       (found in the right image)
+L_expl    ‖ Explainer(z*, m, ℓ) − stopgrad(z) ‖²                                 (sufficiency: the code says
+          everything the sentence says; unit-variance latents, so this is the unexplained variance 1 − R²)
+L_read    ‖ Reader(stopgrad(z), m, ℓ) − stopgrad(z*) ‖²                          (an image-free reader)
+L_min     ‖ z* − stopgrad(Reader(z)) ‖²                                          (minimality: the code says
+          nothing the sentence does not; an unmentioned object cannot be predicted from the sentence)
+L_agree   ‖ z*(speech) − z*(text) ‖²             same caption, same language
 ```
 
-`L_expl` asks the hub code to be sufficient for the sentence. With independent slots and the independent
-contrastive score, the hub described a single object per sentence: in the controlled benchmark none of the
-two-object captions had both objects covered and text → hub → text reached 46 % with the image in hand.
-`L_expl` is the `t = 0` view of flow matching (what the hub does not determine is unexplained variance of
-the latent, cf. FlowBind's Prop. 1), restricted here to hub codes that are barycentres of frozen patches. `P` is
-discarded after phase A. An optional slot-diversity term (`w_slot_div`, off by default) is kept for the
-ablation; it pushes spare slots onto patches the sentence does not mention.
+One attention pass (`hub.ground`) produces both the contrastive scores and the code.
 
-The grounding gradient reaches the codecs, which is what lets the tone gate learn from meaning (§5). At test time
-the grounder is not used: hub codes are read by the backward ODE.
+**Counterfactual patch credit** (`losses.py:seek`). Sufficiency reaches the attention only through the softmax
+Jacobian, `∂z*_k/∂logit_p = α_kp (v_p − z*_k)`: a patch the slot does not look at gets no credit, however much it
+would explain. Once the contrastive loss (which is content with one object) has made the slots sharp, the second
+thing a sentence says can stay unseen for ever. The counterfactual "slot `k` sits on patch `p`" can be ranked
+for every `(k, p)` at once, to first order:
+
+```
+propose   gain_kp = − ⟨ ∂ err / ∂ z*_k ,  v_p − z*_k ⟩      first-order drop of the utterance's unexplained
+          (v = 0 for the null option; patches taken by      variance err if slot k sat on patch p;
+           earlier slots are not candidates)                 p*_k = argmax_p gain_kp
+pull      L_seek = − Σ_k w_k · log α_{k, p*_k} ,   w_k = gain₊² / (gain₊² + g₀²)
+```
+
+A code that already explains its sentence is left alone (`w → 0`). The pull is a cross-entropy on the *unclamped*
+log-attention, whose gradient with respect to the logits is `α − onehot`: it does not vanish for a patch with no
+attention, which is the whole point.
+
+Two stricter variants were tried and measured (`RESULTS.md`). *Veto* (`seek_verify`, kept as an ablation): each
+proposed move is carried out, the explainer is run on it, and a move that verifiably explains less is dropped;
+this sends fewer slots to objects the sentence does not mention but also finds fewer second objects. *Verified
+gain* (requiring the explainer's error to drop before pulling) switches the mechanism off: the explainer has to
+co-adapt before a newly covered object pays off, so demanding the gain up front is circular.
+
+**Agreement.** Text and speech of the same caption in the same language pull each other's code (`L_agree`,
+`agree_mode = mutual`). Making the text code a fixed target for speech (`teach`) looked natural and was worse:
+text then sharpens early onto one object and the coverage of two-object captions drops (see `RESULTS.md`); it
+is kept as an ablation.
+
+Schedule ("structure first, sparsity later"): for the first `gate_release_frac` of phase A there is no null
+option, attention is annealed from soft to sharp, and `L_min` is off; then the null option is offered and
+minimality starts.
 
 Ablation anchors (`hub_mode`): `global` (scene-level pooling, identical for all captions of an image), `free`
 (unconstrained learned code, FlowBind-style, trained jointly with the flows), `text` (first `K_h` tokens of a
 hub-language text latent; for the island, a caption of the same image with a different caption index).
 
-## 3. N2 — Hub ⊕ private flow spokes (`models/flow.py`)
+## 3. Asymmetric read / write (`models/geobridge.py`, `models/flow.py`)
 
-One spoke per modality, state `x ∈ R^{N×d}`:
+**Read** = the reader of §2: `z* = Reader(z_m, m, ℓ)`, one pass, no image, no ODE. It regresses onto codes that
+do not depend on the speaker, so nothing forces speaker identity into the hub. Images have no reader (an image
+does not say one thing); an image is read by the backward ODE of its writer. `read_mode = ode` restores the
+backward ODE for text and speech (ablation).
+
+**Write** = one conditional-flow-matching writer per modality, state `x ∈ R^{N×d}`:
 
 ```
 x_0 = [ z* ; ξ ],  ξ ~ N(0, I)^{K_p×d}        x_1 = z_m        x_t = (1−t) x_0 + t x_1
@@ -110,33 +135,68 @@ L_cfm^m = E_t ‖ v_{θ_m + Δθ_{ℓ,m}}(x_t, t) − (x_1 − x_0) ‖²
 ```
 
 `v` is a transformer with AdaLN time conditioning; every linear map is `W + (α/r) B_ℓ A_ℓ` with one rank-`r` pair
-per language (`layers.py:LoRALinear`, `B` zero-initialised). *Write* = integrate 0→1 from `[z* ; ξ]`. *Read* =
-integrate 1→0 from `z_m`, giving the hub estimate (first `K_h` tokens) and the private code. The image spoke
-targets the anchored patch grid pooled to `N` tokens.
+per language (`layers.py:LoRALinear`, `B` zero-initialised). The private tokens absorb what the hub does not
+determine (wording, speaker), so one code has many realisations. The image writer targets the anchored patch
+grid pooled to `N` tokens; a small **preview decoder** (`models/pixel.py`) turns that latent into a thumbnail.
 
-Conversion `(m₁, ℓ₁) → (m₂, ℓ₂)`: read with spoke `m₁`, keep the hub part, draw fresh private tokens, write with
-spoke `m₂`. No image is involved.
+Optionally (`draft_t0 > 0`) writing starts from the explainer's one-pass draft: the ODE begins at time `t0` on
+the straight path between the source and the draft. Off by default: the draft is a conditional mean, and for
+sentences with several valid realisations it is blurred.
 
-## 4. N4 — Transitive hub-swap (`losses.py:phase_b`)
+Conversion `(m₁, ℓ₁) → (m₂, ℓ₂)`: reader of `m₁`, writer of `m₂`, fresh private tokens. No image is involved.
 
-For text `z_t` and speech `z_a` of the same caption in the same language:
+## 4. Transport phase on a latent cache (`cache.py`, `losses.py:phase_b`)
+
+After phase A the codecs and the grounder are frozen, so every utterance latent and every grounded hub code is a
+constant. They are computed once (`LatentCache`) and phase B runs on tensors only: no feature loading, no codec,
+no grounder, no image. Rebuilding the cache after a resume is deterministic.
 
 ```
-ĥ_t = Read_txt(z_t),  ĥ_a = Read_aud(z_a)             (no gradient; few ODE steps)
-L_swap = ½ [ CFM_aud( [ĥ_t ; ξ] → z_a ) + CFM_txt( [ĥ_a ; ξ] → z_t ) ]
+L_B = Σ_m L_cfm^m( [h̃ ; ξ] → z_m )  +  w_read · L_read  +  bt_weight · L_bt            (§5)
 ```
 
-Each spoke learns to write from hub codes produced by the *other* spoke's ODE, which is exactly the input it
-receives at test time. An optional differentiable version (`twohop_weight`) reads both views, exchanges the hub
-parts, keeps each view's private code, writes back and penalises the reconstruction error and `‖ĥ_t − ĥ_a‖²`.
+**Canonical code.** Where a caption has a transcript in the same language, its speech view takes the
+text-grounded code in the cache (`canonical_text`): text is the cleaner of the two views, and the speech reader
+then learns to produce what text would have produced. This is a transport-phase choice only; the grounder itself
+is trained with mutual agreement.
 
-## 5. N5 — Lexical-tonality gate
+**Read-hub exposure.** The hub part `h̃` of a writer's source is the grounded code for half of the views and a
+*read* code for the rest: the reader's output for the same view, or for the other modality's view of the same
+caption (same language). All of them receive Gaussian jitter of random scale (`hub_jitter`), so a writer has to
+tolerate a code that was read with some error. This replaces the roadmap's cycle term: it removes the train /
+test mismatch of cross-modal conversion and is not satisfied by construction.
+
+## 5. Hub-space back-translation of unpaired island speech (`losses.py:back_translate`)
+
+The island language has speech only, a few image-paired utterances (bridge pairs) and many unpaired ones. With the
+hub as the pivot language:
+
+```
+write   real unpaired speech z_u,  pseudo code  ĥ = Rectify(Reader(z_u))     speech writer learns  ĥ → z_u
+read    real hub code h,  synthetic island speech  s = Write_aud(h, ℓ_island)  reader learns        s → h
+relay   the same s read back,  h' = Reader(s);  real text z_t of h            text writer learns    h' → z_t
+```
+
+The target side of every direction is real. *Relay* is what connects the island to the writers of the other
+languages: no caption exists in both, so without it a text writer never sees a code carrying the island reader's
+errors.
+
+**Transport rectification.** Pseudo codes fed back on themselves drift towards frequent content. Before use they
+are moved part of the way (`bt_rectify`) along the entropic optimal-transport map onto a batch of real hub codes,
+`ĥ ← ĥ + ρ (T(ĥ) − ĥ)`, `T` the barycentric projection of a balanced log-domain Sinkhorn plan: the batch of
+pseudo codes has to cover the real distribution, which a nearest-neighbour snap or a semi-relaxed plan does not
+enforce.
+
+Fused Gromov–Wasserstein docking of the reader (`losses.py:dock`, `models/ot.py`) is kept as the ablation of the
+original proposal.
+
+## 6. Lexical-tonality gate
 
 `γ_ℓ ∈ [0,1]` scales how much of the speaker-normalised contour enters the hub-bound latent. Its loss terms:
 
 ```
 + w_gate · γ_ℓ                         "pay for pitch": a constant price
-+ (through L_ground and the flows)     the benefit, present only if pitch helps identify what is said
++ (through L_ground, L_expl, L_agree)  the benefit, present only if pitch helps identify what is said
 ```
 
 Because the codec reconstructs only the segmental stream, nothing else rewards pitch. The gate therefore stays
@@ -144,50 +204,35 @@ open for a language iff its contour is informative about meaning.
 
 Schedule (dense, then sparsify): for the first `gate_release_frac` of phase A all gates are held at 1 and no price
 is charged; then they are released at `σ(tone_gate_init)` and priced. The gates are scalars, so they use their own
-constant step size `lr_gate`. Pricing from step 0 closed every gate within ~400 steps, before grounding had
-learned whether pitch is useful, and a closed sigmoid gate has no gradient left to reopen.
+constant step size `lr_gate`. Pricing from step 0 closed every gate before grounding had learned whether pitch is
+useful, and a closed sigmoid gate has no gradient left to reopen.
 
 Reported per language: the gate value, the **tone-reliance index** `E‖ĥ − ĥ_flat‖² / E‖ĥ_i − ĥ_j‖²` (how far the
 hub code moves when the contour is removed, in units of the distance between two utterances), and the
-translation score with the contour removed.
-`L_orth` is the mean squared entry of the batch cross-correlation between the pooled latent and the bypass code.
+translation score with the contour removed. `L_orth` is the mean squared entry of the batch cross-correlation
+between the pooled latent and the bypass code.
 
-## 6. N3 — Gromov→Wasserstein docking (`losses.py:dock`, `models/ot.py`)
-
-Island speech `{z_u}` has no image. Let `ĥ_u = Read_aud(z_u)` (differentiable) and `{y_j}` a sample of the **hub
-bank**, a FIFO memory of hub codes produced from image-paired views. With centred cosine distances
-`C¹ = D(ĥ, ĥ)`, `C² = D(y, y)`, `M = D(ĥ, y)`, each divided by its mean:
+## 7. Objective, schedule and execution
 
 ```
-Π = argmin_Π  (1−α) Σ_{ijkl} (C¹_ik − C²_jl)² Π_ij Π_kl + α ⟨M, Π⟩ + ⟨R, Π⟩ − ε H(Π)
-    s.t.  Π ∈ U(a, b)   (balanced, default)      or      Π 1 = a  (semi-relaxed: the bank side is free)
+Phase A   L_A = L_text + L_audio(segmental, prosody†, duration, mel, w_orth·L_orth, w_gate·γ)
+                + L_ground + w_expl·L_expl + w_seek·L_seek + w_read·L_read + w_min·L_min + w_agree·L_agree + w_pix·L_pix
+Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + bt_weight·(L_bt_write + L_bt_read + bt_relay·L_bt_relay)
+                                                                                  († stop-gradient on the latent)
 ```
 
-- **Marginals.** The balanced constraint is what keeps docking from degenerating. With the bank side free the
-  plan may send every island sample to the same few hub codes, and because `M` is induced by the model being
-  trained that choice reinforces itself: the share of bank codes in use fell from 88 % to 6 % and island
-  translation dropped to chance. The balanced plan kept 90 % of the codes in use.
-- `α` is annealed from 0 (trust only the island's internal geometry) to `α_end` (trust where it currently sits).
-- `R` pins the bridge pairs present in the batch to their true hub codes (cost 0 on the true partner, `c_pin`
-  elsewhere); through the GW term the pinned rows also constrain the unpaired rows.
-- Solver: entropic mirror descent; the inner step is a row-softmax (semi-relaxed) or log-domain Sinkhorn
-  (balanced). float32, outside autocast, products and logsumexp only. The iteration is **warm-started from the
-  model-induced plan** `softmax(−(M + R)/ε)`: the uniform plan is a stationary point of the GW iteration (every
-  row then prefers the same central columns), and from a uniform start the plan stayed at 98 % of maximal entropy.
-- `L_dock` is the objective at the fixed plan (envelope theorem), differentiable through `ĥ_u`.
-- `L_pseudo`: sample `j ~ Π(i, ·)` and train `CFM_aud([y_j ; ξ] → z_u,i)` weighted by `1 − H(Π_i)/log m`.
-
-## 7. Objective and schedule
-
-```
-Phase A   L_A = L_text + L_audio(segmental, prosody†, duration, mel, w_orth·L_orth, w_gate·γ) + L_ground
-                + w_expl·L_expl + w_agree·L_agree                                 († stop-gradient on the latent)
-Phase B   L_B = Σ_m L_cfm^m + w_swap·L_swap + w_dock·L_dock + w_pseudo·L_pseudo
-```
-
-Phase B freezes the codecs and the grounder, keeps an EMA of the spokes, and evaluates with the EMA weights.
-Bridge pairs are few, so every paired batch is guaranteed `bridge_per_batch` of them (drawn by a generator seeded
-with the stream position, which keeps resumption exact).
+- Phase B keeps an EMA of what it trains and evaluates with the EMA weights. Bridge pairs are few, so every
+  paired batch is guaranteed `bridge_per_batch` of them (drawn by a generator seeded with the stream position,
+  which keeps resumption exact).
+- **Several GPUs** (`trainer.py:StepReplica`): one optimisation step consumes one batch per GPU. Batches are
+  nested, ragged dictionaries (and, in phase B, slices of the latent cache), which `nn.DataParallel` cannot
+  scatter; so the only thing scattered is an index, and each replica takes its own prepared batch, moves it to
+  its device and computes the complete loss there under its own autocast context. Gradients are averaged. The
+  frozen vision and speech encoders are wrapped the same way for feature extraction (`features.py:on_all_gpus`).
+  On one device the same code runs the batches one after the other (gradient accumulation).
+- Checkpoints hold the model, the EMA, both optimisers, the AMP scaler, RNG states, the history and the position
+  inside the epoch (epoch index + batch offset of both data streams); the epoch order is a function of
+  (seed, epoch), so training resumes from any step of any epoch.
 
 ## 8. Evaluation (`metrics.py`)
 
@@ -196,9 +241,10 @@ All conversions go through the hub and use no image at test time.
 - Text out: BLEU and chrF++ against the parallel reference and against all captions of the image; WER/CER for
   same-language transcription; exact content accuracy on SynthWorld.
 - Hub space: R@k of utterance → image (how well gallery patches explain the hub code), island speech → text.
+- Image out: R@k of the *written* image latent against the gallery, and the preview thumbnail.
 - Speech out: feature-level round trip (hub → speech latent → decoded frame features and predicted contour →
-  re-encoded → hub → text). It passes through the lossy codec, so ODE invertibility does not make it trivial; it
-  is an intrinsic proxy and should be complemented by an external ASR for a camera-ready.
+  re-encoded → hub → text). It passes through the lossy codec, so it is not trivially satisfied; it is an
+  intrinsic proxy and should be complemented by an external ASR for a camera-ready.
 - Tone: gates, tone-reliance, score with the contour removed, twin-confusion rate on SynthWorld.
 - Protocol: `strict_nonparallel` on by default; `bridge_frac` budgets are nested subsets stored in `splits.json`.
 
@@ -206,15 +252,11 @@ All conversions go through the hub and use no image at test time.
 
 - Meaning that has no visual correlate cannot live in a barycentric hub code; it can only be carried by the
   private tokens, which are not transferred across modalities. Abstract text will translate poorly.
-- Image output is an embedding (the anchored patch grid), scored by retrieval. Pixels need a decoder trained on
-  the same vision space (e.g. an unCLIP model); none is included.
-- Waveforms come from Griffin-Lim on a predicted mel; a neural vocoder is needed for natural speech.
-- GW coupling on minibatches is noisy and identifiable only up to the symmetries the pins and the shared backbone
-  break; with zero bridge pairs nothing breaks them except the shared speech backbone.
-- Docking has not yet shown a gain over training on the bridge pairs alone (one seed, 20 % bridge budget). The
-  relational premise is weak for arbitrary word forms: only the *distribution* of what is said (which is
-  non-uniform, as in real captions) is shared across languages, not the geometry of its sounds.
-- The hub code still lets spare slots attend to objects a sentence does not mention, and the second mentioned
-  object is recovered far less reliably than the first.
-- Reading speech with the backward ODE does not separate speaker identity into the private tokens: a linear
-  probe finds the speaker in the hub part as easily as in the private part.
+- The counterfactual credit is a first-order estimate through the explainer as it currently is; it also sends
+  some slots to objects the sentence does not mention, which the minimality term then has to remove.
+- Image output is a latent of the frozen vision space plus a low-resolution preview; photo-realistic pixels need
+  a decoder trained on that space (e.g. an unCLIP model), which is not included.
+- Back-translation starts from the bridge pairs: with none, nothing ties the island reader to the hub except the
+  shared speech backbone.
+- The multi-GPU path was written for two T4s and reviewed, but this repository's measurements were all made on a
+  CPU-only machine; see `RESULTS.md`.

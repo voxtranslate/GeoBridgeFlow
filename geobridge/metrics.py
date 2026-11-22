@@ -13,7 +13,6 @@ Tone          learned gate per language, tone-reliance index (how far the hub co
 """
 from __future__ import annotations
 
-import math
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -78,7 +77,8 @@ class Evaluator:
                 read_mode: Optional[str] = None) -> Dict:
         data, dev = self.data, self.device
         groups = data.eval_groups(split, max_items)
-        store: Dict = {"groups": groups, "views": {}, "img_of_group": [], "V": {}, "Z": {}, "img_hub": []}
+        store: Dict = {"groups": groups, "views": {}, "img_of_group": [], "V": {}, "Z": {}, "img_hub": [], "ground": {}}
+        check_ground = self.synth and self.cfg.hub_mode == "bary"
         g0 = 0
         for part, batch in data.eval_batches(groups, 64):
             batch = _to(batch, dev)
@@ -96,6 +96,10 @@ class Evaluator:
                     continue
                 z = model.encode(mod, sub)
                 hub = model.read(mod, z, sub["lang"], mode=read_mode, steps=steps)
+                if check_ground:  # where the grounder looks, with the image in hand (ground truth: SynthWorld)
+                    attn = model.hub.attend(model.hub.queries(z, mod, sub["lang"]), V[sub["item"]])[1].float().cpu()
+                    self._slot_stats(store["ground"], attn, mod, [model.langs[i] for i in sub["lang"].tolist()],
+                                     sub["utt"].tolist(), [part[j]["img"] for j in sub["item"].tolist()])
                 hub_flat = None
                 if mod == "aud" and flat_tone:
                     sub_f = dict(sub, tone=dsp.flatten_tone(sub["tone"]))
@@ -124,6 +128,25 @@ class Evaluator:
         return store
 
     # ---- helpers
+    def _slot_stats(self, acc: Dict, attn: torch.Tensor, mod: str, langs: List[str], utts: List[int], imgs: List[int]) -> None:
+        """Count, per view type, what the slots of each caption sit on: a mentioned object, an object the
+        sentence does not mention, background, or nothing (null); and whether a two-object caption has both
+        of its objects covered.  attn [n, K, P]."""
+        for a, lang, u, img in zip(attn, langs, utts, imgs):
+            c = acc.setdefault((mod, lang), {"slots": 0, "mentioned": 0, "unmentioned": 0, "background": 0, "null": 0,
+                                             "two": 0, "both": 0})
+            cells = set(self.data.utts[u]["cells"])
+            objects = {cell for cell, _, _ in self.data.images[img]["scene"]}
+            for k in range(a.shape[0]):
+                top = int(a[k].argmax())
+                kind = "null" if float(a[k].sum()) < 0.5 else "mentioned" if top in cells else \
+                    "unmentioned" if top in objects else "background"
+                c[kind] += 1
+            c["slots"] += a.shape[0]
+            if len(cells) == 2:
+                c["two"] += 1
+                c["both"] += int(all(float(a[:, cell].max()) > 0.3 for cell in cells))
+
     def _ref(self, g: Dict, lang: str) -> Optional[str]:
         ui = g["utts"].get(lang)
         return self.data.utts[ui]["text"] if ui is not None and self.data.utts[ui].get("text") else None
@@ -166,11 +189,15 @@ class Evaluator:
         """SynthWorld only: parse the output and compare with the true content of the source utterance."""
         w = self.data.builder
         exact = col = shp = twin = n_col_err = 0
+        by_len = {1: [0, 0], 2: [0, 0]}  # objects in the sentence -> [exact, count]
         for h, g in zip(hyps, groups):
             ui = next(iter(g["utts"].values()))
             truth = [tuple(c) for c in self.data.utts[ui]["content"]]
             pred = w.parse(h, lang)
             exact += int(pred == truth)
+            if len(truth) in by_len:
+                by_len[len(truth)][0] += int(pred == truth)
+                by_len[len(truth)][1] += 1
             if pred:
                 col += int(pred[0][0] == truth[0][0])
                 shp += int(pred[0][1] == truth[0][1])
@@ -178,8 +205,10 @@ class Evaluator:
                     n_col_err += 1
                     twin += int(pred[0][0] // 2 == truth[0][0] // 2)  # confused with its tonal twin
         n = max(1, len(hyps))
-        return {"content_acc": 100.0 * exact / n, "color_acc": 100.0 * col / n, "shape_acc": 100.0 * shp / n,
-                "twin_confusion": 100.0 * twin / max(1, n_col_err)}
+        out = {"content_acc": 100.0 * exact / n, "color_acc": 100.0 * col / n, "shape_acc": 100.0 * shp / n,
+               "twin_confusion": 100.0 * twin / max(1, n_col_err)}
+        out.update({f"content{k}_acc": 100.0 * e / c for k, (e, c) in by_len.items() if c})
+        return out
 
     # ---- main entry
     @torch.no_grad()
@@ -207,6 +236,7 @@ class Evaluator:
             if store["img_hub"] is not None:
                 tasks.append(("img", "-", H))
             if not quick:
+                tasks.append(("txt", H, H))  # read a sentence and write it again: what the hub code keeps
                 for T in written:
                     if T != H:
                         tasks += [("txt", H, T), ("txt", T, H)]
@@ -289,6 +319,17 @@ class Evaluator:
                 hy = model.text.generate(z, lid)
                 refs = [data.utts[u]["text"] for u in rec["utt"][:200].tolist()]
                 M[f"codec_txt_{lang}/cer"] = error_rate(hy, refs, "char")
+
+        # ---------------- grounding (controlled benchmark): what the hub slots sit on
+        for (mod, lang), c in store["ground"].items():
+            if mod == "txt" and lang in cfg.island_langs and not cfg.use_island_text:
+                continue  # the island's orthography is never trained on
+            key = f"ground/{mod}_{lang}"
+            M[f"{key}/slots_mentioned"] = 100.0 * c["mentioned"] / max(1, c["slots"])
+            M[f"{key}/slots_unmentioned"] = 100.0 * c["unmentioned"] / max(1, c["slots"])
+            M[f"{key}/slots_null"] = 100.0 * c["null"] / max(1, c["slots"])
+            if c["two"]:
+                M[f"{key}/both_covered"] = 100.0 * c["both"] / c["two"]
 
         # ---------------- tone
         gates = model.audio.gate().detach().cpu()

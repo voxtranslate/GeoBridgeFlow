@@ -6,7 +6,7 @@ codec, no grounder, no image.  Rebuilding after a resume is deterministic and ta
 """
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import torch
 
@@ -17,7 +17,7 @@ from .utils import to_device
 class LatentCache:
     def __init__(self, model, data, split: str, device: torch.device, loss: GeoBridgeLoss, chunk: int = 96,
                  island: bool = True):
-        self.device, cfg = device, model.cfg
+        cfg = model.cfg
         groups = data.groups[split]
         key = "train_views" if split == "train" else "valid_views"
         z = {"txt": [], "aud": []}
@@ -42,17 +42,24 @@ class LatentCache:
                 if cfg.hub_mode == "text" and batch.get("pivot") is not None:
                     zz["pivot"] = model.encode("txt", batch["pivot"])
                 pairs = same_lang_pairs(batch["txt"], batch["aud"])
+                hh, vv = {}, {}
                 for m in ("txt", "aud"):
                     if m not in zz:
                         continue
                     sub = batch[m]
-                    anchor, valid = (None, torch.ones(len(sub["item"]), dtype=torch.bool, device=device))
+                    anchor, vv[m] = (None, torch.ones(len(sub["item"]), dtype=torch.bool, device=device))
                     if cfg.hub_mode == "text":
-                        anchor, valid = loss.text_anchor(zz, m, sub, pairs, batch.get("pivot"), batch["B"])
-                    h = zz[m][:, : cfg.hub_slots] if cfg.hub_mode == "free" else \
+                        anchor, vv[m] = loss.text_anchor(zz, m, sub, pairs, batch.get("pivot"), batch["B"])
+                    hh[m] = zz[m][:, : cfg.hub_slots] if cfg.hub_mode == "free" else \
                         model.paired_hub(m, zz[m], sub["lang"], V[sub["item"]], anchor)
-                    z[m].append(zz[m].float().cpu()); hub[m].append(h.float().cpu())
-                    ok[m].append(valid.cpu()); lang[m].append(sub["lang"].cpu())
+                if cfg.hub_mode == "bary" and cfg.canonical_text and len(pairs[0]) and len(hh) == 2:
+                    # canonical code of a caption: where a transcript exists (same language), speech takes the
+                    # text-grounded code - the cleaner of the two views - as reader target and writer source
+                    hh["aud"][pairs[1]] = hh["txt"][pairs[0]]
+                for m in hh:
+                    sub = batch[m]
+                    z[m].append(zz[m].float().cpu()); hub[m].append(hh[m].float().cpu())
+                    ok[m].append(vv[m].cpu()); lang[m].append(sub["lang"].cpu())
                     for j in sub["item"].tolist():  # views arrive grouped by caption, in order
                         count[m][s + j] += 1
             self.isl_z: Optional[torch.Tensor] = None
@@ -75,13 +82,14 @@ class LatentCache:
         self.img_lat = torch.stack([img_lat[i] for i in imgs])
         self.scene = torch.stack([scene[i] for i in imgs])
         self._all_hubs = torch.cat([self.hub[m][self.ok[m]] for m in self.mods]) if self.mods else torch.zeros(0)
+        self._rows = {m: self.ok[m].nonzero().squeeze(1) for m in self.mods if self.ok[m].any()}
         self.n_groups = len(groups)
 
     def batch(self, group_idx: List[int]) -> Dict:
-        """Phase-B batch for a list of caption-group indices (same layout as the collated raw batch)."""
-        dev = self.device
+        """Phase-B batch for a list of caption-group indices (same layout as the collated raw batch).
+        Tensors are returned on the CPU; the training replica that consumes the batch moves it to its GPU."""
         rows_img = torch.tensor([self.img_row[int(self.img_of_group[g])] for g in group_idx])
-        out: Dict = {"B": len(group_idx), "img_lat": self.img_lat[rows_img].to(dev), "scene": self.scene[rows_img].to(dev),
+        out: Dict = {"B": len(group_idx), "img_lat": self.img_lat[rows_img], "scene": self.scene[rows_img],
                      "txt": None, "aud": None}
         for m in self.mods:
             rows, items = [], []
@@ -90,15 +98,21 @@ class LatentCache:
                 rows.extend(range(a, b)); items.extend([j] * (b - a))
             if rows:
                 r = torch.tensor(rows)
-                out[m] = {"z": self.z[m][r].to(dev), "hub": self.hub[m][r].to(dev), "ok": self.ok[m][r].to(dev),
-                          "lang": self.lang[m][r].to(dev), "item": torch.tensor(items, device=dev)}
+                out[m] = {"z": self.z[m][r], "hub": self.hub[m][r], "ok": self.ok[m][r], "lang": self.lang[m][r],
+                          "item": torch.tensor(items)}
         return out
 
     def island_batch(self, idx: List[int]) -> Dict:
         r = torch.tensor(idx)
-        return {"z": self.isl_z[r].to(self.device), "lang": self.isl_lang[r].to(self.device)}
+        return {"z": self.isl_z[r], "lang": self.isl_lang[r]}
 
     def sample_hubs(self, n: int) -> torch.Tensor:
         """Real hub codes of image-paired utterances (any language): the empirical hub distribution."""
-        r = torch.randint(len(self._all_hubs), (n,))
-        return self._all_hubs[r].to(self.device)
+        return self._all_hubs[torch.randint(len(self._all_hubs), (n,))]
+
+    def sample_views(self, mod: str, n: int) -> Optional[Dict[str, torch.Tensor]]:
+        """n random image-paired views of one modality: latents, their hub codes and languages."""
+        if mod not in self._rows:
+            return None
+        r = self._rows[mod][torch.randint(len(self._rows[mod]), (n,))]
+        return {"z": self.z[mod][r], "hub": self.hub[mod][r], "lang": self.lang[mod][r]}

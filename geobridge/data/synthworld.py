@@ -44,7 +44,7 @@ COLOR_RGB = [(220, 40, 40), (40, 170, 60), (50, 90, 220), (235, 200, 40), (200, 
 SHAPES = ["circle", "square", "triangle", "diamond", "cross", "bar", "ring", "star", "hex", "tee"]
 COLOR_NAMES = ["red", "green", "blue", "yellow", "magenta", "cyan", "orange", "brown", "white", "grey"]
 
-LANG_INFO = {
+SYNTH_LANGS = {
     "sa": {"tonal": False, "script": "Latin", "written": True, "spoken": True},
     "sb": {"tonal": True, "script": "Latin+tone marks (held out)", "written": False, "spoken": True},
     "sc": {"tonal": False, "script": "Devanagari", "written": True, "spoken": False},
@@ -172,14 +172,14 @@ class SynthWorld:
             content = [(o[1], o[2]) for o in c["objs"]]
             cells = [o[0] for o in c["objs"]]
             for lang in ("sa", "sb", "sc"):
-                info = LANG_INFO[lang]
+                info = SYNTH_LANGS[lang]
                 utts.append({
                     "uid": f"{lang}/im{c['img']:05d}/{c['cap']}", "img": c["img"], "cap": c["cap"], "lang": lang,
                     "text": self.text(content, lang), "has_audio": info["spoken"],
                     "spk": f"{lang}{c.get('spk_' + lang, 0)}" if info["spoken"] else "",
                     "content": content, "cells": cells, "cap_row": ci,
                 })
-        return {"name": "synthworld", "langs": LANG_INFO, "images": images, "utts": utts,
+        return {"name": "synthworld", "langs": SYNTH_LANGS, "images": images, "utts": utts,
                 "meta": {"grid": self.g, "colors": COLOR_NAMES[: self.nc], "shapes": SHAPES[: self.ns]}}
 
     # ------------------------------------------------------------------ vision
@@ -243,7 +243,7 @@ class SynthWorld:
         rng = np.random.default_rng(c["seed"] + (0 if lang == "sa" else 77))
         f_base, fscale = self.speakers[lang][c["spk_" + lang]]
         words = self.words([(o[1], o[2]) for o in c["objs"]], lang)
-        tonal = LANG_INFO[lang]["tonal"]
+        tonal = SYNTH_LANGS[lang]["tonal"]
         rate = float(rng.uniform(0.88, 1.15))
         n_syl = sum(len(w) for w in words)
         chunks, k = [np.zeros(int(0.06 * sr))], 0

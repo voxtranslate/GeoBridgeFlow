@@ -22,46 +22,65 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 
 from .. import audio_dsp as dsp
-from ..utils import load_json, save_json
+from ..utils import gpu_ids, load_json, save_json
 
 
 def _tag(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-")
 
 
+def on_all_gpus(module: nn.Module, cfg, device: torch.device) -> nn.Module:
+    """Frozen encoder on ``device``; with several GPUs every batch is split across all of them."""
+    module = module.to(device).eval().requires_grad_(False)
+    ids = gpu_ids(cfg, device)
+    return nn.DataParallel(module, device_ids=ids) if len(ids) > 1 else module
+
+
 # ================================================================================== vision
-class VisionFrontend:
-    """Any Hugging Face vision tower -> (grid x grid pooled patch tokens, global token)."""
+class _VisionTokens(nn.Module):
+    """pixels [B, 3, H, W] -> [B, grid * grid + 1, D]: pooled patch tokens, then the global token."""
 
-    def __init__(self, name: str, grid: int, device: torch.device) -> None:
-        from transformers import AutoImageProcessor, AutoModel
+    def __init__(self, tower: nn.Module, grid: int) -> None:
+        super().__init__()
+        self.tower, self.grid = tower, grid
 
-        self.grid, self.device = grid, device
-        self.proc = AutoImageProcessor.from_pretrained(name)
-        model = AutoModel.from_pretrained(name)
-        self.model = getattr(model, "vision_model", model).to(device).eval()  # SigLIP/CLIP: keep the vision tower
-        self.n_prefix: Optional[int] = None
-
-    @torch.no_grad()
-    def __call__(self, images: List) -> np.ndarray:
-        px = self.proc(images=images, return_tensors="pt")["pixel_values"].to(self.device)
-        out = self.model(pixel_values=px)
+    def forward(self, px: torch.Tensor) -> torch.Tensor:
+        out = self.tower(pixel_values=px)
         h = out.last_hidden_state
-        side = int(round((h.shape[1]) ** 0.5))
+        side = int(round(h.shape[1] ** 0.5))
         if side * side == h.shape[1]:  # SigLIP: no CLS; pooled head output is the global token
             patches = h
             glob = out.pooler_output if getattr(out, "pooler_output", None) is not None else h.mean(1)
         else:  # ViT / DINOv2 / CLIP: CLS (+ registers) first
-            n_patch = (int((h.shape[1]) ** 0.5)) ** 2
-            patches, glob = h[:, h.shape[1] - n_patch:], h[:, 0]
-            side = int(round(n_patch ** 0.5))
+            side = int(h.shape[1] ** 0.5)
+            patches, glob = h[:, h.shape[1] - side * side:], h[:, 0]
         g = patches.transpose(1, 2).reshape(patches.shape[0], -1, side, side)
         g = F.adaptive_avg_pool2d(g.float(), self.grid).flatten(2).transpose(1, 2)
-        return torch.cat([g, glob.float().unsqueeze(1)], 1).cpu().numpy()
+        return torch.cat([g, glob.float().unsqueeze(1)], 1)
+
+
+class VisionFrontend:
+    """Any Hugging Face vision tower -> (grid x grid pooled patch tokens, global token)."""
+
+    def __init__(self, cfg, device: torch.device) -> None:
+        from transformers import AutoImageProcessor, AutoModel
+
+        self.device, self.amp = device, bool(cfg.amp and device.type == "cuda")
+        self.proc = AutoImageProcessor.from_pretrained(cfg.vision_encoder)
+        model = AutoModel.from_pretrained(cfg.vision_encoder)
+        tower = getattr(model, "vision_model", model)  # SigLIP / CLIP: keep the vision tower only
+        self.net = on_all_gpus(_VisionTokens(tower, cfg.vision_grid), cfg, device)
+
+    @torch.no_grad()
+    def __call__(self, images: List) -> np.ndarray:
+        px = self.proc(images=images, return_tensors="pt")["pixel_values"].to(self.device)
+        with torch.autocast(device_type=self.device.type, enabled=self.amp):
+            return self.net(px).float().cpu().numpy()
 
 
 def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger) -> str:
@@ -75,7 +94,7 @@ def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger) -> 
         toks = np.stack([builder.vision_tokens(i) for i in range(n)]).astype(np.float16)
         np.save(os.path.join(out, "tokens.npy"), toks)
     else:
-        fe = VisionFrontend(cfg.vision_encoder, cfg.vision_grid, device)
+        fe = VisionFrontend(cfg, device)
         arr = None
         for grp in tqdm(builder.image_groups(manifest["images"]), desc="vision features", dynamic_ncols=True):
             part_p = os.path.join(out, f"part_{_tag(grp['key'])}.npz")
@@ -170,6 +189,20 @@ class MFCCFrontend:
         return out
 
 
+class _SpeechStreams(nn.Module):
+    """waveforms [B, T] -> (deep-layer mean [B, frames, D], early-layer mean [B, frames, D])."""
+
+    def __init__(self, model: nn.Module, sem_layers: Tuple[int, ...], spk_layers: Tuple[int, ...], use_mask: bool) -> None:
+        super().__init__()
+        self.model, self.sem_layers, self.spk_layers, self.use_mask = model, tuple(sem_layers), tuple(spk_layers), use_mask
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        hs = self.model(x, attention_mask=mask if self.use_mask else None, output_hidden_states=True).hidden_states
+        sem = torch.stack([hs[l] for l in self.sem_layers]).mean(0).float()
+        early = torch.stack([hs[l] for l in self.spk_layers]).mean(0).float()
+        return sem, early
+
+
 class SSLFrontend:
     """HuBERT / wav2vec2-family encoder.  ``sem`` = mean of deep hidden states (pooled to 25 Hz),
     ``spk`` = time-average of early hidden states."""
@@ -178,37 +211,43 @@ class SSLFrontend:
         from transformers import AutoConfig, AutoModel
 
         self.cfg, self.device, self.pool = cfg, device, cfg.speech_pool
-        self.model = AutoModel.from_pretrained(cfg.speech_encoder).to(device).eval()
+        self.amp = bool(cfg.amp and device.type == "cuda")
+        model = AutoModel.from_pretrained(cfg.speech_encoder)
         conf = AutoConfig.from_pretrained(cfg.speech_encoder)
         self.dim = self.spk_dim = conf.hidden_size
-        self.normalize = getattr(conf, "feat_extract_norm", "group") == "layer"
+        layer_norm = getattr(conf, "feat_extract_norm", "group") == "layer"
+        self.normalize = layer_norm
         try:
             from transformers import AutoFeatureExtractor
 
             self.normalize = bool(AutoFeatureExtractor.from_pretrained(cfg.speech_encoder).do_normalize)
         except Exception:
             pass
+        self.frames = model._get_feat_extract_output_lengths
+        # group-norm models were trained on zero-padded batches without a mask; layer-norm models need one
+        self.net = on_all_gpus(_SpeechStreams(model, cfg.speech_sem_layers, cfg.speech_spk_layers, layer_norm), cfg, device)
 
     @torch.no_grad()
     def __call__(self, wavs: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray]]:
         lens = [len(w) for w in wavs]
         x = torch.zeros(len(wavs), max(max(lens), 400))
+        mask = torch.zeros(x.shape, dtype=torch.long)
         for i, w in enumerate(wavs):
             t = torch.from_numpy(w).float()
             if self.normalize:
                 t = (t - t.mean()) / (t.std() + 1e-7)
             x[i, : len(w)] = t
-        hs = self.model(x.to(self.device), output_hidden_states=True).hidden_states
-        sem = torch.stack([hs[l] for l in self.cfg.speech_sem_layers]).mean(0).float()
-        early = torch.stack([hs[l] for l in self.cfg.speech_spk_layers]).mean(0).float()
-        fl = self.model._get_feat_extract_output_lengths(torch.tensor(lens)).tolist()
+            mask[i, : len(w)] = 1
+        with torch.autocast(device_type=self.device.type, enabled=self.amp):
+            sem, early = self.net(x.to(self.device), mask.to(self.device))
+        sem, early = sem.float().cpu(), early.float().cpu()   # one transfer per batch, then cheap slicing
         out = []
-        for i, n in enumerate(fl):
+        for i, n in enumerate(self.frames(torch.tensor(lens)).tolist()):
             n = max(1, min(int(n), sem.shape[1]))
             s = sem[i, :n]
             m = max(1, n // self.pool)
             s = s[: m * self.pool].reshape(m, self.pool, -1).mean(1) if n >= self.pool else s.mean(0, keepdim=True)
-            out.append((s.cpu().numpy(), early[i, :n].mean(0).cpu().numpy()))
+            out.append((s.numpy(), early[i, :n].mean(0).numpy()))
         return out
 
 

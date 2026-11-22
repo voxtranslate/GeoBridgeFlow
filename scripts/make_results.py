@@ -3,7 +3,8 @@
 
 Every number in the document is read from a file under runs/; nothing is typed by hand.
 
-    python scripts/make_results.py --synth runs/sf_main --ablation runs/sf_ablation --real runs/f1200
+    python scripts/make_results.py --synth runs/sf_ablation/_full/full_s0 --ablation runs/sf_ablation \
+        --real_check runs/real_smoke
 """
 from __future__ import annotations
 
@@ -62,6 +63,8 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
         (f"aud_{L}>img/r1", f"island speech ({L}) → image", "R@1 (%)"),
         (f"aud_{L}>img/r5", "", "R@5 (%)"),
         (f"aud_{L}>img/r10", "", "R@10 (%)"),
+        (f"aud_{L}>img_gen/r1", f"island speech ({L}) → written image latent", "R@1 (%)"),
+        (f"txt_{H}>img_gen/r1", f"{H} text → written image latent", "R@1 (%)"),
         (f"aud_{L}>txt_{H}/hub_r1", f"island speech ({L}) → {H} text (hub retrieval)", "R@1 (%)"),
         (f"aud_{H}>txt_{H}/wer", f"{H} speech → {H} text", "WER (%)"),
         (f"aud_{H}>txt_{H}/content_acc", "", "exact content accuracy (%)"),
@@ -95,13 +98,13 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
             for k, v in rep["pointing_game"].items():
                 md.append(f"- Pointing game, {k}: {v['slot_precision']:.1f} % of hub slots sit on a described object "
                           f"(chance {v['chance_precision']:.1f} %); some slot hits one in {v['any_slot_hits']:.1f} % of captions.")
-        if "docking_coupling" in rep:
-            d = rep["docking_coupling"]
-            for a in ("alpha=0.0", "alpha=0.5", "alpha=1.0"):
-                if a in d:
-                    md.append(f"- Transport plan at {a}: argmax is the true partner for {d[a]['match_acc']:.1f} % of island "
-                              f"utterances; {d[a]['mass_on_true_pairs']:.1f} % of the mass is on true pairs.")
-            md.append(f"- Relational premise: Pearson r = {d['relational_isometry_r']:.3f} between island and hub pairwise distances.")
+        if "hub_alignment" in rep:
+            d = rep["hub_alignment"]
+            md.append(f"- Island speech read with no image vs the hub codes of its (never seen) translations: Pearson r = "
+                      f"{d['relational_isometry_r']:.3f} between the two sets of pairwise distances; an optimal-transport "
+                      f"plan on position alone (alpha = 1) finds the true partner for "
+                      f"{d['alpha=1.0']['match_acc']:.1f} % of utterances, on relational structure alone (alpha = 0) "
+                      f"for {d['alpha=0.0']['match_acc']:.1f} %.")
         if "hub_agreement" in rep:
             for k, v in rep["hub_agreement"].items():
                 md.append(f"- Hub agreement {k}: AUC(same caption > different caption) = {v['auc']:.3f}.")
@@ -129,8 +132,14 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
         if "hub_vs_private_probe" in rep:
             for k, v in rep["hub_vs_private_probe"].items():
                 if isinstance(v, dict):
-                    md.append(f"- Linear probe for {k}: hub tokens {v['hub']:.1f} %, private tokens {v['private']:.1f} % "
+                    md.append(f"- Linear probe for {k}: reader hub {v['reader hub']:.1f} %, backward-ODE hub "
+                              f"{v['ODE hub']:.1f} %, backward-ODE private tokens {v['ODE private']:.1f} % "
                               f"(majority class {v['majority_class']:.1f} %).")
+        if "read_write_modes" in rep:
+            for k, v in rep["read_write_modes"].items():
+                md.append(f"- {k} → hub-language text: " + ", ".join(f"{n} {x:.1f}" for n, x in v["read_mode"].items()) +
+                          "; starting the writer from the explainer's draft at t0 = " +
+                          ", ".join(f"{t}: {x:.1f}" for t, x in v["draft_t0"].items()) + ".")
         if "lora_relative_norm" in rep:
             for sp, per in rep["lora_relative_norm"].items():
                 md.append(f"- Relative size of the language LoRA in the {sp} spoke (‖BA‖/‖W‖, mean over layers): " +
@@ -152,7 +161,9 @@ def run_section(title: str, run: str, H: str, L: str, T: str, note: str) -> List
 FIGURES = [
     ("01_slot_attention.png", "Where each hub slot looks, for text, speech and island speech of the same caption"),
     ("05_tone.png", "Tonality gates, hub displacement and tone-word accuracy against pitch-contour scaling"),
-    ("04_docking_coupling.png", "Transport plans between island speech and hub codes, with the true partners marked"),
+    ("04_hub_alignment.png", "Island speech read with no image against the hub codes of its translations"),
+    ("16_read_write_modes.png", "Reading with the one-pass reader vs the backward ODE; writing from the explainer's draft"),
+    ("15_generated_images.png", "Image writing from text and speech: hub code, image latent, preview"),
     ("09_ode_steps.png", "Quality against ODE steps; the plain ODE cycle vanishes with the step size"),
     ("03_hub_manifold.png", "All views in hub coordinates"),
     ("13_hub_vs_private.png", "Linear probes on the hub and private halves of a speech read-out"),
@@ -207,11 +218,41 @@ def export_assets(a) -> List[str]:
     return md
 
 
+def real_check_section(run: str) -> List[str]:
+    """Real data, pipeline check only: says what ran, reports no metric."""
+    import glob
+
+    cfg, data = load(os.path.join(run, "config.json")), load(os.path.join(run, "data.json"))
+    rep = load(os.path.join(run, "inference", "report.json")) or {}
+    if cfg is None or data is None:
+        return ["## 3. Real data (Flickr8k-Tri)", "", f"_No run found in `{run}`._", ""]
+    figs = len(glob.glob(os.path.join(run, "inference", "*.png")))
+    wavs = len(glob.glob(os.path.join(run, "inference", "outputs", "speech", "*.wav")))
+    done = [name for name, path in (("prepare", "data.json"), ("train", os.path.join("checkpoints", "last.pt")),
+                                    ("eval", "eval_test.json"), ("infer", os.path.join("inference", "report.json")))
+            if os.path.exists(os.path.join(run, path))]
+    return ["## 3. Real data (Flickr8k-Tri): pipeline check only", "",
+            f"The redesigned model was run on real data only to check that every stage works: {data['images']['train']} / "
+            f"{data['images']['valid']} / {data['images']['test']} Flickr8k images (train / valid / test), English text and "
+            f"speech ({data['lang_en']['with_audio']} utterances), Yorùbá speech ({data['lang_yo']['with_audio']} "
+            f"utterances, orthography held out), Hindi text; frozen `{cfg['vision_encoder']}` and "
+            f"`{cfg['speech_encoder']}` features, `{cfg['mel_spec']}` mel targets and vocoder; "
+            f"{cfg['phase_a_steps']} + {cfg['phase_b_steps']} optimisation steps with {cfg['step_batches']} batches of "
+            f"{cfg['batch_size']} per step.", "",
+            f"- Stages completed: {', '.join(done)}.",
+            f"- Inference wrote {figs} figures and {wavs} synthesised utterances; figures that failed: "
+            f"{rep.get('failed') or 'none'}.",
+            "- **No metric is reported**: after this many steps the model has learned nothing, and the numbers in "
+            "its `eval_test.json` mean nothing. Real-data results have to come from the GPU schedule "
+            "(`GeoBridgeFlow_single_cell.ipynb`, preset `flickr8k_yo_t4`, or `scripts/paper_experiments.sh`).", ""]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--synth", default="")
     ap.add_argument("--ablation", default="")
-    ap.add_argument("--real", default="")
+    ap.add_argument("--real", default="", help="a real-data run whose metrics are worth a table")
+    ap.add_argument("--real_check", default="", help="a real-data run that only shows the pipeline works (no metrics)")
     ap.add_argument("--header", default="docs/RESULTS_HEADER.md")
     ap.add_argument("--out", default="docs/RESULTS.md")
     a = ap.parse_args()
@@ -230,6 +271,8 @@ def main() -> None:
         md += run_section("3. Flickr8k-Tri subset (real data)", a.real, "en", "yo", "hi",
                           "English text and speech, Yorùbá speech (orthography held out), Hindi text. "
                           "This is a pipeline check on a small subset with a small model, not a result to cite.")
+    if a.real_check:
+        md += real_check_section(a.real_check)
     md += export_assets(a)
     with open(a.out, "w", encoding="utf8") as f:
         f.write("\n".join(md) + "\n")

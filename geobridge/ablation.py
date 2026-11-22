@@ -24,15 +24,17 @@ import numpy as np
 from .config import PHASE_A_KEYS, Config
 from .utils import get_logger, load_json, save_json
 
-Variant = Tuple[str, Dict]
 
 GROUPS: Dict[str, Dict] = {
     "hub": {
         "question": "What should the hub be, and what makes it say exactly what the sentence says?",
         "variants": [
             ("barycentric hub, mutual sufficiency (ours)", {}),
+            ("no counterfactual patch credit (softmax gradient only)", {"w_seek": 0.0}),
+            ("counterfactual credit with a veto on moves that verifiably explain less", {"seek_verify": True}),
             ("no minimality (reader does not shape the hub)", {"w_min": 0.0}),
-            ("no sufficiency (no explainer loss)", {"w_expl": 0.0}),
+            ("no sufficiency (no explainer loss, hence no credit either)", {"w_expl": 0.0}),
+            ("text code as a fixed target for speech, instead of mutual agreement", {"agree_mode": "teach"}),
             ("independent slots (no inhibition of return)", {"hub_inhibit": 0.0}),
             ("sharp attention from the start (no anneal)", {"hub_temp_start": 1.0}),
             ("global visual pivot (scene-level)", {"hub_mode": "global"}),
@@ -44,12 +46,15 @@ GROUPS: Dict[str, Dict] = {
         "variants": [
             ("image-free reader, one pass (ours)", {}),
             ("backward ODE of the flow, trained with ODE hub-swap", {"read_mode": "ode", "exposure": "ode"}),
-            ("reader, writers never trained on read hubs", {"exposure": "none"}),
+            ("reader, writers never trained on read hubs", {"exposure": "none", "hub_jitter": 0.0}),
+            ("reader, writers trained without hub jitter", {"hub_jitter": 0.0}),
+            ("reader, speech keeps its own code (no canonical text code)", {"canonical_text": False}),
         ]},
     "island": {
         "question": "What should be done with the unpaired speech of the island language?",
         "variants": [
             ("hub-space back-translation, transport-rectified (ours)", {}),
+            ("back-translation without the relay to the text writers", {"bt_relay": 0.0}),
             ("back-translation without the transport step", {"bt_rectify": 0.0}),
             ("bridge pairs only (unpaired speech unused in phase B)", {"bt_weight": 0.0}),
             ("fused Gromov-Wasserstein docking instead", {"bt_weight": 0.0, "dock_mode": "g2w"}),
@@ -104,6 +109,7 @@ COLUMNS: List[Tuple[str, str, bool]] = [
     ("aud_{L}>txt_{H}/bleu", "island ST BLEU", True),
     ("aud_{L}>txt_{H}/chrf", "island ST chrF++", True),
     ("aud_{L}>txt_{H}/content_acc", "island ST content acc", True),
+    ("aud_{L}>txt_{H}/content2_acc", "  ... two-object sentences", True),
     ("aud_{L}>txt_{H}/color_acc", "island ST tone-word acc", True),
     ("aud_{L}>txt_{H}/flat_color_acc", "  ... with pitch removed", True),
     ("aud_{L}>img/r1", "island speech->image R@1", True),
@@ -117,6 +123,10 @@ COLUMNS: List[Tuple[str, str, bool]] = [
     ("txt_{H}>img_gen/r1", "text->written image R@1", True),
     ("txt_{H}>aud_{L}/rt_bleu", "TTS into island (round-trip BLEU)", True),
     ("txt_{H}>aud_{L}/rt_content_acc", "TTS into island (round-trip content)", True),
+    ("txt_{H}>txt_{H}/content2_acc", "text read+write, two-object sentences", True),
+    ("ground/txt_{H}/both_covered", "both objects covered (text)", True),
+    ("ground/aud_{L}/both_covered", "both objects covered (island speech)", True),
+    ("ground/txt_{H}/slots_unmentioned", "slots on unmentioned objects (text)", False),
     ("tone/gate_{L}", "gate (island)", True),
     ("tone/gate_{H}", "gate (hub lang)", False),
 ]

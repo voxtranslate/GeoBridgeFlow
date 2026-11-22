@@ -31,7 +31,7 @@ Anchors available for the ablation (``cfg.hub_mode``):
 """
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -109,15 +109,15 @@ class VisualInterlingua(nn.Module):
         return self.cfg.hub_temp * self.temp_scale
 
     def _sequential(self, logits: torch.Tensor, null: torch.Tensor) -> torch.Tensor:
-        """Sequential attention with inhibition of return.  logits [..., K, P], null [..., K] -> [..., K, P]
-        (rows sum to at most one; the remainder is the mass on the null option)."""
+        """Sequential attention with inhibition of return.  logits [..., K, P], null [..., K] ->
+        log-probabilities [..., K, P + 1]; the last column is the null option, so every row sums to one."""
         taken = torch.zeros_like(logits[..., 0, :])
         rows = []
         for k in range(logits.shape[-2]):
-            a = torch.softmax(torch.cat([logits[..., k, :] - self.cfg.hub_inhibit / self.tau * taken,
-                                         null[..., k:k + 1]], dim=-1), dim=-1)[..., :-1]
-            rows.append(a)
-            taken = taken + a
+            la = torch.log_softmax(torch.cat([logits[..., k, :] - self.cfg.hub_inhibit / self.tau * taken,
+                                              null[..., k:k + 1]], dim=-1), dim=-1)
+            rows.append(la)
+            taken = taken + la[..., :-1].exp()
         return torch.stack(rows, -2)
 
     def _null_logits(self, q: torch.Tensor) -> torch.Tensor:
@@ -125,31 +125,34 @@ class VisualInterlingua(nn.Module):
             return torch.full(q.shape[:-1], -1e4, device=q.device, dtype=torch.float32)
         return (q.float() @ F.normalize(self.null_key, dim=-1).float()) / self.tau + self.null_bias
 
-    def ground(self, q: torch.Tensor, keys: torch.Tensor, item: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """One pass for both things the grounder needs.
+    def ground(self, q: torch.Tensor, keys: torch.Tensor, item: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """One pass for everything the grounder needs.
 
         q [n, K, W] slot queries, keys [B, P, W] patch keys of every image of the batch, item [n] the image of
         each utterance.  Returns
-          score [n, B]     how well every image supports the slot sequence (contrastive logits), and
-          attn  [n, K, P-1] the attention on the utterance's own image (its hub code is attn @ patches),
-        both read off the same sequential, inhibited attention.  Three properties were each needed in practice:
+          score [n, B]         how well every image supports the slot sequence (contrastive logits),
+          attn  [n, K, P-1]    the attention on the utterance's own image (its hub code is attn @ patches),
+          logp  [n, K, P]      its logarithm, with the null option as last column (never clamped, so a loss on
+                               it reaches a patch that currently has no attention at all),
+        all read off the same sequential, inhibited attention.  Three properties were each needed in practice:
         * patches only - the global token is the image mean; a slot that settles on it makes the hub scene-level;
         * sequential with inhibition of return, and a score computed under that same attention - with the usual
           "best patch per slot, independently" score every slot is fully credited for re-finding one object;
         * a null option (hub token = origin), offered only after the slots have learned their roles, and soft
-          attention annealed to sharp - a sharp softmax gives no gradient towards a patch not yet attended.
+          attention annealed to sharp.
         """
         cos = torch.einsum("nkw,bpw->nbkp", q, keys[:, :-1]).float()
         null = self._null_logits(q).unsqueeze(1).expand(-1, keys.shape[0], -1)
-        attn = self._sequential(cos / self.tau, null)
+        logp = self._sequential(cos / self.tau, null)
+        attn = logp[..., :-1].exp()
         score = (attn * cos).sum(-1).mean(-1)
-        own = attn[torch.arange(q.shape[0], device=q.device), item]
-        return score, own
+        rows = torch.arange(q.shape[0], device=q.device)
+        return score, attn[rows, item], logp[rows, item]
 
     def attend(self, q: torch.Tensor, V: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Own-image path only (cache building, figures): q [n, K, W], V [n, P, d] -> hub [n, K, d], attn."""
         logits = torch.einsum("nkw,npw->nkp", q, self.keys(V)[:, :-1]).float() / self.tau
-        attn = self._sequential(logits, self._null_logits(q))
+        attn = self._sequential(logits, self._null_logits(q))[..., :-1].exp()
         return torch.einsum("nkp,npd->nkd", attn.to(V.dtype), V[:, :-1]), attn
 
     def free_code(self, z: torch.Tensor, mod: str, lang: torch.Tensor, scene: torch.Tensor) -> torch.Tensor:

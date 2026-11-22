@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import json
 import logging
+import multiprocessing
 import os
 import random
 import sys
-import time
 from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
@@ -29,6 +29,23 @@ def resolve_device(name: str = "auto") -> torch.device:
             return torch.device("mps")
         return torch.device("cpu")
     return torch.device(name)
+
+
+def gpu_ids(cfg, device: torch.device) -> list:
+    """GPUs a run may use: all visible ones (``cfg.n_gpu = 0``) or the first ``cfg.n_gpu``; [] off CUDA."""
+    if device.type != "cuda" or device.index not in (None, 0):
+        return [device.index] if device.type == "cuda" else []
+    n = torch.cuda.device_count()
+    return list(range(min(n, cfg.n_gpu) if cfg.n_gpu > 0 else n))
+
+
+def worker_kwargs(num_workers: int) -> Dict[str, Any]:
+    """DataLoader worker settings.  Workers are forked where the platform allows it: the dataset (memory-mapped
+    feature arrays, and classes that may have been defined in a notebook cell) is then shared, not pickled."""
+    if num_workers <= 0:
+        return {"num_workers": 0}
+    fork = "fork" in multiprocessing.get_all_start_methods()
+    return {"num_workers": num_workers, **({"multiprocessing_context": "fork"} if fork else {})}
 
 
 def get_logger(name: str = "geobridge", log_file: Optional[str] = None) -> logging.Logger:
@@ -95,16 +112,6 @@ def to_device(batch: Any, device: torch.device) -> Any:
     return batch
 
 
-class Timer:
-    def __init__(self) -> None:
-        self.t0 = time.time()
-
-    def lap(self) -> float:
-        t = time.time()
-        dt, self.t0 = t - self.t0, t
-        return dt
-
-
 class Averager:
     """Running mean of scalar dictionaries (used for tqdm postfixes and epoch summaries)."""
 
@@ -130,11 +137,6 @@ class Averager:
         self.n.clear()
 
 
-def fmt_metrics(d: Dict[str, float], keys: Optional[Iterable[str]] = None, nd: int = 3) -> Dict[str, str]:
-    keys = list(keys) if keys is not None else list(d)
-    return {k: f"{d[k]:.{nd}f}" for k in keys if k in d}
-
-
 def grid_factor(n: int) -> tuple:
     """Most square (rows, cols) factorisation of n (used to lay out image-latent tokens)."""
     r = int(np.floor(np.sqrt(n)))
@@ -144,11 +146,12 @@ def grid_factor(n: int) -> tuple:
 
 
 def setup_matplotlib() -> None:
-    """Headless backend + a font fallback chain that covers Devanagari and other non-Latin scripts when a
+    """Headless backend (outside notebooks) + a font fallback chain that covers Devanagari and other non-Latin scripts when a
     suitable system font exists (figures label graphemes of every language)."""
     import matplotlib
 
-    matplotlib.use("Agg")
+    if "ipykernel" not in sys.modules:  # in a notebook the inline backend stays; figures are saved and closed
+        matplotlib.use("Agg")
     from matplotlib import font_manager
 
     have = {f.name for f in font_manager.fontManager.ttflist}

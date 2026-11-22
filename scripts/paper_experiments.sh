@@ -23,7 +23,7 @@ for s in $SEEDS; do
 done
 
 # 4. ablations on real data (the three claims) and on the controlled benchmark (everything)
-$PY run.py ablate --preset flickr8k_yo --exp_name real --groups anchor docking bridge tone protocol --seeds $SEEDS
+$PY run.py ablate --preset flickr8k_yo --exp_name real --groups hub read island bridge tone protocol --seeds $SEEDS
 $PY run.py ablate --preset synth       --exp_name synth --seeds $SEEDS
 
 # 5. figures and saved outputs of the reference run

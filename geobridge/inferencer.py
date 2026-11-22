@@ -25,7 +25,6 @@
 """
 from __future__ import annotations
 
-import math
 import os
 import wave
 from typing import Dict, List, Optional, Tuple
@@ -40,8 +39,8 @@ from .data import GeoBridgeData
 from .losses import GeoBridgeLoss
 from .metrics import Evaluator, _to, recall_at_k
 from .models import GeoBridge, build_spec, ot
-from .text_units import TextUnitizer, graphemes, normalize_text
-from .utils import get_logger, load_json, resolve_device, save_json, seed_everything
+from .text_units import TextUnitizer
+from .utils import get_logger, resolve_device, save_json, seed_everything
 
 LANG_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#8c564b"]
 
@@ -453,7 +452,7 @@ class Inferencer:
         self.report["hub_centroid_gap"] = {f"{keys[i][0]}:{keys[i][1]}|{keys[j][0]}:{keys[j][1]}": float(gap[i, j])
                                            for i in range(len(keys)) for j in range(i + 1, len(keys))}
 
-    # ================================================================== 04 docking coupling
+    # ================================================================== 04 hub alignment of unpaired island speech
     @torch.no_grad()
     def fig_hub_alignment(self) -> None:
         import matplotlib.pyplot as plt
@@ -651,7 +650,6 @@ class Inferencer:
         order = torch.argsort(tgt)
         fig = plt.figure(figsize=(18, 7))
         ax = fig.add_subplot(1, 2, 1)
-        cols = torch.unique(tgt[order], sorted=False)
         ax.imshow(sc[order][:, tgt[order]].numpy(), cmap="viridis", aspect="auto")
         ax.set_title(f"{key[0]}:{key[1]} -> image scores (hub code explained by gallery patches)\n"
                      f"diagonal = correct image | R@1 over {len(img_ids)} images: {recall_at_k(sc, tgt)['r1']:.1f}%", fontsize=9)

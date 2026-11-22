@@ -18,10 +18,8 @@ import torch
 import torch.nn.functional as F
 
 try:
-    import torchaudio
     import torchaudio.functional as AF
-except Exception:  # pragma: no cover
-    torchaudio = None
+except Exception:  # pragma: no cover - a plain filterbank and resampler are used instead
     AF = None
 
 _FB_CACHE: Dict[Tuple, torch.Tensor] = {}

@@ -1,7 +1,7 @@
 """Trainer: two-phase schedule in one resumable run.
 
-    phase A  (steps [0, phase_a_steps))      codecs + grounder          -> representation
-    phase B  (steps [phase_a_steps, total))  flow spokes, swap, docking -> transport (codecs / grounder frozen)
+    phase A  (steps [0, phase_a_steps))      codecs, grounder, explainer, reader   -> representation
+    phase B  (steps [phase_a_steps, total))  writers (flows), reader, back-translation, on cached latents
 
 Checkpointing
     checkpoints/step_XXXXXXXX.pt   every ``save_every`` steps (last ``keep_last`` kept, milestones kept forever)
@@ -11,6 +11,11 @@ Checkpointing
 A checkpoint stores model, EMA, both optimisers, AMP scaler, RNG states, the full history and the exact
 position inside the epoch (epoch index + batch offset of both data streams).  The epoch order is a pure
 function of (seed, epoch), so resuming from any step of any epoch continues the same data stream.
+
+Several GPUs
+    One optimisation step consumes one batch per GPU (``cfg.step_batches``): every GPU runs the complete
+    forward pass of its own batch (codecs, grounder, losses) and the gradients are averaged, i.e. the step sees
+    ``n_gpu x batch_size`` caption groups.  See :class:`StepReplica`.
 """
 from __future__ import annotations
 
@@ -20,10 +25,11 @@ import os
 import random
 import shutil
 import time
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional
 
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader, Sampler
 from tqdm import tqdm
 
@@ -34,11 +40,11 @@ from .data.dataset import _GroupDataset, _IslandDataset
 from .losses import GeoBridgeLoss
 from .metrics import Evaluator
 from .models import GeoBridge, build_spec, spec_for_checkpoint
-from .utils import (Averager, count_named, count_params, get_logger, resolve_device, save_json, seed_everything,
-                    to_device)
+from .utils import (Averager, count_named, count_params, get_logger, gpu_ids, resolve_device, save_json,
+                    seed_everything, to_device, worker_kwargs)
 
-TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "pix_l1", "agree")
-TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "bt_write", "bt_read", "bt_shift", "dock")
+TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
+TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
 
 
 class ResumableBatchSampler(Sampler):
@@ -95,6 +101,45 @@ class EMA:
         self.backup = {}
 
 
+class StepReplica(nn.Module):
+    """The forward half of one optimisation step, in a form ``nn.DataParallel`` can run on every GPU.
+
+    DataParallel scatters tensors, but a batch here is a nested dict of ragged sub-batches (and, in phase B,
+    slices of the latent cache).  So one batch is prepared per GPU and the only thing that is scattered is an
+    index: the replica that receives ``[i]`` takes the i-th prepared batch, moves it to its own device and
+    computes the whole loss there, under its own autocast context.  Losses are gathered into a vector; logs are
+    left in a slot of ``job``, which all replicas share by reference."""
+
+    def __init__(self, model: GeoBridge, loss: GeoBridgeLoss, amp: bool):
+        super().__init__()
+        self.model = model
+        self.loss, self.amp = loss, amp
+        self.job: Dict = {}
+
+    def forward(self, idx: torch.Tensor) -> torch.Tensor:
+        i, dev, job = int(idx[0]), idx.device, self.job
+        batch, island = to_device(job["batches"][i], dev), to_device(job["islands"][i], dev)
+        with torch.autocast(device_type=dev.type, enabled=self.amp):
+            if job["phase"] == "A":
+                loss, logs = self.loss.phase_a(self.model, batch, island)
+            else:
+                loss, logs = self.loss.phase_b(self.model, batch, island, job["progress"], job["bank"])
+        job["logs"][i] = logs
+        return loss.reshape(1)
+
+
+def chunked(it: Iterable, n: int) -> Iterator[List]:
+    """Consecutive lists of up to n items."""
+    buf: List = []
+    for x in it:
+        buf.append(x)
+        if len(buf) == n:
+            yield buf
+            buf = []
+    if buf:
+        yield buf
+
+
 class Trainer:
     def __init__(self, cfg: Config, data: Optional[GeoBridgeData] = None, resume: bool = True):
         self.cfg = cfg
@@ -114,6 +159,10 @@ class Trainer:
         self.evaluator = Evaluator(cfg, self.data, self.device)
         self.amp = bool(cfg.amp and self.device.type == "cuda")
         self.scaler = torch.amp.GradScaler("cuda", enabled=self.amp)
+        self.gpus = gpu_ids(cfg, self.device)
+        self.replica = StepReplica(self.model, self.loss, self.amp)
+        self.parallel = nn.DataParallel(self.replica, device_ids=self.gpus) if len(self.gpus) > 1 else None
+        self.step_batches = cfg.step_batches or max(1, len(self.gpus))
 
         a_params = [p for m in self.model.phase_a_modules() for p in m.parameters()]
         b_named = {f"{i}.{n}": p for i, m in enumerate(self.model.phase_b_modules()) for n, p in m.named_parameters()}
@@ -168,7 +217,9 @@ class Trainer:
                       f"({self.param_report['per_language_pct_of_spokes']:.2f}% of the shared flow backbone)")
         d = self.data.describe()
         self.log.info(f"[data] groups {d['caption_groups']} | bridge pairs {d['bridge_pairs_train']} | "
-                      f"unpaired island {d['island_unpaired_train']} | device {self.device}")
+                      f"unpaired island {d['island_unpaired_train']} | device {self.device}"
+                      + (f" x{len(self.gpus)} (DataParallel)" if len(self.gpus) > 1 else "")
+                      + f" | {self.step_batches} batch(es) of {cfg.batch_size} per step | amp {self.amp}")
         save_json(self.param_report, os.path.join(self.run_dir, "params.json"))
 
     @property
@@ -212,7 +263,7 @@ class Trainer:
                       f"cached in {time.time() - t0:.1f}s; phase B no longer runs the codecs or the grounder")
 
     def _apply_train_only(self) -> None:
-        """``train_only="lora:<lang>"``: language-incremental docking - only that language's LoRA rows and
+        """``train_only="lora:<lang>"``: adding a language later - only that language's LoRA rows and
         language embeddings receive updates (the shared field is frozen, so nothing can be forgotten)."""
         spec = self.cfg.train_only
         if not spec.startswith("lora:"):
@@ -310,8 +361,8 @@ class Trainer:
         self.sampler.set_state(self.epoch, self.offset)
         if self.phase == "B":  # cached latents: a batch is assembled by indexing tensors, no loader needed
             return (self.cache["train"].batch(idx) for idx in self.sampler)
-        return DataLoader(self.train_ds, batch_sampler=self.sampler, num_workers=self.cfg.num_workers,
-                          collate_fn=self.data.collate_groups)
+        return DataLoader(self.train_ds, batch_sampler=self.sampler, collate_fn=self.data.collate_groups,
+                          pin_memory=self.device.type == "cuda", **worker_kwargs(self.cfg.num_workers))
 
     def _island_stream(self) -> Optional[Iterator[Dict]]:
         if self.isl_sampler is None:
@@ -351,10 +402,10 @@ class Trainer:
         m.hub.temp_scale = cfg.hub_temp_start ** (1.0 - frac)  # geometric anneal: start -> 1
 
     # ------------------------------------------------------------------ one optimisation step
-    def train_step(self, batch: Dict, island: Optional[Dict]) -> Dict[str, float]:
-        cfg, m = self.cfg, self.model
-        batch = to_device(batch, self.device)
-        island = to_device(island, self.device) if island is not None else None
+    def train_step(self, batches: List[Dict], islands: List[Optional[Dict]]) -> Dict[str, float]:
+        """One optimiser update from ``len(batches)`` batches: one per GPU, run in parallel when there are
+        several GPUs (otherwise one after the other, which is plain gradient accumulation)."""
+        cfg = self.cfg
         if self.phase == "A":
             opt, lr = self.opt_a, self._lr(self.step, cfg.phase_a_steps, cfg.lr)
         else:
@@ -363,12 +414,20 @@ class Trainer:
             g["lr"] = g.get("fixed_lr", lr)   # the scalar tonality gates keep a constant, much larger step
         self._set_schedules()
         opt.zero_grad(set_to_none=True)
-        with torch.autocast(device_type=self.device.type, enabled=self.amp):
-            if self.phase == "A":
-                loss, logs = self.loss.phase_a(m, batch, island)
-            else:
-                prog = (self.step - cfg.phase_a_steps) / max(1, cfg.phase_b_steps)
-                loss, logs = self.loss.phase_b(m, batch, island, prog, self.cache["train"].sample_hubs)
+        n = len(batches)
+        self.replica.job = {"batches": batches, "islands": islands, "logs": [None] * n, "phase": self.phase,
+                            "progress": (self.step - cfg.phase_a_steps) / max(1, cfg.phase_b_steps),
+                            "bank": self.cache.get("train")}
+        if self.parallel is not None and n > 1:
+            losses = self.parallel(torch.arange(n, device=self.device))
+        else:
+            losses = torch.cat([self.replica(torch.tensor([i], device=self.device)) for i in range(n)])
+        loss = losses.mean()
+        logs = Averager()
+        for l in self.replica.job["logs"]:
+            logs.add(l)
+        logs = logs.mean()
+        self.replica.job = {}
         if not torch.isfinite(loss):
             self.log.info(f"[warn] non-finite loss at step {self.step}; step skipped")
             return logs
@@ -439,14 +498,14 @@ class Trainer:
         while self.step < total:
             self._set_phase_mode()
             loader = self._paired_loader()
-            n_ep = len(self.sampler)
-            pbar = tqdm(loader, initial=self.offset, total=n_ep, dynamic_ncols=True,
-                        desc=f"epoch {self.epoch} | phase {self.phase} | step {self.step}/{total}")
-            for batch in pbar:
+            n_ep, k = len(self.sampler), self.step_batches
+            pbar = tqdm(chunked(loader, k), initial=self.offset // k, total=math.ceil(n_ep / k), dynamic_ncols=True,
+                        mininterval=0.5, desc=f"epoch {self.epoch} | phase {self.phase} | step {self.step}/{total}")
+            for batches in pbar:
                 phase_before = self.phase
-                logs = self.train_step(batch, next(island) if island is not None else None)
+                logs = self.train_step(batches, [next(island) if island is not None else None for _ in batches])
                 self.step += 1
-                self.offset += 1
+                self.offset += len(batches)
                 avg.add(logs)
                 keys = TQDM_KEYS_A if phase_before == "A" else TQDM_KEYS_B
                 mean = avg.mean()

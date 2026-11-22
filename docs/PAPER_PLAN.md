@@ -1,34 +1,36 @@
 # Paper plan
 
-Working title: **GeoBridge-Flow: Speaking Through Pictures — A Sentence-Level Visual Interlingua with Tone-Gated,
-Transport-Docked Flows for Unwritten Languages**
+Working title: **GeoBridge-Flow: Speaking Through Pictures — A Sentence-Level Visual Interlingua for Unwritten,
+Tonal Languages**
 
 ## 1. What to claim (and what not to)
 
-Three contributions carry the paper. Each has one figure and one ablation table that isolate it.
+Three contributions carry the paper. Each has one figure and one ablation group that isolate it. The numbers that
+currently stand behind each claim are in `RESULTS.md`; a claim is only as strong as that file says.
 
 | | Contribution | Claim, stated so it can be falsified | Evidence produced by this repository |
 |---|---|---|---|
-| C1 | **Barycentric visual interlingua** | A hub code made of utterance-selected barycentres of frozen patch tokens translates *what was said* and serves every direction; a scene-level visual pivot does not. Against a text anchor the claim is narrower: the visual hub is not centred on one written language (it wins for a third language and for images) but **loses when the target is hub-language text**. | `ablate --groups anchor` (pivot loses on every column; text anchor wins island → hub-language text, 41 % vs 28 %, and loses hub → third language, 24 % vs 62 %); `01_slot_attention.png`; pointing game; `11_hub_agreement.png` |
-| C2 | **Lexical-tonality gate** | A per-language gate on the speaker-normalised F0 contour (i) stays open for tonal languages and closes for non-tonal ones without tone labels, and (ii) tone-contrastive words survive speech → hub → text only when pitch is available. **Supported on SynthWorld** (gate 0.58 vs 0.00; 81 % vs 47.5 % with pitch removed; monotone response to contour scaling). **Not yet shown on real data** (gates 0.46 vs 0.35 after a 2,800-step CPU run). | `ablate --groups tone`; `05_tone.png`; tone-word accuracy with pitch removed; twin-confusion rate |
-| C3 | **Gromov→Wasserstein docking** of an unpaired speech island — *currently a negative result* | Hypothesis: with few bridge pairs, annealed fused GW with anchor pinning beats no docking, and the gain grows as bridge pairs become scarce. **Not supported so far**: at a 20 % bridge budget balanced docking ties with no docking and semi-relaxed docking collapses (one seed, SynthWorld). Keep it only if the 1 % and 5 % budgets, with seeds, show a gain; otherwise report it as an analysis of why relational docking fails for arbitrary word forms. | `ablate --groups docking bridge`; `04_docking_coupling.png` (plans vs true partners; relational-isometry correlation) |
+| C1 | **Barycentric visual interlingua with mutual sufficiency** | A hub code made of utterance-selected barycentres of frozen patch tokens, trained to be sufficient for the sentence and predictable from it, carries *what was said* (all of it) and serves every direction; a scene-level visual pivot does not. Counterfactual patch credit is what makes the second and later things a sentence says reach the code. Against a text anchor the claim is narrower: the visual hub is not centred on one written language. | `ablate --groups hub` (no credit, no minimality, global pivot, text anchor, free anchor); `01_slot_attention.png`; pointing game; share of two-object captions with both objects covered |
+| C2 | **Lexical-tonality gate** | A per-language gate on the speaker-normalised F0 contour (i) stays open for tonal languages and closes for non-tonal ones without tone labels, and (ii) tone-contrastive words survive speech → hub → text only when pitch is available. Supported on SynthWorld; **not yet shown on real data**. | `ablate --groups tone`; `05_tone.png`; tone-word accuracy with pitch removed; twin-confusion rate |
+| C3 | **Asymmetric read / write with hub-space back-translation** | Reading with a one-pass, image-free reader is at least as good as inverting the flow and keeps the speaker out of the hub; unpaired speech of an unwritten language improves its translation through back-translation with the hub as pivot (transport-rectified pseudo codes, relay to the text writers), and the gain grows as bridge pairs become scarce. | `ablate --groups read island bridge`; `16_read_write_modes.png`; `13_hub_vs_private.png` (speaker probe on reader hub vs ODE hub) |
 
-System-level claim: an any-to-any (text ↔ speech ↔ image-embedding) model for an unwritten language that uses
-no text of that language and no parallel sentences, including speech *into* that language. "First" needs a
-final literature check on the submission date.
+Negative result worth a paragraph: entropic Gromov–Wasserstein docking, the roadmap's central proposal, does not
+dock an unpaired speech island (pure GW drives it to chance; semi-relaxed collapses; balanced fused GW ties with
+no docking). It stays in the `island` ablation.
 
-Open problems that decide how strong the paper can be (see `RESULTS.md` §0): the second and later things a
-sentence mentions are not yet carried reliably by the hub; spare slots attend to unmentioned objects; the
-read-out does not separate speaker from content; none of the real-data text numbers is meaningful yet.
+System-level claim: an any-to-any (text ↔ speech ↔ image) model for an unwritten language that uses no text of
+that language and no parallel sentences, including speech *into* that language. "First" needs a final literature
+check on the submission date.
 
-Supporting components, **cited, not claimed**: hub ⊕ private spokes (MUNI, MUNITE, CrossFlow), transitive
-hub-swap (AlignFlow and DDIB for why a plain ODE cycle is vacuous; BCM/BiFM for inversion consistency),
-grapheme–byte compressor (LD4LG, MYTE, MAGNET, grapheme-pair encoding), per-language LoRA (LoRA-Whisper,
-Zipper-LoRA). See `docs/LITERATURE_AUDIT.md`.
+Supporting components, **cited, not claimed**: hub ⊕ private writers (MUNI, MUNITE, CrossFlow), read-hub exposure
+(AlignFlow and DDIB for why a plain ODE cycle is vacuous), back-translation itself (Sennrich et al.; BT4ST;
+Translatotron 3), balanced Sinkhorn assignment (SwAV), sequential slots with inhibition (Houba 2026 for evidence
+depletion), grapheme–byte compressor (LD4LG, MYTE, MAGNET), per-language LoRA (LoRA-Whisper, Zipper-LoRA). See
+`docs/LITERATURE_AUDIT.md`, including the addendum on the components added in the redesign.
 
-Do not claim: "first to couple GW with flows" (GENOT), "cycle-consistency loss" as a contribution, script-fair
-tokenisation as a contribution, mathematical guarantees for docking (GW on minibatches has none), or that
-contrastive alignment erases tone (the documented loss is at quantisation).
+Do not claim: "first to couple GW with flows" (GENOT), "cycle-consistency loss" as a contribution, back-translation
+or optimal transport as such, script-fair tokenisation as a contribution, or that contrastive alignment erases
+tone (the documented loss is at quantisation).
 
 ## 2. Experiments
 
@@ -54,14 +56,15 @@ trainable parameters; per-language parameters.
 
 ### 2.3 Ablations (`python run.py ablate`)
 
-`anchor`, `docking`, `bridge`, `tone`, `text_unit`, `transitive`, `private`, `lora`, `protocol` — see
-`geobridge/ablation.py:GROUPS`. Run every group on SynthWorld with 3 seeds and `anchor`, `docking`, `bridge`,
+`hub`, `read`, `island`, `bridge`, `tone`, `text_unit`, `private`, `lora`, `protocol` — see
+`geobridge/ablation.py:GROUPS`. Run every group on SynthWorld with 3 seeds and `hub`, `read`, `island`, `bridge`,
 `tone` on Flickr8k-Tri.
 
 ### 2.4 Analyses (`python run.py infer`)
 
-Slot attention across languages; hub manifold; transport plans against true partners; gate values and
-pitch-scaling response; frame- and grapheme-level attribution; quality against ODE steps; fertility per script.
+Slot attention across languages; hub manifold; island speech against the hub codes of its translations; gate
+values and pitch-scaling response; frame- and grapheme-level attribution; quality against ODE steps; fertility per
+script; speaker probes on reader hub vs ODE read-out; read / write modes; generated image previews.
 
 ## 3. Controls reviewers will ask for
 
@@ -84,7 +87,8 @@ pitch-scaling response; frame- and grapheme-level attribution; quality against O
 | Risk | How it would show | Mitigation |
 |---|---|---|
 | Barycentric codes carry too little on real photos (PCA of patch tokens to `d` dims loses semantics) | `anchor_explained_var` low; text → image R@1 near chance | larger `latent_dim`; DINOv2 with registers; more slots |
-| Docking does not help once 5 % bridges exist | `docking` table flat | report honestly; the claim then narrows to the ≤ 1 % regime |
+| Back-translation does not help once 5 % bridges exist | `island` / `bridge` tables flat | report honestly; the claim then narrows to the ≤ 1 % regime |
+| Counterfactual credit depends on the explainer being right | slots on unmentioned objects rise; reader error rises | the verify step; lower `w_seek`; report the share of slots on unmentioned objects next to coverage |
 | Gate does not separate on real data (SSL features already encode tone) | `tone/gate_yo ≈ tone/gate_en`; no drop with pitch removed | this is itself a finding (consistent with Osakuade & King); use discrete units for the segmental stream, where tone is known to be lost |
 | The YFACC mirror stores every clip as exactly 8.0 s | long utterances may be truncated | verify against the original release (Olaleye et al., 2022) before final numbers |
 | Hindi captions are machine-translated | en ↔ hi scores measure agreement with an MT system | describe as silver; use only for the script-robustness analysis |
