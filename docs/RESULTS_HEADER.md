@@ -42,7 +42,9 @@ of `sb`, 875 unpaired `sb` utterances, no `sb` text and no sentence in two langu
 cells of the `hub` ablation).
 
 - *Counterfactual patch credit is what recovers the second object.* Without it both objects of a two-object text
-  caption were covered in 68 % of cases (speech 25 %, island speech 30 %); with it 93 % (67 %, 68 %).
+  caption were covered in 68 % of cases in one run (speech 25 %, island speech 30 %) and 36 % in the ablation
+  cell; with it 92–94 % in three runs (speech 59–67 %, island speech 58–68 %). Without the credit the outcome
+  depends on the run; with it it does not.
 - *Stricter versions of it are worse.* A veto on moves that verifiably explain less gave 75 % / 30 % / 51 %.
   Requiring a verified gain before pulling switched the mechanism off (6 %): the explainer has to co-adapt before
   a newly covered object pays off. The latter variant is not kept in the code.
@@ -52,7 +54,41 @@ cells of the `hub` ablation).
   content, island 61.5 % vs 41 % on 200 validation captions), and starting the writer from the explainer's draft
   lowers two-object accuracy, so it is off by default.
 
-ABLATION_SUMMARY
+**What the ablations say** (section 2; test split, one seed, 1,500 + 1,500 steps per cell; "ours" is the
+reference run above).
+
+- *Counterfactual patch credit.* Without it, two-object sentences collapse: read-and-rewrite of text 23.9 % (ours
+  67.4 %), island speech 4.3 % (26.1 %), both objects covered for 36 % of text captions (92 %) and 9 % of island
+  captions (60 %); hub-language recognition WER 31.3 % (13.5 %), text translation 66.7 % / 71.2 % (76.7 % /
+  85.0 %). Its price: 7.3 % of slots sit on an unmentioned object (0.2 % without). On one-object sentences it
+  changes nothing, so overall island content moves only from 53.8 % to 56.7 %.
+- *Minimality.* Without it every object in the picture gets a slot (both covered 100 %, but 20 % of slots on
+  unmentioned objects) and the code stops being what the sentence says: island content 37.5 % (56.7 %),
+  read-and-rewrite of two-object text 42.4 % (67.4 %).
+- *Sentence-level visual hub vs scene-level visual pivot.* The pivot loses on every translation column: island
+  BLEU 21.9 (48.1), hub-language WER 45.4 % (13.5 %), text translation 50.8 % / 58.3 % (76.7 % / 85.0 %).
+- *Visual hub vs text anchor.* The text anchor ties on island → hub-language text (56.7 % content, BLEU 34.8 vs
+  48.1) and on recognition, is **better** at read-and-rewrite of two-object text (83.7 % vs 67.4 %), and is worse
+  for the third language (60.0 % / 58.3 % vs 76.7 % / 85.0 %) and useless for images (retrieval at chance). The
+  claim that survives is "balanced across languages and modalities", not "better everywhere".
+- *Hub-space back-translation.* Bridge pairs alone give 40.4 % island content (BLEU 35.5); adding
+  back-translation of the 875 unpaired utterances gives 56.7 % (48.1). Without the relay to the text writers it
+  is 48.8 % (42.5): the relay is about half of the gain, at the edge of the noise.
+- *Transport rectification of the pseudo codes: no measurable effect* (58.8 % without it vs 56.7 %). It stays in
+  the code as an option and should not be claimed.
+- *Read-hub exposure and hub jitter: no measurable effect* (55.4 % with neither, 52.5 % without jitter, vs
+  56.7 %).
+- *Reader vs backward ODE.* For speech the one-pass reader is far better: island content 56.7 % vs 32.5 %,
+  hub-language WER 13.5 % vs 26.1 %. For text the backward ODE is better: read-and-rewrite of two-object text
+  91.3 % vs 67.4 %, text translation 81.2 % / 88.3 % vs 76.7 % / 85.0 %. A per-modality read mode would take the
+  better of each; it was not trained.
+- *Tone stream.* Without it, tone-contrastive words on the island fall from 87.5 % to 73.3 %, island content from
+  56.7 % to 43.3 %, island speech → image R@1 from 42.1 % to 32.5 %; the non-tonal hub language moves within
+  noise (75.4 % → 71.7 %).
+- *Not run under this design:* the bridge-budget sweep, private tokens, LoRA rank, text units, the protocol
+  group, the veto and "text teaches speech" cells of `hub`, Gromov–Wasserstein docking, the free anchor, and the
+  canonical-code cell of `read`. The numbers quoted for the veto and for "text teaches speech" above are
+  validation-split diagnostics of single runs.
 
 **Does not work yet.**
 
@@ -62,6 +98,14 @@ ABLATION_SUMMARY
 - *Image captioning and image writing.* Image → text reaches 9.6 % exact content: an image does not say which of
   its objects a caption is about, and a single read of the image latent does not either. Written image latents
   retrieve the right image at R@1 13.3 % (text) and 10.8 % (island speech); R@10 35 % and 32 % (chance 16.7 %).
+  The preview (`15_generated_images.png`) shows blobs of mostly the right colours in the wrong places: a caption
+  does not say where things are. The preview decoder of the reference run was refitted alone after training
+  (`scripts/refit_preview.py`): with the plain L1 loss it had been trained with, it drew only background. It
+  shares no gradient with the rest of the model, so no number in this document depends on it; the ablation cells
+  were trained before that fix.
+- *The speaker is not kept out of the hub.* A linear probe finds the speaker in the reader's hub code with
+  31.7 % accuracy for the hub language (chance 20 %; 41.7 % in the backward-ODE read-out) and 80.8 % for the
+  island (chance 50 %; 84.2 %). The reader leaks less than the ODE, not nothing.
 - *Speech into the island language.* Text → island speech → (re-read) text recovers the content in 36.7 % of
   cases (50.4 % for hub-language speech); this is a feature-level round trip, not a listening test.
 

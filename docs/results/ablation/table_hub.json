@@ -1,0 +1,501 @@
+{
+  "question": "What should the hub be, and what makes it say exactly what the sentence says?",
+  "stats": {
+    "barycentric hub, mutual sufficiency (ours)": {
+      "aud_sb>txt_sa/bleu": [
+        48.05707532176229,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        77.05331797177084,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        56.666666666666664,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        26.08695652173913,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        87.5,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        50.833333333333336,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        42.08333194255829,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        10.833333432674408,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        75.41666666666667,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        13.492063492063492,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        23.05820594344522,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        76.66666666666667,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        66.75680652940021,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        79.91011622890626,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        13.333334028720856,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        14.404728567708489,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        36.666666666666664,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        67.3913043478261,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        92.3913043478261,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        59.78260869565217,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        7.291666666666667,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.8669446706771851,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.008941465057432652,
+        0.0
+      ]
+    },
+    "no counterfactual patch credit (softmax gradient only)": {
+      "aud_sb>txt_sa/bleu": [
+        32.198128643822834,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        66.7748242319137,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        53.75,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        4.3478260869565215,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        96.66666666666667,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        52.916666666666664,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        37.08333373069763,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        3.750000149011612,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        63.333333333333336,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        31.349206349206348,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        17.25790843003222,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        66.66666666666667,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        49.57176394256451,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        63.23323953234975,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        10.833333432674408,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        18.5845498888404,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        39.166666666666664,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        23.91304347826087,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        35.869565217391305,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        8.695652173913043,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        0.20833333333333334,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.6575751304626465,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.0010810296516865492,
+        0.0
+      ]
+    },
+    "no minimality (reader does not shape the hub)": {
+      "aud_sb>txt_sa/bleu": [
+        29.608088188362625,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        65.46766060065852,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        37.5,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        8.695652173913043,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        87.5,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        49.166666666666664,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        38.749998807907104,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        8.33333358168602,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        74.58333333333333,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        16.666666666666668,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        36.68586353981088,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        74.16666666666667,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        61.28482188271297,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        76.87329972222011,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        12.083332985639572,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        12.015599338112313,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        31.25,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        42.391304347826086,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        100.0,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        67.3913043478261,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        20.416666666666668,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.9008431434631348,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.04518626630306244,
+        0.0
+      ]
+    },
+    "global visual pivot (scene-level)": {
+      "aud_sb>txt_sa/bleu": [
+        21.917245908620277,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        58.72322464535349,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        46.666666666666664,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        2.1739130434782608,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        75.83333333333333,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        44.583333333333336,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        32.083332538604736,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        9.583333134651184,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        43.75,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        45.370370370370374,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        7.4265809827465485,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        50.833333333333336,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        35.1688019019631,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        41.3354983000532,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        10.000000149011612,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        7.850655271228795,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        15.833333333333334,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        22.82608695652174,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        NaN,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        NaN,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        NaN,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.8669446706771851,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.008941465057432652,
+        0.0
+      ]
+    },
+    "text anchor (image-pivoted)": {
+      "aud_sb>txt_sa/bleu": [
+        34.76635946165916,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        63.64188360897285,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        56.666666666666664,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        8.695652173913043,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        87.08333333333333,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        47.5,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        2.083333395421505,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        4.583333432674408,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        75.83333333333333,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        11.904761904761905,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        36.27446367994231,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        60.0,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        37.069047557607234,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        33.229730331627444,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        5.416666716337204,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        18.321228295469396,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        30.833333333333332,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        83.69565217391305,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        NaN,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        NaN,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        NaN,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.8669446706771851,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.008941465057432652,
+        0.0
+      ]
+    }
+  },
+  "best": {
+    "aud_sb>txt_sa/bleu": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sb>txt_sa/chrf": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sb>txt_sa/content_acc": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sb>txt_sa/content2_acc": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sb>txt_sa/color_acc": "no counterfactual patch credit (softmax gradient only)",
+    "aud_sb>txt_sa/flat_color_acc": "no counterfactual patch credit (softmax gradient only)",
+    "aud_sb>img/r1": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sb>img_gen/r1": "barycentric hub, mutual sufficiency (ours)",
+    "aud_sa>txt_sa/content_acc": "text anchor (image-pivoted)",
+    "aud_sa>txt_sa/wer": "text anchor (image-pivoted)",
+    "img>txt_sa/bleu_multi": "no minimality (reader does not shape the hub)",
+    "txt_sa>txt_sc/content_acc": "barycentric hub, mutual sufficiency (ours)",
+    "txt_sa>txt_sc/bleu": "barycentric hub, mutual sufficiency (ours)",
+    "txt_sc>txt_sa/bleu": "barycentric hub, mutual sufficiency (ours)",
+    "txt_sa>img_gen/r1": "barycentric hub, mutual sufficiency (ours)",
+    "txt_sa>aud_sb/rt_bleu": "no counterfactual patch credit (softmax gradient only)",
+    "txt_sa>aud_sb/rt_content_acc": "no counterfactual patch credit (softmax gradient only)",
+    "txt_sa>txt_sa/content2_acc": "text anchor (image-pivoted)",
+    "ground/txt_sa/both_covered": "no minimality (reader does not shape the hub)",
+    "ground/aud_sb/both_covered": "no minimality (reader does not shape the hub)",
+    "ground/txt_sa/slots_unmentioned": "no counterfactual patch credit (softmax gradient only)",
+    "tone/gate_sb": "no minimality (reader does not shape the hub)",
+    "tone/gate_sa": "no counterfactual patch credit (softmax gradient only)"
+  },
+  "seeds": 1
+}

@@ -123,7 +123,9 @@ hub-language text latent; for the island, a caption of the same image with a dif
 ## 3. Asymmetric read / write (`models/geobridge.py`, `models/flow.py`)
 
 **Read** = the reader of §2: `z* = Reader(z_m, m, ℓ)`, one pass, no image, no ODE. It regresses onto codes that
-do not depend on the speaker, so nothing forces speaker identity into the hub. Images have no reader (an image
+do not depend on the speaker, so nothing forces speaker identity into the hub (measured: it leaks less speaker
+information than the backward-ODE read-out, not none). For speech it is far better than the backward ODE; for
+text the backward ODE is the better reader (`RESULTS.md`), so a per-modality read mode is the obvious next step. Images have no reader (an image
 does not say one thing); an image is read by the backward ODE of its writer. `read_mode = ode` restores the
 backward ODE for text and speech (ablation).
 
@@ -138,6 +140,9 @@ L_cfm^m = E_t ‖ v_{θ_m + Δθ_{ℓ,m}}(x_t, t) − (x_1 − x_0) ‖²
 per language (`layers.py:LoRALinear`, `B` zero-initialised). The private tokens absorb what the hub does not
 determine (wording, speaker), so one code has many realisations. The image writer targets the anchored patch
 grid pooled to `N` tokens; a small **preview decoder** (`models/pixel.py`) turns that latent into a thumbnail.
+It is trained with a contrast-weighted L1 (`losses.py:preview_loss`): plain L1 is minimised by the median image,
+which is the bare background wherever the content covers a small part of the picture, and a decoder trained that
+way produced all-background previews. Its input is frozen, so it shares no gradient with the rest of the model.
 
 Optionally (`draft_t0 > 0`) writing starts from the explainer's one-pass draft: the ODE begins at time `t0` on
 the straight path between the source and the draft. Off by default: the draft is a conditional mean, and for
@@ -164,7 +169,9 @@ is trained with mutual agreement.
 *read* code for the rest: the reader's output for the same view, or for the other modality's view of the same
 caption (same language). All of them receive Gaussian jitter of random scale (`hub_jitter`), so a writer has to
 tolerate a code that was read with some error. This replaces the roadmap's cycle term: it removes the train /
-test mismatch of cross-modal conversion and is not satisfied by construction.
+test mismatch of cross-modal conversion and is not satisfied by construction. In the controlled benchmark the
+reader's codes are close enough to the grounded ones that neither exposure nor jitter changes the scores
+measurably (`RESULTS.md`); they are kept because they cost one reader pass that is computed anyway.
 
 ## 5. Hub-space back-translation of unpaired island speech (`losses.py:back_translate`)
 
@@ -181,7 +188,8 @@ The target side of every direction is real. *Relay* is what connects the island 
 languages: no caption exists in both, so without it a text writer never sees a code carrying the island reader's
 errors.
 
-**Transport rectification.** Pseudo codes fed back on themselves drift towards frequent content. Before use they
+**Transport rectification** (optional; no measurable effect so far, see `RESULTS.md`). Pseudo codes fed back on
+themselves can drift towards frequent content. Before use they
 are moved part of the way (`bt_rectify`) along the entropic optimal-transport map onto a batch of real hub codes,
 `ĥ ← ĥ + ρ (T(ĥ) − ĥ)`, `T` the barycentric projection of a balanced log-domain Sinkhorn plan: the batch of
 pseudo codes has to cover the real distribution, which a nearest-neighbour snap or a semi-relaxed plan does not

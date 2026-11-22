@@ -136,6 +136,7 @@ class Config:
     image_spoke: bool = True
     thumb_size: int = 64                 # preview pixel decoder (image latent -> RGB)
     pix_width: int = 96
+    pix_contrast: float = 4.0            # preview loss: extra weight of pixels far from the mean colour (0 = plain L1)
 
     # ------------------------------------------------------------------ unpaired island speech: hub-space back-translation
     bt_weight: float = 1.0               # 0 = use the bridge pairs only
@@ -320,7 +321,7 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
     "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "agree_mode", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "pix_contrast", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",

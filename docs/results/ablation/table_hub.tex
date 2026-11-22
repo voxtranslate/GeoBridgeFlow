@@ -1,0 +1,11 @@
+\begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrr}
+\toprule
+Variant & island ST BLEU & island ST chrF++ & island ST content acc &   ... two-object sentences & island ST tone-word acc &   ... with pitch removed & island speech-$\to$image R@1 & island speech-$\to$written image R@1 & hub ASR content acc & hub ASR WER & captioning BLEU (multi-ref) & MT hub-$\to$written content acc & MT hub-$\to$written BLEU & MT written-$\to$hub BLEU & text-$\to$written image R@1 & TTS into island (round-trip BLEU) & TTS into island (round-trip content) & text read+write, two-object sentences & both objects covered (text) & both objects covered (island speech) & slots on unmentioned objects (text) & gate (island) & gate (hub lang) \\
+\midrule
+barycentric hub, mutual sufficiency (ours) & \textbf{48.06} & \textbf{77.05} & \textbf{56.67} & \textbf{26.09} & 87.50 & 50.83 & \textbf{42.08} & \textbf{10.83} & 75.42 & 13.49 & 23.06 & \textbf{76.67} & \textbf{66.76} & \textbf{79.91} & \textbf{13.33} & 14.40 & 36.67 & 67.39 & 92.39 & 59.78 & 7.29 & 0.87 & 0.01 \\
+no counterfactual patch credit (softmax gradient only) & 32.20 & 66.77 & 53.75 & 4.35 & \textbf{96.67} & \textbf{52.92} & 37.08 & 3.75 & 63.33 & 31.35 & 17.26 & 66.67 & 49.57 & 63.23 & 10.83 & \textbf{18.58} & \textbf{39.17} & 23.91 & 35.87 & 8.70 & \textbf{0.21} & 0.66 & \textbf{0.00} \\
+no minimality (reader does not shape the hub) & 29.61 & 65.47 & 37.50 & 8.70 & 87.50 & 49.17 & 38.75 & 8.33 & 74.58 & 16.67 & \textbf{36.69} & 74.17 & 61.28 & 76.87 & 12.08 & 12.02 & 31.25 & 42.39 & \textbf{100.00} & \textbf{67.39} & 20.42 & \textbf{0.90} & 0.05 \\
+global visual pivot (scene-level) & 21.92 & 58.72 & 46.67 & 2.17 & 75.83 & 44.58 & 32.08 & 9.58 & 43.75 & 45.37 & 7.43 & 50.83 & 35.17 & 41.34 & 10.00 & 7.85 & 15.83 & 22.83 & nan & nan & nan & 0.87 & 0.01 \\
+text anchor (image-pivoted) & 34.77 & 63.64 & 56.67 & 8.70 & 87.08 & 47.50 & 2.08 & 4.58 & \textbf{75.83} & \textbf{11.90} & 36.27 & 60.00 & 37.07 & 33.23 & 5.42 & 18.32 & 30.83 & \textbf{83.70} & nan & nan & nan & 0.87 & 0.01 \\
+\bottomrule
+\end{tabular}

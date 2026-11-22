@@ -1,8 +1,10 @@
 """Preview pixel decoder: image latent (the anchored patch grid pooled to N tokens) -> a small RGB image.
 
 It exists so that the image-writing direction produces something that can be looked at.  It is deliberately
-tiny and trained with a plain L1 loss on thumbnails, so its output is a low-resolution preview, not a
-photograph; a pretrained unCLIP-style decoder on the same vision space is the route to photorealism.
+tiny and trained with a contrast-weighted L1 loss on thumbnails (see ``GeoBridgeLoss.phase_a``), so its output
+is a low-resolution preview, not a photograph; a pretrained unCLIP-style decoder on the same vision space is
+the route to photorealism.  Its input is frozen (the anchored patch grid), so it shares no gradient with the
+rest of the model.
 """
 from __future__ import annotations
 

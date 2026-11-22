@@ -83,6 +83,18 @@ def same_lang_pairs(txt: Optional[Dict], aud: Optional[Dict]) -> Tuple[torch.Ten
     return torch.tensor(it, dtype=torch.long, device=dev), torch.tensor(ia, dtype=torch.long, device=dev)
 
 
+def preview_loss(pred: torch.Tensor, target: torch.Tensor, contrast: float) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Contrast-weighted L1 between RGB images [B, 3, S, S] in [0, 1]; also returns the plain L1.
+
+    A pixel counts in proportion to how far it is from the batch's mean colour.  Plain L1 is minimised by the
+    median image, which is the bare background wherever the content covers a small part of the picture; a
+    decoder trained that way never starts to use its input (measured: an all-background preview)."""
+    err = (pred - target).abs()
+    away = (target - target.mean(dim=(0, 2, 3), keepdim=True)).abs().mean(1, keepdim=True)
+    w = 1.0 + contrast * away / away.mean().clamp_min(1e-6)
+    return (w * err).sum() / (w.sum() * err.shape[1]), err.mean()
+
+
 class GeoBridgeLoss:
     def __init__(self, cfg, lang2id: Dict[str, int]):
         self.cfg = cfg
@@ -183,9 +195,9 @@ class GeoBridgeLoss:
         # ---- preview pixel decoder (frozen image latent -> thumbnail)
         if "thumb" in batch and hasattr(model, "pixel"):
             target = batch["thumb"].permute(0, 3, 1, 2).float() / 255.0
-            pix = F.l1_loss(model.pixel(model.image_latent(V)).float(), target)
+            pix, l1 = preview_loss(model.pixel(model.image_latent(V)).float(), target, cfg.pix_contrast)
             total = total + cfg.w_pix * pix
-            logs["pix_l1"] = pix.item()
+            logs["pix_l1"] = l1.item()
         gates = model.audio.gate().detach()
         for name, i in model.lang2id.items():
             logs[f"gate_{name}"] = gates[i].item()

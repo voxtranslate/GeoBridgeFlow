@@ -1,8 +1,8 @@
-\begin{tabular}{lrrrrrrrrrrrrrrrrrr}
+\begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrr}
 \toprule
-Variant & island ST BLEU & island ST BLEU (multi-ref) & island ST chrF++ & island ST content acc & island ST tone-word acc &   ... with pitch removed & island speech-$\to$image R@1 & island speech-$\to$text hub R@1 & hub ASR WER & captioning BLEU (multi-ref) & MT hub-$\to$written BLEU & MT written-$\to$hub BLEU & TTS into island (round-trip BLEU) & TTS into island (round-trip content) & text codec CER (written lang) & gate (island) & gate (hub lang) & tone reliance (island) \\
+Variant & island ST BLEU & island ST chrF++ & island ST content acc &   ... two-object sentences & island ST tone-word acc &   ... with pitch removed & island speech-$\to$image R@1 & island speech-$\to$written image R@1 & hub ASR content acc & hub ASR WER & captioning BLEU (multi-ref) & MT hub-$\to$written content acc & MT hub-$\to$written BLEU & MT written-$\to$hub BLEU & text-$\to$written image R@1 & TTS into island (round-trip BLEU) & TTS into island (round-trip content) & text read+write, two-object sentences & both objects covered (text) & both objects covered (island speech) & slots on unmentioned objects (text) & gate (island) & gate (hub lang) \\
 \midrule
-gated tone stream (ours) & \textbf{22.41} & \textbf{29.29} & \textbf{57.27} & \textbf{28.33} & \textbf{81.25} & 47.50 & \textbf{25.42} & \textbf{52.92} & \textbf{35.58} & \textbf{25.79} & 43.06 & \textbf{51.02} & \textbf{10.43} & \textbf{15.00} & 11.62 & \textbf{0.58} & 0.00 & \textbf{0.29} \\
-no tone stream (single stream) & 15.49 & 21.32 & 48.08 & 23.33 & 56.25 & \textbf{56.25} & 13.33 & 38.33 & 36.77 & 19.05 & \textbf{43.30} & 46.15 & 4.27 & 11.67 & \textbf{11.59} & 0.00 & \textbf{0.00} & 0.00 \\
+gated tone stream (ours) & \textbf{48.06} & \textbf{77.05} & \textbf{56.67} & \textbf{26.09} & \textbf{87.50} & 50.83 & \textbf{42.08} & \textbf{10.83} & \textbf{75.42} & \textbf{13.49} & 23.06 & \textbf{76.67} & \textbf{66.76} & \textbf{79.91} & \textbf{13.33} & 14.40 & 36.67 & \textbf{67.39} & 92.39 & \textbf{59.78} & 7.29 & \textbf{0.87} & 0.01 \\
+no tone stream (single stream) & 35.09 & 65.77 & 43.33 & 10.87 & 73.33 & \textbf{73.33} & 32.50 & 8.33 & 71.67 & 15.08 & \textbf{27.98} & 68.75 & 51.22 & 69.16 & 11.67 & \textbf{18.30} & \textbf{39.58} & 57.61 & \textbf{95.65} & 44.57 & 7.29 & 0.00 & \textbf{0.00} \\
 \bottomrule
 \end{tabular}

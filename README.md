@@ -21,8 +21,7 @@ around a hub that contains no text at all.
   with a rank-`r` LoRA per language.
 * Lexical **tone** reaches the hub through a learned per-language gate; pitch register and timbre bypass it.
 * A language with **speech only** is attached through a few image-prompted utterances (bridge pairs); its
-  unpaired speech is used by **hub-space back-translation** with an optimal-transport rectification of the pseudo
-  codes and a relay to the text writers.
+  unpaired speech is used by **hub-space back-translation** with a relay to the text writers.
 * No loss ever pairs two languages, and a caption is visible in one language only during training.
 
 | Document | Content |
@@ -157,6 +156,7 @@ between variants that do not change it, and writes Markdown, CSV and LaTeX table
 | `scripts/paper_experiments.sh` | the complete GPU study (main table, DINOv2 anchor, all ablations, 3 seeds) |
 | `scripts/cpu_ablation_queue.sh` | the reduced single-seed ablation that produced `docs/RESULTS.md` |
 | `scripts/make_results.py` | rebuilds `docs/RESULTS.md` from the JSON files under `runs/` |
+| `scripts/refit_preview.py` | refits only the preview pixel decoder of a finished run (changes no metric) |
 
 ## Using a trained model
 
