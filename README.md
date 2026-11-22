@@ -19,10 +19,12 @@ around a hub that contains no text at all.
   Gromov–Wasserstein coupling; in the experiments run so far this has not improved on the bridge pairs alone.
 * At test time nothing but the source is needed: read it into the hub with one ODE, write the target with another.
 
-`docs/LITERATURE_AUDIT.md` records which of the roadmap's citations and novelty claims survive a check against
-the sources. `docs/METHOD.md` gives the equations and lists every change made to the roadmap and why.
-`docs/PAPER_PLAN.md` maps claims to the tables this code produces. `docs/RESULTS.md` holds the numbers
-measured so far, with their limits.
+| Document | Content |
+|---|---|
+| `docs/RESULTS.md` | what has been measured so far (small CPU runs, one seed), what works and what does not |
+| `docs/LITERATURE_AUDIT.md` | which of the roadmap's citations and novelty claims survive a check against the sources |
+| `docs/METHOD.md` | equations, and every change made to the roadmap with the reason |
+| `docs/PAPER_PLAN.md` | claims mapped to the tables this code produces, controls reviewers will ask for, risks |
 
 ## Install
 

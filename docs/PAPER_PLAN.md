@@ -9,12 +9,17 @@ Three contributions carry the paper. Each has one figure and one ablation table 
 
 | | Contribution | Claim, stated so it can be falsified | Evidence produced by this repository |
 |---|---|---|---|
-| C1 | **Barycentric visual interlingua** | A hub code made of utterance-selected barycentres of frozen patch tokens translates *what was said*; a scene-level visual pivot, a text anchor and a free learned anchor do not, under identical flows. | `ablate --groups anchor`; `01_slot_attention.png`; pointing-game accuracy (SynthWorld); `11_hub_agreement.png` |
-| C2 | **Lexical-tonality gate** | A per-language gate on the speaker-normalised F0 contour (i) opens for tonal languages and closes for non-tonal ones without tone labels, and (ii) is necessary for tone-contrastive words to survive speech → hub → text. | `ablate --groups tone`; `05_tone.png` (gates, pitch-scaling response); tone-word accuracy with pitch removed; twin-confusion rate |
+| C1 | **Barycentric visual interlingua** | A hub code made of utterance-selected barycentres of frozen patch tokens translates *what was said* and serves every direction; a scene-level visual pivot does not. Against a text anchor the claim is narrower: the visual hub is not centred on one written language (it wins for a third language and for images) but **loses when the target is hub-language text**. | `ablate --groups anchor` (pivot loses on every column; text anchor wins island → hub-language text, 41 % vs 28 %, and loses hub → third language, 24 % vs 62 %); `01_slot_attention.png`; pointing game; `11_hub_agreement.png` |
+| C2 | **Lexical-tonality gate** | A per-language gate on the speaker-normalised F0 contour (i) stays open for tonal languages and closes for non-tonal ones without tone labels, and (ii) tone-contrastive words survive speech → hub → text only when pitch is available. **Supported on SynthWorld** (gate 0.58 vs 0.00; 81 % vs 47.5 % with pitch removed; monotone response to contour scaling). **Not yet shown on real data** (gates 0.46 vs 0.35 after a 2,800-step CPU run). | `ablate --groups tone`; `05_tone.png`; tone-word accuracy with pitch removed; twin-confusion rate |
 | C3 | **Gromov→Wasserstein docking** of an unpaired speech island — *currently a negative result* | Hypothesis: with few bridge pairs, annealed fused GW with anchor pinning beats no docking, and the gain grows as bridge pairs become scarce. **Not supported so far**: at a 20 % bridge budget balanced docking ties with no docking and semi-relaxed docking collapses (one seed, SynthWorld). Keep it only if the 1 % and 5 % budgets, with seeds, show a gain; otherwise report it as an analysis of why relational docking fails for arbitrary word forms. | `ablate --groups docking bridge`; `04_docking_coupling.png` (plans vs true partners; relational-isometry correlation) |
 
-System-level claim: the first any-to-any (text ↔ speech ↔ image-embedding) model for an unwritten language that
-uses no text of that language and no parallel sentences, including speech *into* that language.
+System-level claim: an any-to-any (text ↔ speech ↔ image-embedding) model for an unwritten language that uses
+no text of that language and no parallel sentences, including speech *into* that language. "First" needs a
+final literature check on the submission date.
+
+Open problems that decide how strong the paper can be (see `RESULTS.md` §0): the second and later things a
+sentence mentions are not yet carried reliably by the hub; spare slots attend to unmentioned objects; the
+read-out does not separate speaker from content; none of the real-data text numbers is meaningful yet.
 
 Supporting components, **cited, not claimed**: hub ⊕ private spokes (MUNI, MUNITE, CrossFlow), transitive
 hub-swap (AlignFlow and DDIB for why a plain ODE cycle is vacuous; BCM/BiFM for inversion consistency),
