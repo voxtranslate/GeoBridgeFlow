@@ -40,7 +40,7 @@ from .losses import GeoBridgeLoss
 from .metrics import Evaluator, _to, recall_at_k
 from .models import GeoBridge, build_spec, ot
 from .text_units import TextUnitizer
-from .utils import get_logger, resolve_device, save_json, seed_everything
+from .utils import get_logger, legend_if_any, resolve_device, save_json, seed_everything
 
 LANG_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#8c564b"]
 
@@ -114,8 +114,14 @@ class Inferencer:
         if self.cfg.mel_spec == "speecht5":
             if not hasattr(self, "_vocoder"):
                 from transformers import SpeechT5HifiGan
+                from transformers.utils import logging as hf_logging
 
-                self._vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").eval()
+                level = hf_logging.get_verbosity()
+                hf_logging.set_verbosity_error()   # the hub config says "hifigan", the class "speecht5_hifigan"
+                try:
+                    self._vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").eval()
+                finally:
+                    hf_logging.set_verbosity(level)
             return self._vocoder(mel.float()).cpu().numpy()
         return dsp.griffin_lim(mel, self.cfg.sample_rate, 1024, self.cfg.mel_hop).numpy()
 
@@ -130,7 +136,7 @@ class Inferencer:
     def run_all(self, split: str = "test") -> Dict:
         from .utils import setup_matplotlib
 
-        setup_matplotlib()
+        setup_matplotlib(os.path.join(self.cfg.data_root, "fonts"))
         self.split = split
         self.groups = self.data.eval_groups(split, 400)
         self.store = self.evaluator.collect(self.model, split, 400)
@@ -372,7 +378,7 @@ class Inferencer:
             axes[2].plot(ts.numpy(), speeds, label=title)
         axes[2].set_title("velocity norm along the path", fontsize=9)
         axes[2].set_xlabel("t")
-        axes[2].legend(fontsize=7)
+        legend_if_any(axes[2], fontsize=7)
         # endpoint error of few-step solvers against a 64-step reference
         if panels:
             mod, lang, direction, title = panels[0]
@@ -386,7 +392,7 @@ class Inferencer:
                 axes[3].semilogy([1, 2, 4, 8, 16], errs, marker="o", label=solver)
             axes[3].set_title("end-point error vs 64-step reference", fontsize=9)
             axes[3].set_xlabel("ODE steps")
-            axes[3].legend(fontsize=7)
+            legend_if_any(axes[3], fontsize=7)
         fig.tight_layout()
         fig.savefig(os.path.join(self.out, "02_flow_trajectories.png"), dpi=120)
         plt.close(fig)
@@ -428,7 +434,7 @@ class Inferencer:
                 m = lab == i
                 ax.scatter(Y[m, 0], Y[m, 1], s=9, alpha=0.6, color=LANG_COLORS[i % 6], label=f"{k[0]}:{k[1]}")
             ax.set_title(title + " (all read by backward ODE)", fontsize=10)
-            ax.legend(fontsize=8, markerscale=2)
+            legend_if_any(ax, fontsize=8, markerscale=2)
         # same caption across views: lines in t-SNE for a few groups
         for gidx in np.unique(grp)[:40]:
             pts = emb[grp == gidx]
@@ -537,11 +543,11 @@ class Inferencer:
             res["pitch_scaling"][l] = {"scales": scales, "hub_displacement": disp, "color_acc": accs}
         axes[1].set_title("hub displacement when the pitch contour is scaled\n(relative to the distance between two utterances)", fontsize=9)
         axes[1].set_xlabel("contour scale (1 = natural, 0 = flattened)")
-        axes[1].legend(fontsize=8)
+        legend_if_any(axes[1], fontsize=8)
         axes[2].set_title(f"colour accuracy of speech -> {H} text vs contour scale" if cfg.dataset == "synthworld"
                           else "(content accuracy needs ground truth: SynthWorld only)", fontsize=9)
         axes[2].set_xlabel("contour scale")
-        axes[2].legend(fontsize=8)
+        legend_if_any(axes[2], fontsize=8)
         # natural vs re-predicted contour for one island utterance
         L = (self.island or spoken)[0]
         if ("aud", L) in self.store["views"]:
@@ -554,7 +560,7 @@ class Inferencer:
             axes[3].plot(np.where(voiced, nat, np.nan), color="k", lw=1.6, label="natural contour")
             axes[3].plot(np.where(voiced, pred, np.nan), color="#d62728", lw=1.2, label="re-predicted from the latent")
             axes[3].set_title(f"{L}: pitch contour recovered from the hub-bound latent\n{(self.data.utts[ui].get('text') or '')[:60]}", fontsize=8)
-            axes[3].legend(fontsize=8)
+            legend_if_any(axes[3], fontsize=8)
             v = voiced & np.isfinite(pred)
             if v.sum() > 3:
                 res["contour_corr_" + L] = float(np.corrcoef(nat[v], pred[v])[0, 1])
@@ -715,7 +721,7 @@ class Inferencer:
                               "vanishes with the step size for ANY field: it measures the solver, not alignment", fontsize=9)
             axes[1].set_xlabel("ODE steps")
             axes[1].set_ylabel("cycle MSE")
-            axes[1].legend(fontsize=8)
+            legend_if_any(axes[1], fontsize=8)
         fig.tight_layout()
         fig.savefig(os.path.join(self.out, "09_ode_steps.png"), dpi=120)
         plt.close(fig)
@@ -752,7 +758,7 @@ class Inferencer:
             ax.set_xticks(np.arange(len(langs)) + 0.4 - w / 2, [f"{l}\n{data.lang_info[l]['script'][:14]}" for l in langs], fontsize=8)
             ax.set_title(title, fontsize=9)
             if key != "bytes_per_grapheme":
-                ax.legend(fontsize=7)
+                legend_if_any(ax, fontsize=7)
         fig.tight_layout()
         fig.savefig(os.path.join(self.out, "10_fertility.png"), dpi=120)
         plt.close(fig)
@@ -784,7 +790,7 @@ class Inferencer:
             res[f"{a[0]}:{a[1]}|{b[0]}:{b[1]}"] = {"same_mean_cos": float(same.mean()), "diff_mean_cos": float(diff.mean()), "auc": auc}
             ax.set_title(f"hub cosine  {a[0]}:{a[1]}  vs  {b[0]}:{b[1]}\nAUC(same > different) = {auc:.3f}"
                          + ("   [no paired data between these two]" if a[1] != b[1] else ""), fontsize=9)
-            ax.legend(fontsize=8)
+            legend_if_any(ax, fontsize=8)
         fig.tight_layout()
         fig.savefig(os.path.join(self.out, "11_hub_agreement.png"), dpi=120)
         plt.close(fig)
@@ -880,7 +886,7 @@ class Inferencer:
             axes[0].set_xticks(x, labels, fontsize=8)
             axes[0].set_ylabel("linear-probe accuracy (%)")
             axes[0].set_title("what a speech read-out encodes (linear probes, held-out half of the test set)", fontsize=9)
-            axes[0].legend(fontsize=8)
+            legend_if_any(axes[0], fontsize=8)
         # norm of the private read-out vs a standard Gaussian (the training-time prior of the private tokens)
         for i, lang in enumerate([l for l in model.langs if ("aud", l) in self.store["views"]]):
             rec = self.store["views"][("aud", lang)]
@@ -891,7 +897,7 @@ class Inferencer:
             res[f"{lang}/private_rms"] = float((priv ** 2).mean().sqrt())
         axes[1].axvline(1.0, color="k", ls="--", lw=1)
         axes[1].set_title("RMS of the private code read from real speech\n(dashed = the N(0, I) prior it is written from)", fontsize=9)
-        axes[1].legend(fontsize=8)
+        legend_if_any(axes[1], fontsize=8)
         fig.tight_layout()
         fig.savefig(os.path.join(self.out, "13_hub_vs_private.png"), dpi=120)
         plt.close(fig)
@@ -1006,10 +1012,10 @@ class Inferencer:
             axes[1].plot(t0s, by_t0, marker="o", label=f"{mod}:{lang} -> text:{H}")
         axes[0].set_xticks(np.arange(2) + 0.19 * (len(srcs) - 1), ["reader (one pass)", "backward ODE"])
         axes[0].set_title("how the source is read into the hub", fontsize=9)
-        axes[0].legend(fontsize=8)
+        legend_if_any(axes[0], fontsize=8)
         axes[1].set_title("writing from the explainer's draft: ODE started at time t0\n(0 = from the source, 1 = the draft itself, no ODE step)", fontsize=9)
         axes[1].set_xlabel("t0")
-        axes[1].legend(fontsize=8)
+        legend_if_any(axes[1], fontsize=8)
         for ax in axes:
             ax.set_ylabel("content accuracy (%)" if cfg.dataset == "synthworld" else "BLEU")
         fig.tight_layout()

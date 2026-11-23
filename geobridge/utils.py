@@ -7,6 +7,8 @@ import multiprocessing
 import os
 import random
 import sys
+import time
+import warnings
 from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
@@ -145,20 +147,99 @@ def grid_factor(n: int) -> tuple:
     return r, n // r
 
 
-def setup_matplotlib() -> None:
-    """Headless backend (outside notebooks) + a font fallback chain that covers Devanagari and other non-Latin scripts when a
-    suitable system font exists (figures label graphemes of every language)."""
+class OutOfTime(RuntimeError):
+    """The session's time budget is used up.  Raised by the trainer right after it has saved the exact step it
+    reached, so that running the same command again continues from there."""
+
+
+_BUDGET: Dict[str, float] = {}
+
+
+def set_time_budget(hours: float, since: Optional[float] = None) -> None:
+    """Training stops cleanly ``hours`` after ``since`` (a ``time.time()`` value; default: now).  0 = no limit.
+
+    Hosted notebooks end a session after a fixed time and may keep nothing of a run that is cut off; a run that
+    stops by itself keeps its checkpoints, curves and tables."""
+    _BUDGET.clear()
+    if hours and hours > 0:
+        _BUDGET["deadline"] = (time.time() if since is None else since) + 3600.0 * hours
+
+
+def time_left() -> float:
+    """Seconds until the time budget is used up (infinite when there is none)."""
+    return _BUDGET.get("deadline", float("inf")) - time.time()
+
+
+# A font per script that the default matplotlib font lacks: (a character of the script, font file, source).
+_SCRIPT_FONTS = (
+    ("\u0915", "NotoSansDevanagari-Regular.ttf",
+     "https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSansDevanagari/hinted/ttf/"
+     "NotoSansDevanagari-Regular.ttf"),
+)
+
+
+_FONTS: Dict[str, Any] = {}
+
+
+def _font_chain(font_dir: str) -> tuple:
+    """(font fallback chain, scripts still without a font).  Scans the installed fonts once per process."""
+    from matplotlib import font_manager, ft2font
+
+    def covering(char: str) -> list:
+        names = []
+        for f in font_manager.fontManager.ttflist:
+            try:
+                if ord(char) in ft2font.FT2Font(f.fname).get_charmap():
+                    names.append(f.name)
+            except Exception:
+                continue
+        return names
+
+    chain, missing = ["DejaVu Sans"], []
+    for char, fname, url in _SCRIPT_FONTS:
+        have = covering(char)
+        if not have and font_dir:
+            path = os.path.join(font_dir, fname)
+            try:
+                if not os.path.exists(path):
+                    import urllib.request
+
+                    os.makedirs(font_dir, exist_ok=True)
+                    urllib.request.urlretrieve(url, path + ".tmp")
+                    os.replace(path + ".tmp", path)
+                font_manager.fontManager.addfont(path)
+                have = [font_manager.FontProperties(fname=path).get_name()]
+            except Exception:   # offline, or the mirror moved: boxes instead of glyphs, nothing else changes
+                have = []
+        if not have:
+            missing.append(fname)
+        chain += [n for n in have[:1] if n not in chain]
+    known = {f.name for f in font_manager.fontManager.ttflist}
+    chain += [n for n in ("FreeSerif", "FreeSans", "Noto Sans", "Arial Unicode MS") if n in known and n not in chain]
+    return [n for n in chain if n in known], missing
+
+
+def setup_matplotlib(font_dir: str = "") -> None:
+    """Headless backend (outside notebooks) and a font fallback chain that covers every script of the benchmark.
+
+    Figures label graphemes of each language.  Where the system has no font for a script (Kaggle and Colab images
+    ship none for Devanagari) and ``font_dir`` is given, one small font file is fetched there, once.  Without a
+    font the labels are drawn as boxes; either way the figure is written, and matplotlib's per-glyph warnings are
+    silenced."""
     import matplotlib
 
     if "ipykernel" not in sys.modules:  # in a notebook the inline backend stays; figures are saved and closed
         matplotlib.use("Agg")
-    from matplotlib import font_manager
-
-    have = {f.name for f in font_manager.fontManager.ttflist}
-    chain = [f for f in ("DejaVu Sans", "Noto Sans Devanagari", "Lohit Devanagari", "FreeSerif", "FreeSans",
-                         "Noto Sans", "Arial Unicode MS") if f in have]
-    if chain:
-        matplotlib.rcParams["font.family"] = chain
-    import logging
-
     logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+    warnings.filterwarnings("ignore", message=r"Glyph \d+ .*missing from", category=UserWarning)
+    warnings.filterwarnings("ignore", message=r"Matplotlib currently does not support .* natively", category=UserWarning)
+    if "chain" not in _FONTS or (font_dir and _FONTS["missing"]):
+        _FONTS["chain"], _FONTS["missing"] = _font_chain(font_dir)
+    if _FONTS["chain"]:
+        matplotlib.rcParams["font.family"] = _FONTS["chain"]
+
+
+def legend_if_any(ax, **kwargs) -> None:
+    """``ax.legend`` only when something on the axis has a label (an empty legend raises a warning per figure)."""
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend(**kwargs)

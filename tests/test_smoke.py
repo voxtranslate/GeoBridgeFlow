@@ -314,3 +314,51 @@ def test_real_data_options(tiny_run):
     with pytest.raises(RuntimeError, match="different settings"):
         Trainer(cfg2.clone(w_dec=0.0), data=tr.data)
     assert Trainer(cfg2.clone(eval_every=7, num_workers=0), data=tr.data).step == 32
+
+
+def test_time_budget_stops_on_a_saved_step_and_the_run_continues(tiny_run):
+    """A hosted session that is cut off may keep nothing: with a time budget the trainer stops by itself, on a
+    step it has saved, and the same command continues from that step."""
+    from geobridge.trainer import Trainer
+    from geobridge.utils import OutOfTime, set_time_budget, time_left
+
+    cfg, tr = tiny_run
+    cfg2 = cfg.clone(exp_name="t_budget", phase_a_steps=6, phase_b_steps=4, eval_every=5, save_every=50)
+    assert time_left() == float("inf")
+    set_time_budget(1e-9)                                   # already used up
+    try:
+        with pytest.raises(OutOfTime):
+            Trainer(cfg2, data=tr.data).fit()
+    finally:
+        set_time_budget(0)
+    last = torch.load(os.path.join(cfg2.run_dir, "checkpoints", "last.pt"), map_location="cpu", weights_only=False)
+    assert last["step"] == 1                                # not a multiple of save_every: saved because of the stop
+    tr2 = Trainer(cfg2, data=tr.data)
+    assert tr2.step == 1
+    tr2.fit()
+    assert tr2.step == 10
+
+
+def test_ablation_never_retrains_the_main_run(tiny_run):
+    """The main run is the full model of its own ablation and provides the representation of every variant that
+    leaves phase A alone; a run with other settings is not mistaken for it."""
+    from geobridge.ablation import AblationRunner
+    from geobridge.config import PHASE_A_KEYS
+
+    cfg, tr = tiny_run
+    runner = AblationRunner(cfg.clone(), seeds=[cfg.seed])
+    full, full_dir = runner._cell("private", "full", {}, cfg.seed)
+    assert full.run_dir == cfg.run_dir and full_dir.startswith(runner.root)
+    variant, _ = runner._cell("private", "no private", {"private_noise": False}, cfg.seed)
+    assert variant.signature(PHASE_A_KEYS) == cfg.signature(PHASE_A_KEYS)
+    assert runner._phase_a(variant) == os.path.join(cfg.run_dir, "checkpoints", "phase_a.pt")
+    summary = runner.run(["private"])
+    assert set(summary) == {"private"}
+    assert os.path.exists(os.path.join(full_dir, "results.json")) and not os.path.isdir(os.path.join(full_dir, "checkpoints"))
+    assert not os.path.isdir(os.path.join(runner.root, "_phase_a"))          # nothing was trained for phase A
+    # another seed, or a main run trained with other settings, gets a run of its own
+    assert runner._cell("private", "full", {}, cfg.seed + 1)[0].run_dir.startswith(runner.root)
+    other = AblationRunner(cfg.clone(lr_flow=cfg.lr_flow * 2), seeds=[cfg.seed])
+    assert other._cell("private", "full", {}, cfg.seed)[0].run_dir.startswith(other.root)
+    changed = other._cell("private", "no private", {"private_noise": False}, cfg.seed)[0]
+    assert other._phase_a(changed) == os.path.join(cfg.run_dir, "checkpoints", "phase_a.pt")   # phase A is unchanged

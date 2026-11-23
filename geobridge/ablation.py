@@ -2,13 +2,18 @@
 
 Each *group* isolates one design decision; its first variant is always the full model ("ours").  A variant is
 a set of config overrides.  For every (variant, seed) the runner trains (or resumes), evaluates on the test
-split and stores ``results.json``; finished cells are skipped on re-run.  Variants that share the same
-representation phase reuse one phase-A checkpoint (matched by a hash of the fields that determine phase A),
-so a transport-only ablation costs only its phase B.
+split and stores ``results.json``; finished cells are skipped on re-run.  Nothing is trained twice:
+
+  * the full model of the base seed is the main run ``<out_root>/<exp>`` itself when that run has the base
+    settings (it is trained there if it does not exist yet);
+  * variants that share the same representation phase reuse one phase-A checkpoint, matched by a hash of the
+    fields that determine phase A - the main run's when it matches - so a transport-only variant costs only
+    its phase B.
 
 Outputs in ``<out_root>/<exp>_ablation/``
-    _full/full_s<seed>/...            the full model (shared by every group)
-    _phase_a/<hash>/...               representation phases shared between variants
+    _full/full_s<seed>/...            results of the full model (shared by every group); for other seeds than
+                                      the main run's, also the run itself
+    _phase_a/<hash>/...               representation phases that the main run does not provide
     <group>/<variant>_s<seed>/...     complete run directories (checkpoints, curves, eval json)
     table_<group>.md|csv|tex          mean +- std over seeds of the headline metrics
     plot_<group>.png                  bar chart per metric with seed error bars
@@ -22,7 +27,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from .config import PHASE_A_KEYS, Config
-from .utils import get_logger, load_json, save_json
+from .utils import OutOfTime, get_logger, load_json, save_json
 
 
 GROUPS: Dict[str, Dict] = {
@@ -152,26 +157,50 @@ class AblationRunner:
                 print(f"    - {name:55s} {over}")
 
     # ------------------------------------------------------------------ one cell
-    def _cfg(self, group: str, name: str, over: Dict, seed: int) -> Config:
+    def _main_is_full(self, seed: int) -> bool:
+        """The main run (``base.run_dir``) *is* the full model of the study when it has this seed and was - or
+        will be - trained with exactly the base settings.  It is then never trained a second time."""
+        from .trainer import RESUME_FREE, settings_diff
+
+        if seed != self.base.seed:
+            return False
+        record = os.path.join(self.base.run_dir, "config.json")
+        if not os.path.exists(record):
+            return True   # not started yet: the full model is trained there and becomes the main run
+        return not settings_diff(load_json(record), self.base.to_dict(), free=RESUME_FREE - {"phase_b_steps", "train_only"})
+
+    def _cell(self, group: str, name: str, over: Dict, seed: int) -> Tuple[Config, str]:
+        """(configuration to train, directory that holds the cell's results)."""
         over = dict(over)
         if over.get("lora_rank") == "x4":
             over["lora_rank"] = self.base.lora_rank * 4
         if all(getattr(self.base, k) == v for k, v in over.items()):
-            # the full model is the same run in every group: train it once, under _full/
-            return self.base.clone(seed=seed, out_root=os.path.join(self.root, "_full"), exp_name=f"full_s{seed}")
+            # the full model is the same run in every group: one run per seed, under _full/ ...
+            own = self.base.clone(seed=seed, out_root=os.path.join(self.root, "_full"), exp_name=f"full_s{seed}")
+            started = os.path.exists(os.path.join(own.run_dir, "checkpoints", "last.pt"))
+            if not started and self._main_is_full(seed):
+                return self.base.clone(), own.run_dir   # ... or the main run itself; only its results go there
+            return own, own.run_dir
         slug = "".join(c if c.isalnum() else "_" for c in name).strip("_")[:48]
-        return self.base.clone(seed=seed, out_root=os.path.join(self.root, group), exp_name=f"{slug}_s{seed}", **over)
+        cfg = self.base.clone(seed=seed, out_root=os.path.join(self.root, group), exp_name=f"{slug}_s{seed}", **over)
+        return cfg, cfg.run_dir
 
     def _phase_a(self, cfg: Config) -> str:
-        """Train (once) and return the phase-A checkpoint shared by all configs with this representation."""
+        """The phase-A checkpoint shared by every configuration with this representation: an earlier one of the
+        study, else the main run's when nothing that shapes phase A differs, else it is trained (once)."""
         sig = cfg.signature(PHASE_A_KEYS)
         a_cfg = cfg.clone(out_root=os.path.join(self.root, "_phase_a"), exp_name=sig, phase_b_steps=0, init_from="")
         path = os.path.join(a_cfg.run_dir, "checkpoints", "phase_a.pt")
-        if not os.path.exists(path):
-            from .trainer import Trainer
+        if os.path.exists(path):
+            return path
+        main, record = (os.path.join(self.base.run_dir, f) for f in ("checkpoints/phase_a.pt", "config.json"))
+        if os.path.exists(main) and os.path.exists(record) and Config.load(record).signature(PHASE_A_KEYS) == sig:
+            self.log.info(f"[phase A] representation {sig} taken from the main run: {main}")
+            return main
+        from .trainer import Trainer
 
-            self.log.info(f"[phase A] training shared representation {sig}")
-            Trainer(a_cfg).fit()
+        self.log.info(f"[phase A] training shared representation {sig}")
+        Trainer(a_cfg).fit()
         return path
 
     def run_cell(self, group: str, name: str, over: Dict, seed: int) -> Dict[str, float]:
@@ -179,18 +208,21 @@ class AblationRunner:
         from .metrics import Evaluator
         from .trainer import Trainer
 
-        cfg = self._cfg(group, name, over, seed)
-        res_path = os.path.join(cfg.run_dir, "results.json")
+        cfg, out_dir = self._cell(group, name, over, seed)
+        res_path = os.path.join(out_dir, "results.json")
         if os.path.exists(res_path):
             return load_json(res_path)
-        if cfg.phase_a_steps > 0 and not os.path.exists(os.path.join(cfg.run_dir, "checkpoints", "last.pt")):
+        is_main = cfg.run_dir == self.base.run_dir
+        if cfg.phase_a_steps > 0 and not is_main and not os.path.exists(os.path.join(cfg.run_dir, "checkpoints", "last.pt")):
             cfg.init_from = self._phase_a(cfg)
-        self.log.info(f"[cell] {group} / {name} / seed {seed}")
+        self.log.info(f"[cell] {group} / {name} / seed {seed}" + (f"  (the main run, {cfg.run_dir})" if is_main else ""))
         tr = Trainer(cfg)
         tr.fit()
+        # every cell is scored the same way: its last state, on the test split
         model, _ = load_model(cfg, tr.data, tr.device, os.path.join(cfg.run_dir, "checkpoints", "last.pt"))
+        os.makedirs(out_dir, exist_ok=True)
         res = Evaluator(cfg, tr.data, tr.device).evaluate(model, "test", self.test_items, quick=False,
-                                                         save_path=os.path.join(cfg.run_dir, "eval_test.json"))
+                                                         save_path=os.path.join(out_dir, "eval_test.json"))
         res["params_total"] = tr.param_report["total"]
         res["per_language_pct"] = tr.param_report["per_language_pct_of_spokes"]
         save_json(res, res_path)
@@ -201,12 +233,18 @@ class AblationRunner:
         """Run every variant of the given groups (all groups by default).  ``only`` restricts the run to
         variants whose name contains one of the given substrings; the full model is always included."""
         groups = list(groups) if groups else list(GROUPS)
-        for g in groups:
-            for i, (name, over) in enumerate(GROUPS[g]["variants"]):
-                if only and i > 0 and not any(o.lower() in name.lower() for o in only):
-                    continue
-                for s in self.seeds:
-                    self.run_cell(g, name, over, s)
+        cells = [(g, name, over, s) for g in groups for i, (name, over) in enumerate(GROUPS[g]["variants"])
+                 if not only or i == 0 or any(o.lower() in name.lower() for o in only) for s in self.seeds]
+        dirs = {self._cell(*c)[1] for c in cells}
+        todo = [d for d in dirs if not os.path.exists(os.path.join(d, "results.json"))]
+        self.log.info(f"[ablation] {len(dirs)} runs in {len(groups)} group(s), {len(todo)} without results yet.  A variant "
+                      f"that keeps the representation costs one transport phase; the full model is the main run.")
+        try:
+            for c in cells:
+                self.run_cell(*c)
+        except OutOfTime:
+            self.collect(groups)   # tables of what is finished; the interrupted cell continues on the next run
+            raise
         return self.collect(groups)
 
     def collect(self, groups: Optional[Sequence[str]] = None) -> Dict:
@@ -217,7 +255,7 @@ class AblationRunner:
             for name, over in GROUPS[g]["variants"]:
                 done = []
                 for s in self.seeds:
-                    p = os.path.join(self._cfg(g, name, over, s).run_dir, "results.json")
+                    p = os.path.join(self._cell(g, name, over, s)[1], "results.json")
                     if os.path.exists(p):
                         done.append(load_json(p))
                 if done:

@@ -110,8 +110,22 @@ reference run above).
   cases (50.4 % for hub-language speech); this is a feature-level round trip, not a listening test.
 
 **Real data: the first full run failed** (Flickr8k-Tri, Kaggle 2 × T4, preset `flickr8k_yo_t4` as it was then:
-16,000 + 30,000 steps, 74 M parameters; numbers read off the training log of that run, validation split, stopped
-at step 23,000; nothing from it is stored in this repository).
+16,000 + 30,000 steps, 74 M parameters, one seed; numbers read off the log of that run, which trained to the end;
+nothing from it is stored in this repository).
+
+| Test split, best checkpoint (step 30,000) | |
+|---|---|
+| English text → hub → English text, BLEU | 2.05 |
+| English speech → English text, BLEU | 1.22 |
+| Yorùbá speech → English text, BLEU | 0.91 |
+| Hindi text → English text / English text → Hindi text, BLEU | 1.43 / 0.92 |
+| Yorùbá speech → Hindi text, BLEU | 0.49 |
+| Image → English text, BLEU | 0.42 |
+| Retrieval of the image among 624, R@1 (chance 0.16 %): English text / Hindi text / English speech / Yorùbá speech | 11.76 / 6.09 / 4.01 / 1.16 % |
+| Same, with the image latent written by the flow | 12.02 / 5.90 / 3.69 / 1.54 % |
+
+The first row is the diagnosis: the source is text and the target is the same language, so nothing has to be
+recognised or translated, and the output is still unreadable. The failure is in writing text from a hub code.
 
 - *The machinery works.* Download, split, feature extraction (45,981 utterances, 50.4 h of speech, 42 minutes in
   all), both GPUs (`cuda x2 (DataParallel)`, one batch of 64 per GPU and step, mixed precision), checkpoints,
@@ -134,7 +148,26 @@ at step 23,000; nothing from it is stored in this repository).
 - *The tonality gate did the opposite of the claim.* English 0.55, Yorùbá 0.00. Every language in a batch paid the
   same price for its gate, while only image-paired utterances can show that pitch is useful; Yorùbá has 985 of
   them, English 30,000.
-- *Yorùbá speech → image retrieval is at chance* (1 of 67 validation utterances at R@1).
+- *Yorùbá speech → image retrieval is close to chance* (1 of 67 validation utterances at R@1; 1.16 % on test).
+- *The transport phase overfits as well.* Validation split, measured every 2,000 steps: the flow-matching error
+  of the image writer was lowest after 4,000 transport steps (0.380) and rose to 0.632 by the end; that of the
+  speech writer was lowest after 10,000 (0.411) and ended at 0.456; that of the text writer was lowest after
+  14,000 (0.374) and ended at 0.387; the reader's error rose throughout (text 0.176 → 0.205, speech 0.244 →
+  0.264); English text → image R@1 fell from 18.8 % to about 15 %. The writers are trained on a fixed set of
+  cached latents. The validation score that selects the checkpoint peaked after 14,000 transport steps, with text
+  scores too low to mean anything.
+- *The session ended inside the ablation.* Preparation took 42 min, training ended 9 h 07 min after the start of
+  the cell, the test evaluation took 11 min and the sixteen figures 2 min. The ablation then trained the
+  representation phase again from scratch, although the main run held exactly that representation, and Kaggle's
+  12-hour limit cut it at step 10,533 of 16,000: 2 h 40 min that produced nothing.
+- *Two runs of the same representation phase separate.* That repeated phase had the same settings, seed and data
+  order as the first, and its logged losses agree with the first to three decimals for 2,000 steps. After that
+  the speech codec's semantic reconstruction error falls more slowly on the training data (0.57 against 0.47 at
+  step 10,000) and, on held-out speech, does not fall at all: 0.85 at step 10,000 against 0.67. Text
+  reconstruction, the mel and pixel losses and grounding accuracy stay within a few hundredths of the first run,
+  and the reader's held-out error on speech is no worse (0.340 against 0.362 at step 8,000). Whether the speech
+  codec learns a code that generalises was decided by GPU non-determinism in this pair of runs. One seed cannot
+  carry a claim about speech output on real data.
 
 **What was changed in response, and what was tried and rejected** (SynthWorld, single runs; the two-object
 coverage is the validation-split diagnostic used throughout).
@@ -159,6 +192,14 @@ coverage is the validation-split diagnostic used throughout).
   94.2 % (76.7 % / 85.0 %), both objects covered for 97 % of two-object text captions (92 %), gates 0.00 / 0.92.
   Trained from scratch (1,500 + 1,500 steps), test split; nothing got worse
   (`docs/results/synth_with_real_preset_options_eval_test.json`).
+
+- *Kept, after the complete log:* the ablation never trains what the main run has (the main run is its full
+  model, and its phase-A checkpoint is used by every variant that leaves the representation alone); the cell and
+  the command line take a time budget and stop on a saved step before a hosted session is cut; the transport
+  phase is 14,000 steps, where that run's validation score peaked.
+- *Open: the transport phase has no regulariser of its own* beyond the jitter on hub codes, the noise on the
+  reader's inputs and the checkpoint selection. Dropout inside the writers would not touch the credit loss, which
+  acts in the representation phase; it has not been tried.
 
 **None of this has been run on real data at scale.** The changes answer what the log showed; whether they are
 enough is not known until the next GPU run.

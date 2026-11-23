@@ -29,7 +29,7 @@ from .config import Config
 from .data import GeoBridgeData
 from .inferencer import Inferencer
 from .trainer import Trainer
-from .utils import get_logger, resolve_device
+from .utils import OutOfTime, get_logger, resolve_device, set_time_budget
 
 STAGES = ("prepare", "train", "eval", "infer", "ablate")
 
@@ -85,7 +85,7 @@ def run_stages(cfg: Config, stages: Sequence[str], split: str = "test", checkpoi
     return out
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Optional[Sequence[str]] = None) -> Optional[int]:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=[*STAGES, "all"])
     ap.add_argument("--preset", default="flickr8k_yo")
@@ -99,14 +99,21 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     ap.add_argument("--list", action="store_true", help="list ablation groups and exit")
     ap.add_argument("--only", nargs="*", default=[], help="run only variants whose name contains one of these")
     ap.add_argument("--collect", action="store_true", help="rebuild ablation tables from finished cells only")
+    ap.add_argument("--hours", type=float, default=0.0,
+                    help="stop training cleanly after this many hours (the step is saved; run again to continue)")
     args = ap.parse_args(argv)
+    set_time_budget(args.hours)
     cfg = build_config(args.preset, dict(kv.split("=", 1) for kv in args.set), args.exp_name)
     if args.command == "ablate" and args.list:
         AblationRunner(cfg, seeds=args.seeds).describe()
         return
     stages = STAGES if args.command == "all" else (args.command,)
-    out = run_stages(cfg, stages, split=args.split, checkpoint=args.checkpoint, resume_from=args.resume_from,
-                     groups=args.groups or None, only=args.only or None, seeds=args.seeds, collect=args.collect)
+    try:
+        out = run_stages(cfg, stages, split=args.split, checkpoint=args.checkpoint, resume_from=args.resume_from,
+                         groups=args.groups or None, only=args.only or None, seeds=args.seeds, collect=args.collect)
+    except OutOfTime as e:
+        get_logger().info(f"[time] {e}")
+        return 75   # EX_TEMPFAIL: not finished, safe to run again
     if args.command == "prepare":
         print(json.dumps(out["data"], indent=2, default=str))
     if args.command == "eval":

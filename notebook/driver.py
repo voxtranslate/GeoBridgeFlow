@@ -28,27 +28,41 @@ def show_images(paths: Sequence[str], width: int = 1100) -> None:
 
 def main_notebook() -> Dict[str, Any]:
     describe_runtime()
+    log = get_logger()
+    set_time_budget(TIME_BUDGET_HOURS, SESSION_START)
+    if TIME_BUDGET_HOURS:
+        log.info(f"[setup] session started {(time.time() - SESSION_START) / 60:.0f} min ago; training stops cleanly "
+                 f"in {time_left() / 3600:.1f} h (TIME_BUDGET_HOURS = {TIME_BUDGET_HOURS})")
     results: Dict[str, Any] = {}
-    cfg = build_config(PRESET, {"out_root": os.path.join(WORK_DIR, "runs"), "data_root": DATA_DIR, **OVERRIDES}, EXP_NAME)
-    if STAGES:
-        results = run_stages(cfg, STAGES, split=EVAL_SPLIT, groups=ABLATION_GROUPS or None, seeds=ABLATION_SEEDS)
-        if EVAL_SPLIT in results:
-            keep = {k: round(v, 2) for k, v in results[EVAL_SPLIT].items()
-                    if k.endswith(("/bleu", "/chrf", "/wer", "/cer", "/r1", "content_acc")) or k.startswith("tone/") or k == "score"}
-            print(json.dumps(keep, indent=1))
-        if SHOW_FIGURES:
-            show_images(sorted(glob.glob(os.path.join(cfg.run_dir, "curves", "*.png"))))
-            show_images(sorted(glob.glob(os.path.join(cfg.run_dir, "inference", "*.png"))))
-    if ABLATION_PRESET and "ablate" not in STAGES:
-        a_cfg = build_config(ABLATION_PRESET, {"out_root": os.path.join(WORK_DIR, "runs"), "data_root": DATA_DIR,
-                                               **ABLATION_OVERRIDES})
-        results["ablation"] = run_stages(a_cfg, ("ablate",), groups=ABLATION_GROUPS or None, seeds=ABLATION_SEEDS)["ablation"]
-        root = os.path.join(a_cfg.out_root, f"{a_cfg.exp_name}_ablation")
-        summary = os.path.join(root, "SUMMARY.md")
+    paths = {"out_root": os.path.join(WORK_DIR, "runs"), "data_root": DATA_DIR}
+    cfg = build_config(PRESET, {**paths, **OVERRIDES}, EXP_NAME)
+    # the ablation of PRESET is the ablation of the run above: same settings, same folder name
+    same = ABLATION_PRESET == PRESET
+    a_cfg = cfg if "ablate" in STAGES or not ABLATION_PRESET else build_config(
+        ABLATION_PRESET, {**paths, **(OVERRIDES if same else {}), **ABLATION_OVERRIDES}, EXP_NAME if same else "")
+    a_root = os.path.join(a_cfg.out_root, f"{a_cfg.exp_name}_ablation")
+    ablation = dict(groups=ABLATION_GROUPS or None, only=ABLATION_ONLY or None, seeds=ABLATION_SEEDS)
+    try:
+        if STAGES:
+            results = run_stages(cfg, STAGES, split=EVAL_SPLIT, **ablation)
+        if ABLATION_PRESET and "ablate" not in STAGES:
+            results["ablation"] = run_stages(a_cfg, ("ablate",), **ablation)["ablation"]
+    except OutOfTime as e:
+        log.info(f"[time] {e}")
+        log.info("[time] stopped before the session limit: run this cell again (same settings) to continue")
+    if EVAL_SPLIT in results:
+        keep = {k: round(v, 2) for k, v in results[EVAL_SPLIT].items()
+                if k.endswith(("/bleu", "/chrf", "/wer", "/cer", "/r1", "content_acc")) or k.startswith("tone/") or k == "score"}
+        print(json.dumps(keep, indent=1))
+    if STAGES and SHOW_FIGURES:
+        show_images(sorted(glob.glob(os.path.join(cfg.run_dir, "curves", "*.png"))))
+        show_images(sorted(glob.glob(os.path.join(cfg.run_dir, "inference", "*.png"))))
+    if ABLATION_PRESET or "ablate" in STAGES:
+        summary = os.path.join(a_root, "SUMMARY.md")
         if os.path.exists(summary):
             print(open(summary, encoding="utf8").read())
         if SHOW_FIGURES:
-            show_images(sorted(glob.glob(os.path.join(root, "*.png"))))
+            show_images(sorted(glob.glob(os.path.join(a_root, "*.png"))))
     print(f"\nEverything is in {WORK_DIR}")
     return results
 

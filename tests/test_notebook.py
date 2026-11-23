@@ -37,4 +37,9 @@ def test_single_cell_runs_end_to_end(tmp_path):
                 "inference/report.json", "history.json"):
         assert os.path.exists(os.path.join(run, rel)), rel
     assert not json.load(open(os.path.join(run, "inference", "report.json"))).get("failed")
-    assert os.path.exists(os.path.join(work, "runs", "synth_tiny_ablation", "SUMMARY.md"))
+    abl = os.path.join(work, "runs", "synth_tiny_ablation")
+    assert os.path.exists(os.path.join(abl, "SUMMARY.md"))
+    # the ablation of PRESET reuses the run above: no second full model, no second representation phase
+    assert os.path.exists(os.path.join(abl, "_full", "full_s0", "results.json"))
+    assert not os.path.isdir(os.path.join(abl, "_full", "full_s0", "checkpoints")) and not os.path.isdir(os.path.join(abl, "_phase_a"))
+    assert "[time]" not in out.stdout + out.stderr

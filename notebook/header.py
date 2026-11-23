@@ -15,6 +15,8 @@
 #             folder on Google Drive, so that a new session continues where the last one stopped.
 #    Interrupted?  Run the cell again.  Downloads, the split file, the feature caches, checkpoints and finished
 #             ablation variants are found on disk; training resumes at the exact step it had reached.
+#    Session limit: the cell stops by itself TIME_BUDGET_HOURS after the session started, with the step it reached
+#             saved, instead of being cut off (Kaggle ends a session after 12 hours).  Run it again to continue.
 #    A first look: PRESET = "synth_fast" runs the whole pipeline on the controlled benchmark in minutes, with no
 #             download.
 #    What to watch: every validation prints "[sample]" lines (reference | output) and a "[speed]" line (time waiting
@@ -40,10 +42,18 @@ EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
 ABLATION_PRESET = ""             # benchmark of the ablation study, run after the stages above ("" = no ablation).
                                  # "synth_fast" / "synth" are the controlled benchmark: every factor has a ground
-                                 # truth and one variant trains in minutes.  Use PRESET's name to ablate on real data.
+                                 # truth and one variant trains in minutes.  PRESET's own name ablates the run above:
+                                 # that run is the full model and provides the representation, so only the variants
+                                 # are trained.  On real data, 2 x T4: about 2 h for a variant that keeps the
+                                 # representation (groups read, decoder, island, private, lora), about 4 h for one
+                                 # that changes it (hub, tone, text_unit, bridge) - a few variants per session.
 ABLATION_GROUPS = ()             # () = all groups; or e.g. ("hub", "island", "tone")
+ABLATION_ONLY = ()               # () = every variant of those groups; or parts of variant names, e.g. ("no credit",)
 ABLATION_SEEDS = (0,)            # e.g. (0, 1, 2) for mean +- std in the tables
-ABLATION_OVERRIDES = {}          # Config fields of the ablation runs
+ABLATION_OVERRIDES = {}          # Config fields of the ablation runs (on top of OVERRIDES when the preset is PRESET)
+
+TIME_BUDGET_HOURS = 11.0         # stop cleanly this long after the session started (0 = never).  Leaves room for
+                                 # the evaluation and the figures before Kaggle's 12-hour limit.
 
 WORK_DIR = ""                    # runs/ (checkpoints, curves, figures, tables).  "" = /kaggle/working, /content or .
 DATA_DIR = ""                    # downloads + feature caches (about 20 GB for the real benchmark).  "" = automatic
@@ -57,9 +67,28 @@ import importlib.util as _ilu
 import os as _os
 import subprocess as _sp
 import sys as _sys
+import time as _time
 
 IN_KAGGLE = _os.path.isdir("/kaggle/working")
 IN_COLAB = "google.colab" in _sys.modules and not IN_KAGGLE
+
+
+def _session_start() -> float:
+    """When the session began, as well as it can be known: the hosted time limit counts from there, not from the
+    moment this cell is run.  On Kaggle / Colab that is the start of the container; elsewhere, of this kernel."""
+    now = _time.time()
+    try:
+        import psutil
+
+        kernel = psutil.Process().create_time()
+        box = psutil.Process(1).create_time() if (IN_KAGGLE or IN_COLAB) else kernel
+        start = box if 0 <= now - box < 12 * 3600 else kernel
+        return start if 0 <= now - start < 12 * 3600 else now
+    except Exception:
+        return now
+
+
+SESSION_START = _session_start()
 
 
 def _first_writable(*candidates: str) -> str:
@@ -92,9 +121,9 @@ _os.makedirs(DATA_DIR, exist_ok=True)
 _os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 _os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
-_REAL = not PRESET.startswith("synth") or not (ABLATION_PRESET or "synth").startswith("synth")
+_NEEDS_HUB = not PRESET.startswith("synth") or not (ABLATION_PRESET or "synth").startswith("synth")
 _NEEDED = {"regex": "regex", "sacrebleu": "sacrebleu", "tqdm": "tqdm", "matplotlib": "matplotlib", "sklearn": "scikit-learn"}
-if _REAL:
+if _NEEDS_HUB:
     _NEEDED.update({"transformers": "transformers", "huggingface_hub": "huggingface_hub", "pyarrow": "pyarrow",
                     "soundfile": "soundfile", "PIL": "pillow"})
 if "ablate" in STAGES or ABLATION_PRESET:

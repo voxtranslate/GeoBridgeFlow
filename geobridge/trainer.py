@@ -25,7 +25,7 @@ import os
 import random
 import shutil
 import time
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -40,8 +40,8 @@ from .data.dataset import _GroupDataset, _IslandDataset
 from .losses import GeoBridgeLoss
 from .metrics import Evaluator
 from .models import GeoBridge, build_spec, spec_for_checkpoint
-from .utils import (Averager, count_named, count_params, get_logger, gpu_ids, resolve_device, save_json,
-                    seed_everything, to_device, worker_kwargs)
+from .utils import (Averager, OutOfTime, count_named, count_params, get_logger, gpu_ids, resolve_device, save_json,
+                    seed_everything, time_left, to_device, worker_kwargs)
 
 TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
 TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
@@ -109,6 +109,13 @@ class EMA:
 def _plain(v):
     """Tuples and lists compare equal (a config read back from JSON holds lists)."""
     return list(v) if isinstance(v, (tuple, list)) else v
+
+
+def settings_diff(old: Dict, new: Dict, free: Iterable[str] = RESUME_FREE) -> Dict[str, Tuple]:
+    """Fields in which two configurations (as dicts) describe different runs: {field: (old, new)}.
+    Fields absent from ``old`` (written by an earlier version of the code) count with their default."""
+    old = {**Config().to_dict(), **old}
+    return {k: (old.get(k), new[k]) for k in new if k not in free and _plain(old.get(k)) != _plain(new[k])}
 
 
 class StepReplica(nn.Module):
@@ -203,10 +210,10 @@ class Trainer:
         self.best = {"score": -1e9, "step": -1}
         self.best_a = {"value": float("inf"), "step": -1}   # phase-A state with the best validation hub losses
         self._describe()
+        if resume and not self._resume() and cfg.init_from:   # a resume under other settings raises here
+            self._init_from(cfg.init_from)
         cfg.save(os.path.join(self.run_dir, "config.json"))
         save_json(self.data.describe(), os.path.join(self.run_dir, "data.json"))
-        if resume and not self._resume() and cfg.init_from:
-            self._init_from(cfg.init_from)
         self._apply_train_only()
 
     # ------------------------------------------------------------------ bookkeeping
@@ -314,9 +321,7 @@ class Trainer:
 
     def _check_same_run(self, ck: Dict, path: str) -> None:
         """Resuming continues a run; it must not silently continue it under different settings."""
-        ref = Config().to_dict()
-        old, new = {**ref, **ck.get("cfg", {})}, self.cfg.to_dict()
-        diff = {k: (old.get(k), new[k]) for k in new if k not in RESUME_FREE and _plain(old.get(k)) != _plain(new[k])}
+        diff = settings_diff(ck.get("cfg", {}), self.cfg.to_dict())
         if diff:
             shown = ", ".join(f"{k}: {a} -> {b}" for k, (a, b) in list(diff.items())[:8])
             raise RuntimeError(
@@ -568,8 +573,16 @@ class Trainer:
                     self.save_checkpoint("phase_a.pt")
                     self.log.info(f"[phase] representation phase finished at step {self.step}; codecs and grounder "
                                   f"are now frozen, training the writers and the reader")
-                if self.step % cfg.save_every == 0 or boundary or self.step == total:
+                saved = self.step % cfg.save_every == 0 or boundary or self.step == total
+                if saved:
                     self.save_checkpoint()
+                if time_left() <= 0 and self.step < total:   # out of session time: keep this exact step, stop
+                    pbar.close()
+                    if not saved:
+                        self.save_checkpoint()
+                    save_json(self.history, os.path.join(self.run_dir, "history.json"))
+                    raise OutOfTime(f"time budget used up at step {self.step}/{total} of '{cfg.exp_name}' "
+                                    f"(phase {self.phase}); the step is saved, run again to continue from it")
                 if boundary or self.step >= total:
                     break
                 waited = time.time()

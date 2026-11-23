@@ -39,13 +39,20 @@ then the run. Paste the cell into a notebook and run it.
 
 * **Kaggle**: Accelerator *GPU T4 x2*, Internet *On*. Both GPUs are used: every training step runs one batch per
   GPU, and the frozen vision and speech encoders run on both during feature extraction. Runs go to
-  `/kaggle/working/geobridge`, downloads and feature caches to the scratch disk.
+  `/kaggle/working/geobridge`, downloads and feature caches to the scratch disk (a new session downloads and
+  extracts them again, about 40 minutes).
 * **Colab**: a T4 runtime. `USE_DRIVE = True` keeps the run folder on Google Drive.
 * Running the cell again continues: downloads, the split file, feature caches, checkpoints and finished ablation
   variants are found on disk, and training resumes at the step it had reached. A run folder is only resumed with
   the settings it was started with; new settings need a new `EXP_NAME`.
 * Every validation prints `[sample]` lines (reference | output) and a `[speed]` line (time waiting for batches vs
   computing), so a run that is not learning can be stopped early.
+* `TIME_BUDGET_HOURS` (11 by default) stops the cell by itself, on a saved step, before the session limit; running
+  it again continues. A session that is cut off instead can lose everything written after the last checkpoint.
+* `ABLATION_PRESET = PRESET` ablates the run of the cell: that run is the full model and provides the
+  representation, so only the variants are trained (`ABLATION_GROUPS`, `ABLATION_ONLY` choose which). On real
+  data a variant costs about two hours on 2 × T4 (four if it changes the representation), so a study spans
+  several sessions.
 
 **Status on real data.** The first full Flickr8k run on 2 × T4 ran without errors and used both GPUs, but the
 text it wrote through the hub was unreadable (`docs/RESULTS.md`, section 0). The real-data presets were changed in
@@ -136,9 +143,12 @@ galleries, quality against ODE steps, script fertility, hub agreement, per-langu
 hub versus private tokens, codec reconstructions, generated images, and read / write modes (see the docstring of
 `geobridge/inferencer.py`).
 
-**`ablate`** trains and evaluates every variant of every ablation group, sharing the representation phase
-between variants that do not change it, and writes Markdown, CSV and LaTeX tables and bar charts to
-`runs/<exp>_ablation/`. Finished cells are skipped on re-run; `--list` prints the groups.
+**`ablate`** trains and evaluates every variant of every ablation group and writes Markdown, CSV and LaTeX tables
+and bar charts to `runs/<exp>_ablation/`. Nothing is trained twice: the full model is the run `runs/<exp>` itself
+(trained there if it does not exist), variants that do not change the representation start from its phase-A
+checkpoint, and finished cells are skipped on re-run. `--list` prints the groups, `--only` selects variants.
+
+`--hours H` on any command stops training cleanly after H hours (exit code 75); the same command continues.
 
 ## Repository map
 
