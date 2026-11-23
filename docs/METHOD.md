@@ -101,6 +101,12 @@ A code that already explains its sentence is left alone (`w → 0`). The pull is
 log-attention, whose gradient with respect to the logits is `α − onehot`: it does not vanish for a patch with no
 attention, which is the whole point.
 
+On real photographs the mean weight is higher than on the controlled benchmark (0.78 against 0.4–0.5 in the first
+Flickr8k run): with 49 diverse patches and half of the latent unexplained, the best of many first-order estimates
+is usually large. Whether the credit helps there is not known. Making the rule scale-free (gain relative to the
+utterance's unexplained variance) was tried on SynthWorld and halved the coverage it buys, so the rule stays
+absolute.
+
 Two stricter variants were tried and measured (`RESULTS.md`). *Veto* (`seek_verify`, kept as an ablation): each
 proposed move is carried out, the explainer is run on it, and a move that verifiably explains less is dropped;
 this sends fewer slots to objects the sentence does not mention but also finds fewer second objects. *Verified
@@ -165,6 +171,23 @@ text-grounded code in the cache (`canonical_text`): text is the cleaner of the t
 then learns to produce what text would have produced. This is a transport-phase choice only; the grounder itself
 is trained with mutual agreement.
 
+**Write-latent exposure** (`w_dec`). The codecs are trained on exact encoder latents, but at test time a decoder
+only ever sees latents that a writer produced from a hub code, and those are blurred wherever the hub leaves the
+wording open. So in the transport phase the byte decoder (not the encoder, whose latents are cached) is also
+trained, teacher-forced, on latents written by the text writer from the same hub sources the writer is trained
+on:
+
+```
+ẑ = Write_txt(h̃, ℓ; ξ)   (no gradient)        L_dec = CE( Decoder(ẑ, ℓ), bytes of the sentence )
+```
+
+A share of the latents (`1 − p_dec_written`) stays exact, so the decoder keeps reading encoder latents too. This
+is the mirror image of read-hub exposure and closes the loop that the two-phase schedule leaves open between
+writer and codec. Measured on SynthWorld (`decoder` ablation): every text output from a text or hub-language
+speech source improves; on real captions, where the hub explains far less of the latent, it is what the first
+full run was missing (`RESULTS.md`). It is switched on in the real-data presets; the SynthWorld reference run and
+the other ablation groups predate it.
+
 **Read-hub exposure.** The hub part `h̃` of a writer's source is the grounded code for half of the views and a
 *read* code for the rest: the reader's output for the same view, or for the other modality's view of the same
 caption (same language). All of them receive Gaussian jitter of random scale (`hub_jitter`), so a writer has to
@@ -210,6 +233,13 @@ original proposal.
 Because the codec reconstructs only the segmental stream, nothing else rewards pitch. The gate therefore stays
 open for a language iff its contour is informative about meaning.
 
+Who pays matters. With a price per language present in the batch (`gate_price = uniform`) a language with few
+image pairs pays as much as one with many, while only image-paired utterances can show that pitch helps: on
+Flickr8k the Yorùbá gate (985 pairs) closed completely and the English one (30,000 pairs) did not. With
+`gate_price = evidence` every grounded utterance pays for the gate of its language, so price and benefit scale
+with the same count. The gates are trained with Adam, which follows the sign of the net gradient, so this
+changes which way a gate goes, not merely how fast.
+
 Schedule (dense, then sparsify): for the first `gate_release_frac` of phase A all gates are held at 1 and no price
 is charged; then they are released at `σ(tone_gate_init)` and priced. The gates are scalars, so they use their own
 constant step size `lr_gate`. Pricing from step 0 closed every gate before grounding had learned whether pitch is
@@ -225,7 +255,7 @@ between the pooled latent and the bypass code.
 ```
 Phase A   L_A = L_text + L_audio(segmental, prosody†, duration, mel, w_orth·L_orth, w_gate·γ)
                 + L_ground + w_expl·L_expl + w_seek·L_seek + w_read·L_read + w_min·L_min + w_agree·L_agree + w_pix·L_pix
-Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + bt_weight·(L_bt_write + L_bt_read + bt_relay·L_bt_relay)
+Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + bt_weight·(L_bt_write + L_bt_read + bt_relay·L_bt_relay)
                                                                                   († stop-gradient on the latent)
 ```
 
@@ -238,6 +268,15 @@ Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + bt_weight·(L_bt_write + L_bt_re
   its device and computes the complete loss there under its own autocast context. Gradients are averaged. The
   frozen vision and speech encoders are wrapped the same way for feature extraction (`features.py:on_all_gpus`).
   On one device the same code runs the batches one after the other (gradient accumulation).
+- **Small real corpora** (the `_REAL` block of `config.py`). Flickr8k has 6.8 k training images; in the first full
+  run the validation grounding loss was best after 4,000 steps and rose for the remaining 12,000. The real-data
+  presets use a shorter schedule, `phase_a_select` (the transport phase starts from the phase-A state with the
+  best validation grounding + sufficiency + read losses after the release, not from the last one), noise on the
+  cached latents the reader is trained on, write-latent exposure, and the evidence-proportional gate price.
+  Residual dropout, speech time masking and stronger weight decay exist as options and are *not* in the presets:
+  on SynthWorld dropout 0.1 alone destroys the two-object coverage that the credit loss buys (13 % against 93 %).
+- Resuming refuses to continue a run folder under different settings (anything but paths, logging, evaluation
+  and the length of the transport phase), so a changed configuration can never silently inherit old checkpoints.
 - Checkpoints hold the model, the EMA, both optimisers, the AMP scaler, RNG states, the history and the position
   inside the epoch (epoch index + batch offset of both data streams); the epoch order is a function of
   (seed, epoch), so training resumes from any step of any epoch.

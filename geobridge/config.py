@@ -89,6 +89,8 @@ class Config:
     text_dec_layers: int = 4
     text_heads: int = 4
     latent_noise_max: float = 0.5        # noise-robust latent training (decoder sees z + sigma*eps)
+    dropout: float = 0.0                 # residual dropout in the codecs, grounder, explainer and reader (never the flows).
+                                         # Measured on SynthWorld: 0.1 destroys the two-object coverage; keep 0 with w_seek > 0
 
     # ------------------------------------------------------------------ audio codec (N5)
     audio_width: int = 256
@@ -97,6 +99,9 @@ class Config:
     audio_heads: int = 4
     tone_mode: str = "gated"             # gated (ours) | on (ungated) | off (single stream)
     tone_gate_init: float = 2.0          # logit at release -> gamma = 0.88
+    gate_price: str = "uniform"          # who pays for an open gate: every language in the batch (uniform) | every
+                                         # grounded utterance, for the gate of its language (evidence)
+    speech_mask: float = 0.0             # time masking of the speech encoder input: max share of an utterance per span
     gate_release_frac: float = 0.5       # share of phase A during which the tonality gates are held open and
                                          # the slots have no null option ("structure first, sparsity later")
     bypass_dim: int = 64                 # paralinguistic (speaker / register) bypass code
@@ -133,6 +138,10 @@ class Config:
     exposure: str = "reader"             # read hubs the writers are also trained on: reader | ode | none
     p_read: float = 0.5                  # share of paired views written from a read hub instead of the grounded one
     hub_jitter: float = 0.15             # std (upper bound) of the noise added to the hub part of a writer's source
+    read_noise: float = 0.0              # std (upper bound) of the noise on the latent the reader is trained on (phase B)
+    w_dec: float = 0.0                   # write-latent exposure: the byte decoder is trained on latents written by the
+                                         # text writer (0 = decoder frozen after phase A)
+    p_dec_written: float = 0.75          # ... share of those latents that are written (the rest are encoder latents)
     image_spoke: bool = True
     thumb_size: int = 64                 # preview pixel decoder (image latent -> RGB)
     pix_width: int = 96
@@ -182,6 +191,8 @@ class Config:
     batch_size: int = 64
     island_batch_size: int = 64
     phase_a_steps: int = 20000           # representation phase: codecs + grounder
+    phase_a_select: bool = False         # start the transport phase from the phase-A state with the best validation
+                                         # hub losses (grounding + sufficiency + read) instead of the last one
     phase_b_steps: int = 40000           # transport phase: writers, exposure, back-translation
     lr: float = 3e-4
     lr_flow: float = 3e-4
@@ -321,7 +332,7 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
     "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "agree_mode", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "w_pix", "text_replay", "thumb_size", "pix_width", "pix_contrast", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "dropout", "gate_price", "speech_mask", "phase_a_select", "w_pix", "text_replay", "thumb_size", "pix_width", "pix_contrast", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",
@@ -335,19 +346,33 @@ _SYNTH = dict(
     max_text_bytes=96, max_graphemes=64, max_audio_sec=4.0, num_workers=0, amp=False,
 )
 
+# What the real benchmark changes relative to the defaults.  Each item answers something measured in the first
+# full Flickr8k run (2 x T4, 16,000 + 30,000 steps), and each either was validated on SynthWorld or cannot
+# disturb the representation phase:
+#   w_dec           text written through the hub was unreadable; on SynthWorld decoder exposure improves every
+#                   text output from a text or hub-language speech source (ablation group "decoder")
+#   phase_a_select  the validation grounding loss was best after 4,000 steps and rose for 12,000 more; this only
+#                   selects a state, it does not change the training dynamics
+#   read_noise      the reader's validation error rose throughout the transport phase (the cached latents never
+#                   change); transport phase only
+#   gate_price      the Yoruba gate closed to 0 although Yoruba is the tonal language: it has few image pairs
+# Deliberately NOT here: dropout (measured on SynthWorld: it destroys the two-object coverage that the credit
+# loss buys, 13 % against 93 %), and speech masking / stronger weight decay (72 %, not separated from noise).
+_REAL = dict(mel_spec="speecht5", w_dec=1.0, phase_a_select=True, read_noise=0.2, gate_price="evidence")
+
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)
-    "flickr8k_yo": dict(mel_spec="speecht5", text_replay=128),
+    "flickr8k_yo": dict(_REAL, text_replay=128, phase_a_steps=10000, phase_b_steps=20000, eval_every=1000),
     # same benchmark on two 16 GB GPUs (Kaggle "GPU T4 x2"); also runs on a single T4 (Colab), one batch per step.
     # Every step consumes one batch per GPU, so the schedule is counted in optimiser steps, not batches.
     "flickr8k_yo_t4": dict(
-        mel_spec="speecht5", text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
-        phase_a_steps=16000, phase_b_steps=30000, eval_every=2000, save_every=1000, milestone_every=8000,
-        num_workers=2, eval_max_items=400,
+        _REAL, text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
+        phase_a_steps=8000, phase_b_steps=14000, eval_every=1000, save_every=1000, milestone_every=8000,
+        num_workers=3, eval_max_items=400,
     ),
     # same benchmark, sized for a laptop / CPU sanity run
     "flickr8k_yo_cpu": dict(
-        mel_spec="speecht5", text_replay=96, max_images=1200, latent_dim=96, hub_slots=6, private_slots=6, text_width=192, text_enc_layers=3,
+        _REAL, text_replay=96, max_images=1200, latent_dim=96, hub_slots=6, private_slots=6, text_width=192, text_enc_layers=3,
         text_dec_layers=3, audio_width=192, audio_enc_layers=3, audio_dec_layers=2, hub_width=192,
         flow_width=256, flow_layers=4, flow_heads=4, lora_rank=4, batch_size=48, island_batch_size=48,
         phase_a_steps=2500, phase_b_steps=3500, eval_every=1000, save_every=500, milestone_every=2000,

@@ -15,6 +15,7 @@ grounder are not run again.
     L_B = w_cfm * (L_cfm^txt + L_cfm^aud + L_cfm^img)     hub (+) private flow matching; a share of the views
                                                           is written from a *read* hub (exposure)
         + w_read * L_read                                  keeps the reader on the grounded codes
+        + w_dec * L_dec                                    the byte decoder learns to read written latents
         + bt_weight * (L_bt_write + L_bt_read + bt_relay * L_bt_relay)   hub-space back-translation of unpaired
                                                           island speech, relayed to the text writers
         [+ w_dock * L_dock + naive_cycle_weight * L_cycle] ablation / diagnostic terms, off by default
@@ -119,7 +120,7 @@ class GeoBridgeLoss:
             logs.update(txt_ce=r["loss"].item(), txt_acc=r["byte_acc"].item())
         aud_all = cat_audio(aud, island["aud"] if island is not None else None)
         if aud_all is not None:
-            r = model.audio.loss(aud_all)
+            r = model.audio.loss(aud_all, n_grounded=0 if aud is None else aud["sem"].shape[0])
             total = total + cfg.w_audio_rec * r["loss"]
             if aud is not None:
                 z["aud"] = r["z"][: aud["sem"].shape[0]]
@@ -220,6 +221,9 @@ class GeoBridgeLoss:
         pull     cross-entropy on the slot's log-attention towards its candidate, weighted by
                  gain^2 / (gain^2 + seek_gain^2): a code that already explains its sentence is left alone.
                  The log-attention is not clamped, so the gradient (a - onehot) reaches unattended patches.
+                 The threshold is absolute, in units of latent variance.  Judging the gain relative to the
+                 utterance's unexplained variance was tried and halves the coverage it buys (measured): a
+                 nearly explained sentence then gets pulled on noise.
         veto     (``seek_verify``, off by default) each proposed move is carried out and the explainer is run
                  on it; a move that verifiably explains *less* is dropped.  Measured: fewer slots on objects
                  the sentence does not mention, but also fewer second objects found, because the explainer has
@@ -300,7 +304,11 @@ class GeoBridgeLoss:
         reads: Dict[str, torch.Tensor] = {}
         for mod, sub in views.items():
             ok, target = sub["ok"], hubs[mod].detach()
-            r = reader(sub["z"], mod, sub["lang"])
+            z_in = sub["z"]
+            if cfg.read_noise > 0 and reader.training:   # the cached latents never change: without noise the
+                sigma = torch.rand(z_in.shape[0], 1, 1, device=dev) * cfg.read_noise   # reader memorises them
+                z_in = z_in + sigma.to(z_in.dtype) * torch.randn_like(z_in)
+            r = reader(z_in, mod, sub["lang"])
             l_read = F.mse_loss(r[ok].float(), target[ok].float())
             total = total + cfg.w_read * l_read
             logs[f"read_{mod}"] = l_read.item()
@@ -353,6 +361,21 @@ class GeoBridgeLoss:
                                    torch.zeros(len(h_all), dtype=torch.long, device=dev))
             total = total + cfg.w_cfm * l
             logs["cfm_img"] = l.item()
+
+        # ---- write-latent exposure of the byte decoder.  The codec was trained on encoder latents; at test
+        #      time it only ever sees latents that a writer produced from a hub code, which are blurred wherever
+        #      the hub leaves the wording open.  Here the decoder learns to turn those into text (the encoder is
+        #      frozen, so the cached latents stay valid).
+        if cfg.w_dec > 0 and "txt" in views and "bytes" in views["txt"]:
+            t = views["txt"]
+            temp = cfg.eval_temp + (1.0 - cfg.eval_temp) * float(torch.rand(()))
+            with torch.no_grad():
+                z_w = sp["txt"].write(src["txt"], t["lang"], temp=temp, steps=cfg.train_ode_steps)
+                written = (torch.rand(z_w.shape[0], device=dev) < cfg.p_dec_written) & t["ok"]
+                z_d = torch.where(written.view(-1, 1, 1), z_w.to(t["z"].dtype), t["z"])
+            l_dec, acc = model.text.decode_loss(z_d, t["bytes"], t["lang"])
+            total = total + cfg.w_dec * l_dec
+            logs.update(dec_ce=l_dec.item(), dec_acc=acc.item())
 
         # ---- unpaired island speech
         if island is not None and bank is not None:

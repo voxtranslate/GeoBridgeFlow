@@ -109,13 +109,63 @@ reference run above).
 - *Speech into the island language.* Text → island speech → (re-read) text recovers the content in 36.7 % of
   cases (50.4 % for hub-language speech); this is a feature-level round trip, not a listening test.
 
+**Real data: the first full run failed** (Flickr8k-Tri, Kaggle 2 × T4, preset `flickr8k_yo_t4` as it was then:
+16,000 + 30,000 steps, 74 M parameters; numbers read off the training log of that run, validation split, stopped
+at step 23,000; nothing from it is stored in this repository).
+
+- *The machinery works.* Download, split, feature extraction (45,981 utterances, 50.4 h of speech, 42 minutes in
+  all), both GPUs (`cuda x2 (DataParallel)`, one batch of 64 per GPU and step, mixed precision), checkpoints,
+  validation: no error. Speed: 1.15 steps/s in the representation phase, 3.1 in the transport phase, 1.7 once
+  back-translation starts.
+- *Text written through the hub is unreadable.* English speech → English text: BLEU 1.3–1.6, WER 92–95 %;
+  Yorùbá speech → English text: BLEU 0.9–1.5; image → text: BLEU 0.3–0.6. Retrieval says the hub itself carries
+  content (English text → image R@1 17–19 % among 620 images, chance 0.16 %), so the failure is in turning a hub
+  code back into text. On real captions the hub explains about 28 % of the text latent's variance on held-out
+  data (86 % on SynthWorld); the writer has to invent the rest, and the byte decoder had only ever been trained
+  on exact encoder latents.
+- *The representation phase overfits.* Training grounding accuracy reached 99 %, validation peaked at 63 % after
+  4,000 steps and fell to 53 %; validation unexplained variance rose from 0.55 to 0.72; the reader's validation
+  error rose throughout the transport phase (0.176 → 0.187 text, 0.244 → 0.256 speech) while the training error
+  fell.
+- *The credit weight is high.* Its mean rose from 0.25 to 0.78 after the release and the training loss rose with
+  it (4.0 → 5.4): with 49 diverse patches and half of the latent unexplained, the best of many first-order
+  estimates is usually large. On SynthWorld the mean is 0.4–0.5 where the credit works; whether it helps or
+  disturbs on real photographs cannot be read off this log.
+- *The tonality gate did the opposite of the claim.* English 0.55, Yorùbá 0.00. Every language in a batch paid the
+  same price for its gate, while only image-paired utterances can show that pitch is useful; Yorùbá has 985 of
+  them, English 30,000.
+- *Yorùbá speech → image retrieval is at chance* (1 of 67 validation utterances at R@1).
+
+**What was changed in response, and what was tried and rejected** (SynthWorld, single runs; the two-object
+coverage is the validation-split diagnostic used throughout).
+
+- *Kept: write-latent exposure of the byte decoder* (`w_dec`; section 2, group `decoder`). Same phase-A state,
+  test split: read-and-rewrite of text 87.5 % → 95.8 % (two-object sentences 67.4 % → 89.1 %), hub-language
+  recognition WER 13.5 % → 8.6 %, zero-pair text translation 76.7 % / 85.0 % → 92.1 % / 93.8 %; island speech
+  unchanged (55.0 % vs 56.7 %).
+- *Kept:* a shorter schedule (8,000 + 14,000 steps); the transport phase starts from the phase-A state with the
+  best validation hub losses (`phase_a_select`); noise on the latents the reader is trained on (`read_noise`); a
+  gate price paid per grounded utterance (`gate_price = evidence`); sample outputs and a data-versus-compute
+  timing line in the log at every validation; resuming a run folder under different settings is refused.
+- *Rejected: dropout.* Residual dropout 0.1 in the codecs, grounder, explainer and reader destroys the two-object
+  coverage the credit loss buys: 13 % of text captions against 93 %. It is the standard answer to the overfitting
+  seen on Flickr8k and it is not in the presets for this reason.
+- *Rejected: a scale-free credit rule* (gain relative to the utterance's unexplained variance): coverage 49 %.
+  With the veto on top and all regularisers: 4 %. The variant was removed from the code.
+- *Not adopted: speech time masking + weight decay 0.05* (with the evidence gate price, no dropout): coverage
+  72 %, not separated from run-to-run noise.
+- With exactly the option set of the real-data presets switched on, SynthWorld gives: island speech → text 60.8 % exact content (reference 56.7 %), hub-language
+  recognition WER 10.1 % (13.5 %), read-and-rewrite of text 96.3 % (87.5 %), zero-pair text translation 89.6 % /
+  94.2 % (76.7 % / 85.0 %), both objects covered for 97 % of two-object text captions (92 %), gates 0.00 / 0.92.
+  Trained from scratch (1,500 + 1,500 steps), test split; nothing got worse
+  (`docs/results/synth_with_real_preset_options_eval_test.json`).
+
+**None of this has been run on real data at scale.** The changes answer what the log showed; whether they are
+enough is not known until the next GPU run.
+
 **Not verified.**
 
-- *Two GPUs.* The multi-GPU training step and the multi-GPU feature extraction were written for 2 × T4 and
-  reviewed, and the same code path is exercised on the CPU with two batches per step (`step_batches=2`, tests).
-  **It has never been executed on a GPU**: this machine has none. The first Kaggle run is its first real test.
-- *Real data.* For the redesigned model only a pipeline check was run on real data (section 3). No real-data
-  number in this repository supports any claim.
+- *Real data, again.* No real-data number in this repository supports any claim.
 - *Seeds.* Everything is one seed.
 
 ## 1. SynthWorld reference run
@@ -248,6 +298,20 @@ Full model best on: island ST BLEU, island ST chrF++, island ST content acc,   .
 Full model not best on: island ST tone-word acc (best: reader, writers never trained on read hubs),   ... with pitch removed (best: reader, writers never trained on read hubs), island speech->image R@1 (best: reader, writers never trained on read hubs), island speech->written image R@1 (best: reader, writers never trained on read hubs), hub ASR content acc (best: reader, writers never trained on read hubs), hub ASR WER (best: reader, writers never trained on read hubs), captioning BLEU (multi-ref) (best: reader, writers never trained on read hubs), MT hub->written content acc (best: backward ODE of the flow, trained with ODE hub-swap), MT hub->written BLEU (best: backward ODE of the flow, trained with ODE hub-swap), MT written->hub BLEU (best: backward ODE of the flow, trained with ODE hub-swap), text->written image R@1 (best: reader, writers trained without hub jitter), TTS into island (round-trip BLEU) (best: reader, writers trained without hub jitter), TTS into island (round-trip content) (best: reader, writers trained without hub jitter), text read+write, two-object sentences (best: backward ODE of the flow, trained with ODE hub-swap).
 
 ![read](results/ablation/plot_read.png)
+
+### decoder: Should the byte decoder be trained on the latents the text writer actually writes?
+
+_1 seed(s); test split; mean; bold = best in column (arrows give the direction)._
+
+| variant | island ST BLEU ↑ | island ST chrF++ ↑ | island ST content acc ↑ |   ... two-object sentences ↑ | island ST tone-word acc ↑ |   ... with pitch removed ↑ | island speech->image R@1 ↑ | island speech->written image R@1 ↑ | hub ASR content acc ↑ | hub ASR WER ↓ | captioning BLEU (multi-ref) ↑ | MT hub->written content acc ↑ | MT hub->written BLEU ↑ | MT written->hub BLEU ↑ | text->written image R@1 ↑ | TTS into island (round-trip BLEU) ↑ | TTS into island (round-trip content) ↑ | text read+write, two-object sentences ↑ | both objects covered (text) ↑ | both objects covered (island speech) ↑ | slots on unmentioned objects (text) ↓ | gate (island) ↑ | gate (hub lang) ↓ |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| decoder frozen after the representation phase (reference) | **48.06** | 77.05 | **56.67** | 26.09 | 87.50 | 50.83 | **42.08** | 10.83 | 75.42 | 13.49 | **23.06** | 76.67 | 66.76 | 79.91 | **13.33** | 14.40 | **36.67** | 67.39 | 92.39 | 59.78 | 7.29 | 0.87 | 0.01 |
+| decoder trained on written latents (write-latent exposure) | 47.65 | **77.28** | 55.00 | **27.17** | **89.58** | 50.83 | 41.67 | **11.25** | **82.92** | **8.60** | 22.34 | **92.08** | **91.26** | **91.20** | 9.58 | **17.72** | 36.25 | **89.13** | 92.39 | 59.78 | 7.29 | 0.87 | 0.01 |
+
+Full model best on: island ST BLEU, island ST content acc, island speech->image R@1, captioning BLEU (multi-ref), text->written image R@1, TTS into island (round-trip content).
+Full model not best on: island ST chrF++ (best: decoder trained on written latents (write-latent exposure)),   ... two-object sentences (best: decoder trained on written latents (write-latent exposure)), island ST tone-word acc (best: decoder trained on written latents (write-latent exposure)), island speech->written image R@1 (best: decoder trained on written latents (write-latent exposure)), hub ASR content acc (best: decoder trained on written latents (write-latent exposure)), hub ASR WER (best: decoder trained on written latents (write-latent exposure)), MT hub->written content acc (best: decoder trained on written latents (write-latent exposure)), MT hub->written BLEU (best: decoder trained on written latents (write-latent exposure)), MT written->hub BLEU (best: decoder trained on written latents (write-latent exposure)), TTS into island (round-trip BLEU) (best: decoder trained on written latents (write-latent exposure)), text read+write, two-object sentences (best: decoder trained on written latents (write-latent exposure)).
+
+![decoder](results/ablation/plot_decoder.png)
 
 ### island: What should be done with the unpaired speech of the island language?
 

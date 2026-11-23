@@ -9,7 +9,7 @@ the same size for every script.  There is no vocabulary to extend when a new scr
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -27,14 +27,14 @@ class TextCodec(nn.Module):
         self.unit_emb = nn.Embedding(unit_vocab, W, padding_idx=unit_pad)
         self.intra_pos = nn.Parameter(torch.zeros(unit_bytes, W))
         self.unit_proj = nn.Sequential(nn.Linear(2 * W, W), nn.GELU(), nn.Linear(W, W))
-        self.enc = nn.ModuleList([Block(W, cfg.text_heads) for _ in range(cfg.text_enc_layers)])
-        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.text_heads)
+        self.enc = nn.ModuleList([Block(W, cfg.text_heads, dropout=cfg.dropout) for _ in range(cfg.text_enc_layers)])
+        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.text_heads, dropout=cfg.dropout)
         # decoder
         self.byte_emb = nn.Embedding(BYTE_VOCAB, W)
         self.lang_emb = nn.Embedding(n_lang, W)
         self.lat_in = nn.Linear(d, W)
         self.lat_pos = nn.Parameter(torch.randn(N, W) * 0.02)
-        self.dec = nn.ModuleList([Block(W, cfg.text_heads, ctx_dim=W) for _ in range(cfg.text_dec_layers)])
+        self.dec = nn.ModuleList([Block(W, cfg.text_heads, ctx_dim=W, dropout=cfg.dropout) for _ in range(cfg.text_dec_layers)])
         self.out_norm = nn.LayerNorm(W)
         self.out = nn.Linear(W, BYTE_VOCAB)
 
@@ -64,6 +64,26 @@ class TextCodec(nn.Module):
         return standardize_tokens(self.resampler(h, unit_mask))
 
     # ------------------------------------------------------------------ decoder
+    def decoder(self) -> nn.Module:
+        """The byte decoder as one module: a *view* on the same sub-modules and parameters (nothing is copied or
+        renamed), so that the transport phase can train the decoder while the encoder stays frozen."""
+        view = nn.Module()
+        for name in ("byte_emb", "lang_emb", "lat_in", "dec", "out_norm", "out"):
+            view.add_module(name, getattr(self, name))
+        view.register_parameter("lat_pos", self.lat_pos)
+        return view
+
+    def decode_loss(self, z: torch.Tensor, tokens: torch.Tensor, lang: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Teacher-forced byte cross-entropy of ``tokens`` [B, T] (BOS ... EOS, PAD) given the latent z, and the
+        byte accuracy."""
+        logits = self._decode_states(z, tokens[:, :-1], lang)
+        tgt = tokens[:, 1:]
+        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]).float(), tgt.reshape(-1), ignore_index=PAD)
+        with torch.no_grad():
+            m = tgt != PAD
+            acc = ((logits.argmax(-1) == tgt) & m).sum().float() / m.sum().clamp_min(1)
+        return loss, acc
+
     def _decode_states(self, z: torch.Tensor, tokens: torch.Tensor, lang: torch.Tensor) -> torch.Tensor:
         ctx = self.lat_in(z) + self.lat_pos
         x = self.byte_emb(tokens) + sincos(torch.arange(tokens.shape[1], device=z.device), ctx.shape[-1])
@@ -79,13 +99,7 @@ class TextCodec(nn.Module):
             sigma = torch.rand(z.shape[0], 1, 1, device=z.device) * self.cfg.latent_noise_max
             sigma = sigma * (torch.rand_like(sigma) < 0.7)
             zin = z + sigma * torch.randn_like(z)
-        tokens = txt["bytes"]
-        logits = self._decode_states(zin, tokens[:, :-1], txt["lang"])
-        tgt = tokens[:, 1:]
-        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]).float(), tgt.reshape(-1), ignore_index=PAD)
-        with torch.no_grad():
-            m = tgt != PAD
-            acc = ((logits.argmax(-1) == tgt) & m).sum().float() / m.sum().clamp_min(1)
+        loss, acc = self.decode_loss(zin, txt["bytes"], txt["lang"])
         return {"loss": loss, "z": z, "byte_acc": acc}
 
     @torch.no_grad()

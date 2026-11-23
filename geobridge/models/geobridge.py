@@ -55,10 +55,14 @@ class GeoBridge(nn.Module):
 
     def phase_b_modules(self) -> List[nn.Module]:
         """Writers and the reader, which keeps training on the cached (now fixed) codes; the explainer too
-        when writing starts from its draft.  (The unconstrained 'free' anchor is learned jointly with the flows.)"""
-        if self.cfg.hub_mode == "free":
-            return [self.spokes, self.hub]
-        return [self.spokes, self.hub.reader] + ([self.hub.explainer] if self.cfg.draft_t0 > 0 else [])
+        when writing starts from its draft, and the text decoder with ``w_dec`` (the text *encoder* stays
+        frozen, so the cached latents stay valid).  The 'free' anchor is learned jointly with the flows."""
+        mods: List[nn.Module] = [self.spokes, self.hub if self.cfg.hub_mode == "free" else self.hub.reader]
+        if self.cfg.hub_mode != "free" and self.cfg.draft_t0 > 0:
+            mods.append(self.hub.explainer)
+        if self.cfg.w_dec > 0:   # the byte decoder learns to read what the text writer actually writes
+            mods.append(self.text.decoder())
+        return mods
 
     # ------------------------------------------------------------------ modality latents
     def encode(self, mod: str, sub: Dict[str, torch.Tensor], gate_override: Optional[float] = None) -> torch.Tensor:

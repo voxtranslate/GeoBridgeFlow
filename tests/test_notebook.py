@@ -24,7 +24,7 @@ def test_single_cell_runs_end_to_end(tmp_path):
     nb = build_notebook.to_notebook(cell)
     assert len(nb["cells"]) == 1 and "".join(nb["cells"][0]["source"]) == cell
     work, data = str(tmp_path / "work"), str(tmp_path / "data")
-    cell = _settings(cell, PRESET="synth_tiny", STAGES=("prepare", "train", "eval", "infer"), ABLATION_PRESET="synth_tiny",
+    cell = _settings(cell, PRESET="synth_tiny", EXP_NAME="", STAGES=("prepare", "train", "eval", "infer"), ABLATION_PRESET="synth_tiny",
                      ABLATION_GROUPS=("private",), WORK_DIR=work, DATA_DIR=data, SHOW_FIGURES=False,
                      OVERRIDES={"step_batches": 2, "num_workers": 0, "torch_threads": 1},
                      ABLATION_OVERRIDES={"torch_threads": 1})

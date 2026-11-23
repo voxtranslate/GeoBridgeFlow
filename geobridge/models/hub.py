@@ -56,7 +56,7 @@ class VisualInterlingua(nn.Module):
         self.mod_emb = nn.Embedding(2, W)
         self.lang_emb = nn.Embedding(n_lang, W)
         self.slots = nn.Parameter(torch.randn(self.K, W))  # unit scale: slots must start out *different*
-        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W) for _ in range(cfg.hub_layers)])
+        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W, dropout=cfg.dropout) for _ in range(cfg.hub_layers)])
         self.norm = nn.LayerNorm(W)
         self.q_out = nn.Linear(W, W)
         self.key = nn.Linear(d, W)
@@ -181,7 +181,7 @@ class _SlotTransformer(nn.Module):
         self.mod_emb = nn.Embedding(2, W)
         self.lang_emb = nn.Embedding(n_lang, W)
         self.queries = nn.Parameter(torch.randn(n_out, W) * 0.02)
-        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W) for _ in range(layers)])
+        self.blocks = nn.ModuleList([Block(W, cfg.hub_heads, ctx_dim=W, dropout=cfg.dropout) for _ in range(layers)])
         self.norm = nn.LayerNorm(W)
         self.out = nn.Linear(W, d)
 

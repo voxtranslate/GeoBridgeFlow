@@ -78,7 +78,7 @@ class AudioCodec(nn.Module):
         self.gate_logit = nn.Parameter(torch.full((n_lang,), float(cfg.tone_gate_init)))
         self.gate_forced_open = False  # set by the trainer during the first part of phase A (not a parameter)
         self.lang_emb = nn.Embedding(n_lang, W)
-        self.enc = nn.ModuleList([Block(W, cfg.audio_heads) for _ in range(cfg.audio_enc_layers)])
+        self.enc = nn.ModuleList([Block(W, cfg.audio_heads, dropout=cfg.dropout) for _ in range(cfg.audio_enc_layers)])
         self.resampler = Resampler(W, N, d, layers=2, heads=cfg.audio_heads)
         # ---- paralinguistic bypass
         self.bypass = MLP(spk_dim + 2, 2 * cfg.bypass_dim, cfg.bypass_dim)
@@ -88,7 +88,7 @@ class AudioCodec(nn.Module):
         self.lat_in = nn.Linear(d, W)
         self.lat_pos = nn.Parameter(torch.randn(N, W) * 0.02)
         self.q_proj = nn.Linear(2 * W, W)
-        self.dec = nn.ModuleList([Block(W, cfg.audio_heads, ctx_dim=W) for _ in range(cfg.audio_dec_layers)])
+        self.dec = nn.ModuleList([Block(W, cfg.audio_heads, ctx_dim=W, dropout=cfg.dropout) for _ in range(cfg.audio_dec_layers)])
         self.dec_norm = nn.LayerNorm(W)
         self.sem_out = nn.Linear(W, sem_dim)
         self.dur_head = MLP(d, W, 1)
@@ -117,9 +117,25 @@ class AudioCodec(nn.Module):
         return self.bypass(x)
 
     # ------------------------------------------------------------------ encoder
+    def time_mask(self, mask: torch.Tensor, spans: int = 2) -> torch.Tensor:
+        """SpecAugment-style time masking of the segmental stream: per utterance, ``spans`` random spans of up
+        to ``speech_mask`` of its length are hidden from the encoder (the codec still has to reconstruct them).
+        mask [B, T] valid frames -> keep [B, T] in {0, 1}."""
+        B, T = mask.shape
+        n = mask.sum(1, keepdim=True).float()
+        pos = torch.arange(T, device=mask.device).unsqueeze(0)
+        keep = torch.ones(B, T, device=mask.device)
+        for _ in range(spans):
+            width = torch.rand(B, 1, device=mask.device) * self.cfg.speech_mask * n
+            start = torch.rand(B, 1, device=mask.device) * (n - width).clamp_min(0)
+            keep = keep * ((pos < start) | (pos >= start + width)).float()
+        return keep
+
     def encode(self, sem: torch.Tensor, tone: torch.Tensor, mask: torch.Tensor, lang: torch.Tensor,
                sem_is_normed: bool = False, gate_override: Optional[float] = None) -> torch.Tensor:
         x = sem if sem_is_normed else self.norm_sem(sem)
+        if self.training and self.cfg.speech_mask > 0:
+            x = x * self.time_mask(mask).unsqueeze(-1).to(x.dtype)   # masked frames = the feature mean
         h = self.sem_in(x) + self.aux_in(tone[..., [1, 3]])
         g = self.gate(lang) if gate_override is None else torch.full((x.shape[0],), gate_override, device=x.device)
         if self.cfg.tone_mode != "off" or gate_override is not None:
@@ -165,7 +181,9 @@ class AudioCodec(nn.Module):
         return n.round().clamp(4, int(self.cfg.max_audio_sec * 25)).long()
 
     # ------------------------------------------------------------------ training loss
-    def loss(self, aud: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def loss(self, aud: Dict[str, torch.Tensor], n_grounded: Optional[int] = None) -> Dict[str, torch.Tensor]:
+        """``n_grounded``: the first n utterances of the batch are image-paired (the rest is unpaired speech);
+        used by the evidence-proportional gate price."""
         cfg = self.cfg
         sem, tone, mask, lang = self.norm_sem(aud["sem"]), aud["tone"], aud["mask"], aud["lang"]
         z = self.encode(sem, tone, mask, lang, sem_is_normed=True)
@@ -199,9 +217,16 @@ class AudioCodec(nn.Module):
         if cfg.use_bypass and cfg.w_orth > 0 and z.shape[0] > 3:
             res["orth"] = cross_correlation(z.mean(1), p)
             res["loss"] = res["loss"] + cfg.w_orth * res["orth"]
-        # pay-for-pitch: price on the gates of the languages present in the batch
+        # pay-for-pitch.  "uniform": every language present in the batch pays for its gate.  "evidence": every
+        # *grounded* utterance pays for the gate of its language, so price and benefit (which only grounded
+        # utterances can provide) scale with the same count - otherwise a language with few image pairs is
+        # priced out whatever its pitch is worth (measured on Flickr8k: the Yoruba gate closed to 0)
         if cfg.tone_mode == "gated" and not self.gate_forced_open:
-            res["gate_pen"] = self.gate()[lang.unique()].mean()
+            if cfg.gate_price == "evidence":
+                n = lang.shape[0] if n_grounded is None else n_grounded
+                res["gate_pen"] = self.gate(lang[:n]).mean() if n > 0 else z.new_zeros(())
+            else:
+                res["gate_pen"] = self.gate()[lang.unique()].mean()
             res["loss"] = res["loss"] + cfg.w_gate * res["gate_pen"]
         return res
 

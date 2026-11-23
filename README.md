@@ -42,7 +42,14 @@ then the run. Paste the cell into a notebook and run it.
   `/kaggle/working/geobridge`, downloads and feature caches to the scratch disk.
 * **Colab**: a T4 runtime. `USE_DRIVE = True` keeps the run folder on Google Drive.
 * Running the cell again continues: downloads, the split file, feature caches, checkpoints and finished ablation
-  variants are found on disk, and training resumes at the step it had reached.
+  variants are found on disk, and training resumes at the step it had reached. A run folder is only resumed with
+  the settings it was started with; new settings need a new `EXP_NAME`.
+* Every validation prints `[sample]` lines (reference | output) and a `[speed]` line (time waiting for batches vs
+  computing), so a run that is not learning can be stopped early.
+
+**Status on real data.** The first full Flickr8k run on 2 × T4 ran without errors and used both GPUs, but the
+text it wrote through the hub was unreadable (`docs/RESULTS.md`, section 0). The real-data presets were changed in
+response; those changes have not yet been run at that scale.
 
 The notebook is generated from the package and tested by executing the cell end to end on the tiny benchmark:
 
@@ -96,8 +103,8 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 
 | Preset | Data | Meant for |
 |---|---|---|
-| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | the main results (one large GPU) |
-| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab) |
+| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | one large GPU |
+| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 14,000 steps |
 | `flickr8k_yo_cpu` | 1,200-image subset, small model | pipeline check on a laptop |
 | `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
 | `synth_fast` | SynthWorld, 1,200 scenes, small model | ablations on a CPU |

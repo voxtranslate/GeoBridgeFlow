@@ -54,7 +54,7 @@ def bleu_chrf(hyps: Sequence[str], refs: Sequence[Sequence[str]]) -> Dict[str, f
     hyps = [normalize_text(h) or "." for h in hyps]
     n_ref = max(len(r) for r in refs)
     streams = [[normalize_text(r[min(k, len(r) - 1)]) for r in refs] for k in range(n_ref)]
-    bleu = sacrebleu.corpus_bleu(hyps, streams, tokenize="13a")
+    bleu = sacrebleu.corpus_bleu(hyps, streams, tokenize="13a", force=True)  # captions are distributed tokenised
     chrf = sacrebleu.corpus_chrf(hyps, streams, word_order=2)
     return {"bleu": float(bleu.score), "chrf": float(chrf.score)}
 
@@ -70,6 +70,7 @@ class Evaluator:
     def __init__(self, cfg, data, device: torch.device):
         self.cfg, self.data, self.device = cfg, data, device
         self.synth = cfg.dataset == "synthworld"
+        self.samples: Dict[str, List[Dict]] = {}   # reference / output pairs of the last evaluation, per task
 
     # ---- one pass over the split: read every view into hub coordinates
     @torch.no_grad()
@@ -235,8 +236,8 @@ class Evaluator:
                 tasks.append(("aud", H, H))
             if store["img_hub"] is not None:
                 tasks.append(("img", "-", H))
+            tasks.append(("txt", H, H))  # read a sentence and write it again: what the hub code keeps
             if not quick:
-                tasks.append(("txt", H, H))  # read a sentence and write it again: what the hub code keeps
                 for T in written:
                     if T != H:
                         tasks += [("txt", H, T), ("txt", T, H)]
@@ -347,6 +348,7 @@ class Evaluator:
         if not score_keys:
             score_keys = [k for k in M if k.endswith("/bleu")]
         M["score"] = float(np.mean([M[k] for k in score_keys])) if score_keys else 0.0
+        self.samples = samples
         if save_path:
             save_json({"metrics": M, "samples": samples}, save_path)
         model.train(was_training)

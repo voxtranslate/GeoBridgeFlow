@@ -1,0 +1,213 @@
+{
+  "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
+  "stats": {
+    "decoder frozen after the representation phase (reference)": {
+      "aud_sb>txt_sa/bleu": [
+        48.05707532176229,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        77.05331797177084,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        56.666666666666664,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        26.08695652173913,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        87.5,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        50.833333333333336,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        42.08333194255829,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        10.833333432674408,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        75.41666666666667,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        13.492063492063492,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        23.05820594344522,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        76.66666666666667,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        66.75680652940021,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        79.91011622890626,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        13.333334028720856,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        14.404728567708489,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        36.666666666666664,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        67.3913043478261,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        92.3913043478261,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        59.78260869565217,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        7.291666666666667,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.8669446706771851,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.008941465057432652,
+        0.0
+      ]
+    },
+    "decoder trained on written latents (write-latent exposure)": {
+      "aud_sb>txt_sa/bleu": [
+        47.64508658707733,
+        0.0
+      ],
+      "aud_sb>txt_sa/chrf": [
+        77.27682954136831,
+        0.0
+      ],
+      "aud_sb>txt_sa/content_acc": [
+        55.0,
+        0.0
+      ],
+      "aud_sb>txt_sa/content2_acc": [
+        27.17391304347826,
+        0.0
+      ],
+      "aud_sb>txt_sa/color_acc": [
+        89.58333333333333,
+        0.0
+      ],
+      "aud_sb>txt_sa/flat_color_acc": [
+        50.833333333333336,
+        0.0
+      ],
+      "aud_sb>img/r1": [
+        41.66666567325592,
+        0.0
+      ],
+      "aud_sb>img_gen/r1": [
+        11.249999701976776,
+        0.0
+      ],
+      "aud_sa>txt_sa/content_acc": [
+        82.91666666666667,
+        0.0
+      ],
+      "aud_sa>txt_sa/wer": [
+        8.597883597883598,
+        0.0
+      ],
+      "img>txt_sa/bleu_multi": [
+        22.342017198790888,
+        0.0
+      ],
+      "txt_sa>txt_sc/content_acc": [
+        92.08333333333333,
+        0.0
+      ],
+      "txt_sa>txt_sc/bleu": [
+        91.25894933429502,
+        0.0
+      ],
+      "txt_sc>txt_sa/bleu": [
+        91.19934989536395,
+        0.0
+      ],
+      "txt_sa>img_gen/r1": [
+        9.583333134651184,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_bleu": [
+        17.71672685027266,
+        0.0
+      ],
+      "txt_sa>aud_sb/rt_content_acc": [
+        36.25,
+        0.0
+      ],
+      "txt_sa>txt_sa/content2_acc": [
+        89.1304347826087,
+        0.0
+      ],
+      "ground/txt_sa/both_covered": [
+        92.3913043478261,
+        0.0
+      ],
+      "ground/aud_sb/both_covered": [
+        59.78260869565217,
+        0.0
+      ],
+      "ground/txt_sa/slots_unmentioned": [
+        7.291666666666667,
+        0.0
+      ],
+      "tone/gate_sb": [
+        0.8669446706771851,
+        0.0
+      ],
+      "tone/gate_sa": [
+        0.008941465057432652,
+        0.0
+      ]
+    }
+  },
+  "best": {
+    "aud_sb>txt_sa/bleu": "decoder frozen after the representation phase (reference)",
+    "aud_sb>txt_sa/chrf": "decoder trained on written latents (write-latent exposure)",
+    "aud_sb>txt_sa/content_acc": "decoder frozen after the representation phase (reference)",
+    "aud_sb>txt_sa/content2_acc": "decoder trained on written latents (write-latent exposure)",
+    "aud_sb>txt_sa/color_acc": "decoder trained on written latents (write-latent exposure)",
+    "aud_sb>img/r1": "decoder frozen after the representation phase (reference)",
+    "aud_sb>img_gen/r1": "decoder trained on written latents (write-latent exposure)",
+    "aud_sa>txt_sa/content_acc": "decoder trained on written latents (write-latent exposure)",
+    "aud_sa>txt_sa/wer": "decoder trained on written latents (write-latent exposure)",
+    "img>txt_sa/bleu_multi": "decoder frozen after the representation phase (reference)",
+    "txt_sa>txt_sc/content_acc": "decoder trained on written latents (write-latent exposure)",
+    "txt_sa>txt_sc/bleu": "decoder trained on written latents (write-latent exposure)",
+    "txt_sc>txt_sa/bleu": "decoder trained on written latents (write-latent exposure)",
+    "txt_sa>img_gen/r1": "decoder frozen after the representation phase (reference)",
+    "txt_sa>aud_sb/rt_bleu": "decoder trained on written latents (write-latent exposure)",
+    "txt_sa>aud_sb/rt_content_acc": "decoder frozen after the representation phase (reference)",
+    "txt_sa>txt_sa/content2_acc": "decoder trained on written latents (write-latent exposure)"
+  },
+  "seeds": 1
+}

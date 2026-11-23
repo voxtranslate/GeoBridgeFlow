@@ -15,8 +15,11 @@
 #             folder on Google Drive, so that a new session continues where the last one stopped.
 #    Interrupted?  Run the cell again.  Downloads, the split file, the feature caches, checkpoints and finished
 #             ablation variants are found on disk; training resumes at the exact step it had reached.
-#    A first look: PRESET = "synth_fast", ABLATION_PRESET = "" runs the whole pipeline on the controlled benchmark
-#             in minutes, with no download.
+#    A first look: PRESET = "synth_fast" runs the whole pipeline on the controlled benchmark in minutes, with no
+#             download.
+#    What to watch: every validation prints "[sample]" lines (reference | output) and a "[speed]" line (time waiting
+#             for batches vs computing).  If the samples of the transport phase are not readable text after a few
+#             thousand of its steps, stop the cell: more steps will not fix it.
 #
 #  CONTENTS
 #   00. SETTINGS AND ENVIRONMENT   (the only part meant to be edited)
@@ -31,10 +34,11 @@ PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k
                                  # "flickr8k_yo_cpu".  Controlled benchmark: "synth", "synth_fast", "synth_tiny".
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = ""                    # name of the run folder ("" = the preset name)
+EXP_NAME = "flickr8k_yo_t4_v2"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+                                 # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
-ABLATION_PRESET = "synth_fast"   # benchmark of the ablation study, run after the stages above ("" = no ablation).
+ABLATION_PRESET = ""             # benchmark of the ablation study, run after the stages above ("" = no ablation).
                                  # "synth_fast" / "synth" are the controlled benchmark: every factor has a ground
                                  # truth and one variant trains in minutes.  Use PRESET's name to ablate on real data.
 ABLATION_GROUPS = ()             # () = all groups; or e.g. ("hub", "island", "tone")

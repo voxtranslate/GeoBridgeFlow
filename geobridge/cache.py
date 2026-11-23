@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 import torch
 
 from .losses import GeoBridgeLoss, same_lang_pairs
+from .text_units import PAD
 from .utils import to_device
 
 
@@ -25,6 +26,7 @@ class LatentCache:
         ok = {"txt": [], "aud": []}
         lang = {"txt": [], "aud": []}
         count = {"txt": [0] * len(groups), "aud": [0] * len(groups)}
+        byte_rows: List[torch.Tensor] = []   # byte targets of the text views (for the decoder's write-latent exposure)
         img_lat: Dict[int, torch.Tensor] = {}
         scene: Dict[int, torch.Tensor] = {}
         was_training = model.training
@@ -60,6 +62,8 @@ class LatentCache:
                     sub = batch[m]
                     z[m].append(zz[m].float().cpu()); hub[m].append(hh[m].float().cpu())
                     ok[m].append(vv[m].cpu()); lang[m].append(sub["lang"].cpu())
+                    if m == "txt":
+                        byte_rows.extend(sub["bytes"].cpu().to(torch.int16))
                     for j in sub["item"].tolist():  # views arrive grouped by caption, in order
                         count[m][s + j] += 1
             self.isl_z: Optional[torch.Tensor] = None
@@ -76,6 +80,7 @@ class LatentCache:
         self.ok = {m: torch.cat(ok[m]) for m in self.mods}
         self.lang = {m: torch.cat(lang[m]) for m in self.mods}
         self.start = {m: torch.tensor([0] + count[m]).cumsum(0) for m in self.mods}   # rows of group g: [start[g], start[g+1])
+        self.bytes = torch.nn.utils.rnn.pad_sequence(byte_rows, batch_first=True, padding_value=PAD) if byte_rows else None
         self.img_of_group = torch.tensor([g["img"] for g in groups])
         imgs = sorted(img_lat)
         self.img_row = {i: n for n, i in enumerate(imgs)}
@@ -100,6 +105,9 @@ class LatentCache:
                 r = torch.tensor(rows)
                 out[m] = {"z": self.z[m][r], "hub": self.hub[m][r], "ok": self.ok[m][r], "lang": self.lang[m][r],
                           "item": torch.tensor(items)}
+                if m == "txt" and self.bytes is not None:
+                    b = self.bytes[r].long()
+                    out[m]["bytes"] = b[:, : int((b != PAD).sum(1).max())]   # trim the padding to this batch
         return out
 
     def island_batch(self, idx: List[int]) -> Dict:

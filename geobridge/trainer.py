@@ -44,7 +44,12 @@ from .utils import (Averager, count_named, count_params, get_logger, gpu_ids, re
                     seed_everything, to_device, worker_kwargs)
 
 TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
-TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
+TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
+# Settings that may differ between a checkpoint and the run that resumes from it (everything else must match).
+RESUME_FREE = {"exp_name", "out_root", "data_root", "device", "amp", "num_workers", "torch_threads", "n_gpu", "step_batches",
+               "feat_batch_size", "log_every", "eval_every", "save_every", "keep_last", "milestone_every", "eval_max_items",
+               "phase_b_steps", "init_from", "train_only", "ode_steps", "ode_solver", "sample_temp", "eval_temp", "read_mode",
+               "draft_t0"}
 
 
 class ResumableBatchSampler(Sampler):
@@ -99,6 +104,11 @@ class EMA:
         for k, p in params.items():
             p.copy_(self.backup[k])
         self.backup = {}
+
+
+def _plain(v):
+    """Tuples and lists compare equal (a config read back from JSON holds lists)."""
+    return list(v) if isinstance(v, (tuple, list)) else v
 
 
 class StepReplica(nn.Module):
@@ -191,6 +201,7 @@ class Trainer:
         self.cache: Dict[str, LatentCache] = {}
         self.history: Dict[str, List[Dict]] = {"train": [], "valid": []}
         self.best = {"score": -1e9, "step": -1}
+        self.best_a = {"value": float("inf"), "step": -1}   # phase-A state with the best validation hub losses
         self._describe()
         cfg.save(os.path.join(self.run_dir, "config.json"))
         save_json(self.data.describe(), os.path.join(self.run_dir, "data.json"))
@@ -283,7 +294,7 @@ class Trainer:
         return {"model": self.model.state_dict(), "ema": self.ema.shadow, "opt_a": self.opt_a.state_dict(),
                 "opt_b": self.opt_b.state_dict(), "scaler": self.scaler.state_dict(), "step": self.step,
                 "epoch": self.epoch, "offset": self.offset, "isl_epoch": self.isl_epoch,
-                "isl_offset": self.isl_offset, "history": self.history, "best": self.best,
+                "isl_offset": self.isl_offset, "history": self.history, "best": self.best, "best_a": self.best_a,
                 "cfg": self.cfg.to_dict(), "spec": spec_for_checkpoint(self.spec),
                 "rng": {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": random.getstate()}}
 
@@ -301,8 +312,21 @@ class Trainer:
                 os.remove(p)
         return path
 
+    def _check_same_run(self, ck: Dict, path: str) -> None:
+        """Resuming continues a run; it must not silently continue it under different settings."""
+        ref = Config().to_dict()
+        old, new = {**ref, **ck.get("cfg", {})}, self.cfg.to_dict()
+        diff = {k: (old.get(k), new[k]) for k in new if k not in RESUME_FREE and _plain(old.get(k)) != _plain(new[k])}
+        if diff:
+            shown = ", ".join(f"{k}: {a} -> {b}" for k, (a, b) in list(diff.items())[:8])
+            raise RuntimeError(
+                f"{path} was written by a run with different settings ({shown}{', ...' if len(diff) > 8 else ''}). "
+                f"Resuming would mix the two.  Use another exp_name for the new settings, or delete {self.run_dir}.")
+
     def load_checkpoint(self, path: str, weights_only: bool = False) -> Dict:
         ck = torch.load(path, map_location=self.device, weights_only=False)
+        if not weights_only:
+            self._check_same_run(ck, path)
         own = self.model.state_dict()
         state = {k: v for k, v in ck["model"].items() if k not in own or own[k].shape == v.shape}
         skipped = [k for k in ck["model"] if k not in state]  # e.g. a different LoRA rank in an ablation
@@ -321,6 +345,7 @@ class Trainer:
         self.step, self.epoch, self.offset = ck["step"], ck["epoch"], ck["offset"]
         self.isl_epoch, self.isl_offset = ck.get("isl_epoch", 0), ck.get("isl_offset", 0)
         self.history, self.best = ck["history"], ck["best"]
+        self.best_a = ck.get("best_a", self.best_a)
         try:
             torch.set_rng_state(ck["rng"]["torch"])
             np.random.set_state(ck["rng"]["numpy"])
@@ -462,7 +487,9 @@ class Trainer:
             n_batches = math.ceil(c.n_groups / cfg.batch_size)
         gen_state = torch.get_rng_state()
         torch.manual_seed(1234)  # same noise / time draws at every validation -> comparable curves
-        pbar = tqdm(loader, total=min(n_batches, max_batches), desc=f"valid [{self.phase}]", leave=False, dynamic_ncols=True)
+        n_val = min(n_batches, max_batches)
+        # a nested bar that refreshes prints one line per refresh in notebook logs: draw it at the start and at the end
+        pbar = tqdm(loader, total=n_val, desc=f"valid [{self.phase}]", leave=False, dynamic_ncols=True, mininterval=3600)
         for i, batch in enumerate(pbar):
             if i >= max_batches:
                 break
@@ -473,7 +500,8 @@ class Trainer:
                 else:
                     _, logs = self.loss.phase_b(m, batch, None, 1.0)
             avg.add(logs)
-            pbar.set_postfix({k: f"{v:.3f}" for k, v in avg.mean().items() if k in TQDM_KEYS_A + TQDM_KEYS_B})
+            if i == n_val - 1:
+                pbar.set_postfix({k: f"{v:.3f}" for k, v in avg.mean().items() if k in TQDM_KEYS_A + TQDM_KEYS_B}, refresh=False)
         out = avg.mean()
         if metrics and self.phase == "B":
             ms = self.evaluator.evaluate(m, split, cfg.eval_max_items, quick=True)
@@ -501,9 +529,12 @@ class Trainer:
             n_ep, k = len(self.sampler), self.step_batches
             pbar = tqdm(chunked(loader, k), initial=self.offset // k, total=math.ceil(n_ep / k), dynamic_ncols=True,
                         mininterval=0.5, desc=f"epoch {self.epoch} | phase {self.phase} | step {self.step}/{total}")
+            waited = time.time()
             for batches in pbar:
                 phase_before = self.phase
+                got = time.time()
                 logs = self.train_step(batches, [next(island) if island is not None else None for _ in batches])
+                logs.update(t_data=got - waited, t_step=time.time() - got)   # seconds waiting for batches / computing
                 self.step += 1
                 self.offset += len(batches)
                 avg.add(logs)
@@ -530,7 +561,10 @@ class Trainer:
                     if phase_before == "B" and last_val.get("score", -1e9) > self.best["score"]:
                         self.best = {"score": last_val["score"], "step": self.step}
                         self.save_checkpoint("best.pt")
+                    if phase_before == "A":
+                        self._track_phase_a(last_val)
                 if boundary:
+                    self._restore_best_phase_a()
                     self.save_checkpoint("phase_a.pt")
                     self.log.info(f"[phase] representation phase finished at step {self.step}; codecs and grounder "
                                   f"are now frozen, training the writers and the reader")
@@ -538,6 +572,7 @@ class Trainer:
                     self.save_checkpoint()
                 if boundary or self.step >= total:
                     break
+                waited = time.time()
             pbar.close()
             if self.offset >= n_ep:
                 self.epoch, self.offset = self.epoch + 1, 0
@@ -549,11 +584,49 @@ class Trainer:
         self.log.info(f"[fit] done: {self.step} steps, best score {self.best['score']:.3f} at step {self.best['step']}")
         return last_val
 
+    # ------------------------------------------------------------------ phase-A model selection
+    def _phase_a_best_path(self) -> str:
+        return os.path.join(self.ckpt_dir, "phase_a_best.pt")
+
+    def _track_phase_a(self, val: Dict[str, float]) -> None:
+        """Remember the phase-A state with the best validation hub losses.  Only states after the release are
+        comparable (and usable: the null option and minimality exist from then on)."""
+        cfg = self.cfg
+        keys = ("ground", "unexplained", "read")
+        if not cfg.phase_a_select or self.step < cfg.gate_release_frac * cfg.phase_a_steps or any(k not in val for k in keys):
+            return
+        value = float(sum(val[k] for k in keys))
+        if value < self.best_a["value"]:
+            self.best_a = {"value": value, "step": self.step}
+            tmp = self._phase_a_best_path() + ".tmp"
+            torch.save({"model": self.model.state_dict(), "step": self.step, "value": value}, tmp)
+            os.replace(tmp, self._phase_a_best_path())
+
+    def _restore_best_phase_a(self) -> None:
+        """At the end of phase A: continue from the best validated state rather than from the last one."""
+        if not self.cfg.phase_a_select or self.best_a["step"] in (-1, self.step) or not os.path.exists(self._phase_a_best_path()):
+            return
+        ck = torch.load(self._phase_a_best_path(), map_location=self.device, weights_only=False)
+        self.model.load_state_dict(ck["model"])
+        self.log.info(f"[phase] the transport phase starts from the phase-A state of step {ck['step']} "
+                      f"(validation grounding + sufficiency + read = {ck['value']:.3f}, the best after the release); "
+                      f"later states fit the training set better and the validation set worse")
+
     def _log_validation(self, val: Dict[str, float], phase: str) -> None:
-        keys = [k for k in val if k in TQDM_KEYS_A + TQDM_KEYS_B or k.endswith("/bleu") or k.endswith("/r1")
-                or k.endswith("content_acc") or k.endswith("/wer") or k.startswith("tone/") or k == "score"]
-        msg = " | ".join(f"{k} {val[k]:.3f}" for k in keys[:28])
+        keys = [k for k in val if k in TQDM_KEYS_A + TQDM_KEYS_B or k.endswith(("/bleu", "/bleu_multi", "/r1", "/wer"))
+                or k.endswith("content_acc") or k.startswith("tone/") or k == "score"]
+        msg = " | ".join(f"{k} {val[k]:.3f}" for k in keys[:40])
         self.log.info(f"[valid] step {self.step} phase {phase} | {msg}")
+        recent = [h for h in self.history["train"][-max(1, self.cfg.eval_every // max(1, self.cfg.log_every)):] if "t_step" in h]
+        if recent:
+            data, step = np.mean([h["t_data"] for h in recent]), np.mean([h["t_step"] for h in recent])
+            self.log.info(f"[speed] {1.0 / max(1e-9, data + step):.2f} steps/s | waiting for batches {data:.3f}s, "
+                          f"computing {step:.3f}s per step" + (" (the data loader is the bottleneck)" if data > step else ""))
+        if phase == "B":   # what the outputs actually look like: two examples per direction
+            H = self.cfg.hub_langs[0]
+            for name in [f"aud_{L}>txt_{H}" for L in self.cfg.island_langs] + [f"aud_{H}>txt_{H}", f"txt_{H}>txt_{H}"]:
+                for s in self.evaluator.samples.get(name, [])[:2]:
+                    self.log.info(f"[sample] {name} | ref: {s['ref'][:90]} | out: {s['hyp'][:90]}")
 
     # ------------------------------------------------------------------ curves
     def plot_curves(self) -> None:
@@ -604,21 +677,24 @@ class Trainer:
             xs, ys = series(va, k)
             axes[0].plot(xs, ys, marker="o", ms=3, label=k)
         axes[0].set_title("validation metrics (through the hub, no image at test time)")
-        axes[0].legend(fontsize=6.5, ncol=2)
+        if mkeys:
+            axes[0].legend(fontsize=6.5, ncol=2)
         for k in tone:
             xs, ys = series(tr, k)
             axes[1].plot(xs, ys, label=k.replace("gate_", "gate "))
         axes[1].axvline(pa, color="k", ls=":", lw=1)
         axes[1].set_title("lexical-tonality gate per language (training)")
         axes[1].set_ylim(-0.02, 1.02)
-        axes[1].legend(fontsize=8)
+        if tone:
+            axes[1].legend(fontsize=8)
         for k, lab in (("bt_write", "write: real speech, pseudo code"), ("bt_read", "read: synthetic speech, real code"),
                        ("bt_shift", "transport shift of the pseudo codes"), ("slot_use_txt", "slot use (text)")):
             xs, ys = series(tr, k)
             if xs:
                 axes[2].plot(xs, ys, label=lab)
         axes[2].set_title("hub-space back-translation and slot use")
-        axes[2].legend(fontsize=8)
+        if axes[2].lines:
+            axes[2].legend(fontsize=8)
         for ax in axes:
             ax.set_xlabel("step")
             ax.grid(alpha=0.25)

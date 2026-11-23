@@ -272,3 +272,45 @@ def test_one_step_can_consume_several_batches(tiny_run):
         torch.manual_seed(0)
         direct, logs = tr.loss.phase_a(tr.model, batch, None)
     assert torch.allclose(via, direct.reshape(1)) and rep.job["logs"][1]["loss"] == logs["loss"]
+
+
+def test_real_data_options(tiny_run):
+    """The options the real-data presets switch on: decoder exposure, phase-A selection, regularisation,
+    vetoed credit, evidence-proportional gate price - and the guard against resuming a run
+    under different settings."""
+    from geobridge.trainer import Trainer
+
+    cfg, tr = tiny_run
+    opts = dict(dropout=0.1, speech_mask=0.08, weight_decay=0.05, phase_a_select=True, read_noise=0.2, w_dec=1.0,
+                seek_verify=True, gate_price="evidence")
+    cfg2 = cfg.clone(exp_name="t_real", phase_a_steps=20, phase_b_steps=12, eval_every=5, save_every=10, step_batches=2, **opts)
+    tr2 = Trainer(cfg2, data=tr.data, resume=False)
+    enc_before = tr2.model.text.unit_emb.weight.detach().clone()
+    tr2.fit()
+    assert tr2.step == 32
+    # phase-A selection: a validated state after the release (step 10 of 20) was kept
+    assert os.path.exists(os.path.join(cfg2.run_dir, "checkpoints", "phase_a_best.pt")) and tr2.best_a["step"] >= 10
+    # decoder exposure: the cache carries the byte targets, the loss is logged, and only the decoder half of the
+    # text codec is trained in the transport phase
+    b = tr2.cache["train"].batch([0, 1, 2, 3])
+    raw = tr.data.collate_groups([{"img": g["img"], "cap": g["cap"], "views": g["train_views"]} for g in tr.data.groups["train"][:4]])
+    assert (b["txt"]["bytes"] == raw["txt"]["bytes"]).all()
+    assert any("dec_ce" in h for h in tr2.history["train"] if h["phase"] == "B")
+    names = set(tr2.b_named)
+    assert any(n.endswith("byte_emb.weight") for n in names) and not any("unit_emb" in n or "resampler" in n for n in names)
+    ck = torch.load(os.path.join(cfg2.run_dir, "checkpoints", "phase_a.pt"), map_location="cpu", weights_only=False)["model"]
+    assert torch.equal(ck["text.unit_emb.weight"], tr2.model.text.unit_emb.weight.cpu())      # encoder frozen in phase B
+    assert not torch.equal(ck["text.byte_emb.weight"], tr2.model.text.byte_emb.weight.cpu())  # decoder trained
+    assert not torch.equal(enc_before, tr2.model.text.unit_emb.weight)                        # (it did train in phase A)
+    # evidence-proportional gate price: grounded utterances pay, unpaired ones do not
+    batch = next(iter(tr.data.paired_loader("valid", shuffle=False, batch_size=6)))
+    m = tr2.model.eval()
+    m.audio.gate_forced_open = False
+    with torch.no_grad():
+        res = m.audio.loss(batch["aud"], n_grounded=3)
+        assert torch.allclose(res["gate_pen"], m.audio.gate(batch["aud"]["lang"][:3]).mean())
+        assert float(m.audio.loss(batch["aud"], n_grounded=0)["gate_pen"]) == 0.0
+    # resuming the same folder with other settings is refused; with the same settings it continues
+    with pytest.raises(RuntimeError, match="different settings"):
+        Trainer(cfg2.clone(w_dec=0.0), data=tr.data)
+    assert Trainer(cfg2.clone(eval_every=7, num_workers=0), data=tr.data).step == 32

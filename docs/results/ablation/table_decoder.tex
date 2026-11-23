@@ -1,0 +1,8 @@
+\begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrr}
+\toprule
+Variant & island ST BLEU & island ST chrF++ & island ST content acc &   ... two-object sentences & island ST tone-word acc &   ... with pitch removed & island speech-$\to$image R@1 & island speech-$\to$written image R@1 & hub ASR content acc & hub ASR WER & captioning BLEU (multi-ref) & MT hub-$\to$written content acc & MT hub-$\to$written BLEU & MT written-$\to$hub BLEU & text-$\to$written image R@1 & TTS into island (round-trip BLEU) & TTS into island (round-trip content) & text read+write, two-object sentences & both objects covered (text) & both objects covered (island speech) & slots on unmentioned objects (text) & gate (island) & gate (hub lang) \\
+\midrule
+decoder frozen after the representation phase (reference) & \textbf{48.06} & 77.05 & \textbf{56.67} & 26.09 & 87.50 & 50.83 & \textbf{42.08} & 10.83 & 75.42 & 13.49 & \textbf{23.06} & 76.67 & 66.76 & 79.91 & \textbf{13.33} & 14.40 & \textbf{36.67} & 67.39 & 92.39 & 59.78 & 7.29 & 0.87 & 0.01 \\
+decoder trained on written latents (write-latent exposure) & 47.65 & \textbf{77.28} & 55.00 & \textbf{27.17} & \textbf{89.58} & 50.83 & 41.67 & \textbf{11.25} & \textbf{82.92} & \textbf{8.60} & 22.34 & \textbf{92.08} & \textbf{91.26} & \textbf{91.20} & 9.58 & \textbf{17.72} & 36.25 & \textbf{89.13} & 92.39 & 59.78 & 7.29 & 0.87 & 0.01 \\
+\bottomrule
+\end{tabular}

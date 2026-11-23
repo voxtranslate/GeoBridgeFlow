@@ -77,9 +77,10 @@ class Block(nn.Module):
     """
 
     def __init__(self, dim: int, heads: int, mlp_ratio: float = 4.0, ctx_dim: Optional[int] = None, n_lang: int = 0,
-                 rank: int = 0, alpha: float = 16.0, cond_dim: int = 0, self_attn: bool = True):
+                 rank: int = 0, alpha: float = 16.0, cond_dim: int = 0, self_attn: bool = True, dropout: float = 0.0):
         super().__init__()
         self.has_self, self.has_cross, self.cond = self_attn, ctx_dim is not None, cond_dim > 0
+        self.drop = nn.Dropout(dropout)   # on every residual branch (identity when dropout = 0)
         affine = not self.cond
         if self_attn:
             self.n1 = nn.LayerNorm(dim, elementwise_affine=affine)
@@ -110,19 +111,19 @@ class Block(nn.Module):
             return h
 
         if self.has_self:
-            x = x + self.attn(norm(self.n1, x), key_mask=mask, causal=causal, lang=lang)
+            x = x + self.drop(self.attn(norm(self.n1, x), key_mask=mask, causal=causal, lang=lang))
         if self.has_cross:
-            x = x + self.xattn(norm(self.nc, x), ctx=ctx, key_mask=ctx_mask, lang=lang)
-        return x + self.fc2(F.gelu(self.fc1(norm(self.n2, x), lang)), lang)
+            x = x + self.drop(self.xattn(norm(self.nc, x), ctx=ctx, key_mask=ctx_mask, lang=lang))
+        return x + self.drop(self.fc2(F.gelu(self.fc1(norm(self.n2, x), lang)), lang))
 
 
 class Resampler(nn.Module):
     """Perceiver-style resampler: n learned queries read a variable-length sequence -> fixed [n, out_dim]."""
 
-    def __init__(self, dim: int, n_queries: int, out_dim: int, layers: int = 2, heads: int = 4):
+    def __init__(self, dim: int, n_queries: int, out_dim: int, layers: int = 2, heads: int = 4, dropout: float = 0.0):
         super().__init__()
         self.queries = nn.Parameter(torch.randn(n_queries, dim) * 0.02)
-        self.blocks = nn.ModuleList([Block(dim, heads, ctx_dim=dim) for _ in range(layers)])
+        self.blocks = nn.ModuleList([Block(dim, heads, ctx_dim=dim, dropout=dropout) for _ in range(layers)])
         self.norm = nn.LayerNorm(dim)
         self.out = nn.Linear(dim, out_dim)
 

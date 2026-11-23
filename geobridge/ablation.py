@@ -50,6 +50,12 @@ GROUPS: Dict[str, Dict] = {
             ("reader, writers trained without hub jitter", {"hub_jitter": 0.0}),
             ("reader, speech keeps its own code (no canonical text code)", {"canonical_text": False}),
         ]},
+    "decoder": {
+        "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
+        "variants": [
+            ("decoder frozen after the representation phase (reference)", {}),
+            ("decoder trained on written latents (write-latent exposure)", {"w_dec": 1.0}),
+        ]},
     "island": {
         "question": "What should be done with the unpaired speech of the island language?",
         "variants": [
