@@ -124,7 +124,9 @@ class GeoBridgeLoss:
             total = total + cfg.w_audio_rec * r["loss"]
             if aud is not None:
                 z["aud"] = r["z"][: aud["sem"].shape[0]]
-            logs.update({k: r[k].item() for k in ("sem_mse", "f0_l1", "dur_l1", "mel_l1", "orth", "gate_pen") if k in r})
+            logs.update({k: r[k].item() for k in ("sem_mse", "f0_l1", "dur_l1", "mel_l1", "orth") if k in r})
+            if "gate_pen" in r:
+                logs["tone_price"] = r["gate_pen"].item()   # what the batch paid for open gates (not a gate value)
 
         # ---- grounding: one attention pass gives the contrastive scores and the hub code
         scores, items, codes, attns, logps = [], [], {}, {}, {}
@@ -201,7 +203,8 @@ class GeoBridgeLoss:
             logs["pix_l1"] = l1.item()
         gates = model.audio.gate().detach()
         for name, i in model.lang2id.items():
-            logs[f"gate_{name}"] = gates[i].item()
+            if name not in cfg.text_only_langs:   # a language without speech has a gate parameter nothing ever trains
+                logs[f"gate_{name}"] = gates[i].item()
         logs["loss"] = total.item()
         return total, logs
 

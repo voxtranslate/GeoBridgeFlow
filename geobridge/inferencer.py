@@ -127,9 +127,14 @@ class Inferencer:
 
     def evaluate(self, split: str = "test", max_items: int = 0) -> Dict[str, float]:
         path = os.path.join(self.cfg.run_dir, f"eval_{split}.json")
-        m = self.evaluator.evaluate(self.model, split, max_items, quick=False, save_path=path)
-        self.log.info(f"[eval] {split}: " + " | ".join(f"{k} {v:.2f}" for k, v in m.items()
-                                                        if k.endswith("/bleu") or k.endswith("/r1") or k == "score"))
+        m = self.evaluator.evaluate(self.model, split, max_items, quick=False, save_path=path, step=int(self.ck["step"]))
+        self.log.info(f"[eval] {split}, state of step {self.ck['step']}: " + " | ".join(
+            f"{k} {v:.2f}" for k, v in m.items() if k.endswith(("/r1", "content_acc")) or k == "score"))
+        for k in [k for k in m if k.endswith("/cf1") and "/flat_" not in k and "/rt_" not in k]:
+            d = k[:-len("/cf1")]
+            self.log.info(f"[eval] {d}: content F1 {m[k]:.1f} (chance {m.get(d + '/chance_cf1', float('nan')):.1f}) | BLEU "
+                          f"{m[d + '/bleu']:.2f} (chance {m.get(d + '/chance_bleu', float('nan')):.2f}) | chrF++ {m[d + '/chrf']:.1f} "
+                          f"(chance {m.get(d + '/chance_chrf', float('nan')):.1f})")
         return m
 
     # ================================================================== everything
@@ -138,7 +143,7 @@ class Inferencer:
 
         setup_matplotlib(os.path.join(self.cfg.data_root, "fonts"))
         self.split = split
-        self.groups = self.data.eval_groups(split, 400)
+        self.groups = self.data.eval_groups(split, 400, favour=self.cfg.island_langs)
         self.store = self.evaluator.collect(self.model, split, 400)
         steps = [self.save_outputs, self.fig_slot_attention, self.fig_flow_trajectories, self.fig_hub_manifold,
                  self.fig_hub_alignment, self.fig_tone, self.fig_speech_attribution, self.fig_text_attribution,
@@ -697,7 +702,7 @@ class Inferencer:
                 lid = torch.full((len(utts),), model.lang2id[H], dtype=torch.long, device=self.device)
                 zt = model.write("txt", hub, lid, temp=cfg.eval_temp, steps=s)
                 m, _ = self.evaluator._score_text(model.text.generate(zt, lid), gs, H, same_lang=(src[1] == H))
-                ys.append(m.get("content_acc", m.get("bleu", 0.0)))
+                ys.append(m.get("content_acc", m.get("cf1", 0.0)))
             axes[0].plot(xs, ys, marker="o")
             axes[0].set_xscale("log", base=2)
             axes[0].set_title(f"{src[0]}:{src[1]} -> text:{H}  ({'content accuracy' if 'content_acc' in m else 'BLEU'}) "
@@ -1002,7 +1007,7 @@ class Inferencer:
                 torch.manual_seed(0)
                 m, _ = self.evaluator._score_text(model.text.generate(model.write("txt", hub, tgt, temp=cfg.eval_temp, t0=t0), tgt),
                                                   gs, H, same_lang=(lang == H))
-                return m.get("content_acc", m.get("bleu", 0.0))
+                return m.get("content_acc", m.get("cf1", 0.0))
 
             modes = {"reader (one pass)": model.read(mod, z, lid, mode="amortized"), "backward ODE": model.read(mod, z, lid, mode="ode")}
             by_mode = {k: score(h, 0.0) for k, h in modes.items()}

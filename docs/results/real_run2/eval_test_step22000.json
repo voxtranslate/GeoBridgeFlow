@@ -1,0 +1,4057 @@
+{
+  "metrics": {
+    "aud_yo>txt_en/bleu": 3.586889912525017,
+    "aud_yo>txt_en/chrf": 18.726474395908472,
+    "aud_yo>txt_en/bleu_multi": 7.145671664689277,
+    "aud_yo>txt_en/flat_bleu": 3.962137559599319,
+    "aud_en>txt_en/bleu": 5.860489819020753,
+    "aud_en>txt_en/chrf": 23.23795454479182,
+    "aud_en>txt_en/bleu_multi": 11.98022051719355,
+    "aud_en>txt_en/wer": 85.12332020076637,
+    "aud_en>txt_en/cer": 71.41558960230134,
+    "aud_en>txt_en/flat_bleu": 5.791223608748607,
+    "img>txt_en/bleu": 3.0598719937680467,
+    "img>txt_en/chrf": 19.343879958644678,
+    "img>txt_en/bleu_multi": 8.629164194265556,
+    "txt_en>txt_en/bleu": 9.22268280304698,
+    "txt_en>txt_en/chrf": 28.624115762118198,
+    "txt_en>txt_en/bleu_multi": 16.719475965403895,
+    "txt_en>txt_en/wer": 78.00533563286534,
+    "txt_en>txt_en/cer": 65.08813500549037,
+    "txt_en>txt_hi/bleu": 5.100873092964458,
+    "txt_en>txt_hi/chrf": 21.857313395003846,
+    "txt_en>txt_hi/bleu_multi": 12.610868794907612,
+    "txt_hi>txt_en/bleu": 6.087880037767136,
+    "txt_hi>txt_en/chrf": 23.754404601991773,
+    "txt_hi>txt_en/bleu_multi": 12.673135513613419,
+    "aud_yo>txt_hi/bleu": 2.2717839850496437,
+    "aud_yo>txt_hi/chrf": 16.222268674538277,
+    "aud_yo>txt_hi/bleu_multi": 6.472997697794135,
+    "aud_yo>txt_hi/flat_bleu": 1.9518976940355397,
+    "txt_en>img/r1": 15.929487347602844,
+    "txt_en>img/r5": 41.98718070983887,
+    "txt_en>img/r10": 55.99358677864075,
+    "txt_hi>img/r1": 8.365384489297867,
+    "txt_hi>img/r5": 25.544872879981995,
+    "txt_hi>img/r10": 37.467947602272034,
+    "aud_en>img/r1": 5.072231218218803,
+    "aud_en>img/r5": 16.693419218063354,
+    "aud_en>img/r10": 25.650081038475037,
+    "aud_yo>img/r1": 0.9633911773562431,
+    "aud_yo>img/r5": 5.587668716907501,
+    "aud_yo>img/r10": 10.59730276465416,
+    "txt_en>img_gen/r1": 11.826922744512558,
+    "txt_en>img_gen/r5": 31.698718667030334,
+    "txt_en>img_gen/r10": 44.07051205635071,
+    "txt_hi>img_gen/r1": 5.544871836900711,
+    "txt_hi>img_gen/r5": 17.916665971279144,
+    "txt_hi>img_gen/r10": 28.46153974533081,
+    "aud_en>img_gen/r1": 3.9165329188108444,
+    "aud_en>img_gen/r5": 12.744782865047455,
+    "aud_en>img_gen/r10": 19.80738341808319,
+    "aud_yo>img_gen/r1": 0.9633911773562431,
+    "aud_yo>img_gen/r5": 5.009634047746658,
+    "aud_yo>img_gen/r10": 8.86319875717163,
+    "aud_yo>txt_en/hub_r1": 0.19267823081463575,
+    "aud_yo>txt_en/hub_r5": 1.1560693383216858,
+    "txt_en>aud_en/rt_bleu": 1.5014848420654612,
+    "txt_en>aud_en/rt_chrf": 16.383893694715653,
+    "aud_yo>aud_en/rt_bleu": 0.8962406463749543,
+    "aud_yo>aud_en/rt_chrf": 15.3889129504507,
+    "txt_en>aud_yo/rt_bleu": 2.48996954656523,
+    "txt_en>aud_yo/rt_chrf": 19.11906707141675,
+    "aud_en>aud_yo/rt_bleu": 2.014987068802681,
+    "aud_en>aud_yo/rt_chrf": 17.443506827644047,
+    "codec_txt_en/cer": 28.499038965577494,
+    "codec_txt_hi/cer": 44.41909108195475,
+    "tone/gate_en": 0.8295571804046631,
+    "tone/reliance_en": 0.2866640090942383,
+    "tone/gate_yo": 0.6124406456947327,
+    "tone/reliance_yo": 0.05949826166033745,
+    "score": 2.9293369487873306
+  },
+  "samples": {
+    "aud_yo>txt_en": [
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "Two kids sit on a statue of a large plastic box .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A boy is riding a steep rock face in a skateboard .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A woman in a red shirt is running a tire stuffed animal .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "Two dogs are playing in a grassy field .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A boy in a green shirt is doing a stunt in a half pipe lined down the from hill .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black dog is chasing a ball while another dog in a field .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A brown dog is jumping up on a trampoline",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "Two boys are in a blue and yellow shirt is playing in a game .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "Two dogs play together in the snow .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy on a bicycle is in the dirt is doing a bike .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy dressed in soccer attire and holding his shoes getting out of a car .",
+        "hyp": "A boy in a swimsuit tosses their saxo the water .",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in blue is jumping on the shore as small waves approach her .",
+        "hyp": "A girl in a pink shirt is walking through a park .",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "A crowd of people walk down a busy sidewalk .",
+        "hyp": "A person with a backpack stands on a hill .",
+        "img": 157,
+        "cap": 0
+      },
+      {
+        "ref": "Two children are laughing in the grass .",
+        "hyp": "A little girl is playing with a ball on the street with a pink balloon plays .",
+        "img": 180,
+        "cap": 0
+      },
+      {
+        "ref": "A boy eats with a spoon .",
+        "hyp": "A man in a red shirt is watching a creek background in front of a car during the ocean .",
+        "img": 182,
+        "cap": 0
+      },
+      {
+        "ref": "A lady holds a little girl who is trying to catch bubbles .",
+        "hyp": "A child is preparing to the woods .",
+        "img": 195,
+        "cap": 0
+      },
+      {
+        "ref": "Three children are playing in sand near to the beach .",
+        "hyp": "Three children are standing on a rocky seat at a rope .",
+        "img": 208,
+        "cap": 0
+      },
+      {
+        "ref": "A couple of people sit outdoors at a table with an umbrella and talk .",
+        "hyp": "People standing in a street",
+        "img": 218,
+        "cap": 0
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A dog is running away from a stock turned around the hand trees .",
+        "img": 223,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white dog carrying a large stick",
+        "hyp": "A dog runs on the snow with a tennis ball in its mouth .",
+        "img": 226,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "Two girls in pink shorts and white shorts .",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "A boy sitting in water .",
+        "hyp": "A young girl in a bathing suit is splashing a blue and blue sky in the water .",
+        "img": 245,
+        "cap": 0
+      },
+      {
+        "ref": "A person hanging from a telephone pole near the mountains .",
+        "hyp": "Two girls play fighting with a toy .",
+        "img": 281,
+        "cap": 0
+      },
+      {
+        "ref": "a boy enjoys a rain shower .",
+        "hyp": "A person in a blue shirt stands by a watch for paint in a glass distance on a marbore while passert go her waist in the background .",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "A boy and a girl playing on the beach .",
+        "hyp": "Two little girls in a pink shirt is standing with hula hoops around her  railmon .",
+        "img": 293,
+        "cap": 0
+      },
+      {
+        "ref": "A man sleeping with a bag on his lap on public transportation",
+        "hyp": "A man with a green hat and a red cowboard is walking .",
+        "img": 295,
+        "cap": 0
+      },
+      {
+        "ref": "People stand on a street corner at dusk , with a pharmacy in the background .",
+        "hyp": "Two boys play in a toy guitar .",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "Four children in stripped together and one seated on a sunny day",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "three females wearing head scarves standing together",
+        "hyp": "A little girl in a pink top is standing in front of a store .",
+        "img": 310,
+        "cap": 0
+      },
+      {
+        "ref": "A blond boy in a blue tee shirts stands smiling before a craft of green nylon fabric .",
+        "hyp": "A boy in a blue swimsuit is near a body of water .",
+        "img": 314,
+        "cap": 0
+      },
+      {
+        "ref": "A blonde girl is stepping on vertical logs in the sand .",
+        "hyp": "Two children and a dog are round a park bench .",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "A helmeted man jumping off a rock on a mountain bike .",
+        "hyp": "A man on a bike is jumping off a rock in the air .",
+        "img": 350,
+        "cap": 0
+      },
+      {
+        "ref": "A boy rides on a tire swing .",
+        "hyp": "A boy in a blue shirt is standing in a swimming pool with a soccer ball in on the ground .",
+        "img": 352,
+        "cap": 0
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man stands at a table .",
+        "img": 356,
+        "cap": 0
+      },
+      {
+        "ref": "a boy is playing with a camera whilst standing on a dirt track .",
+        "hyp": "A boy in a red shirt standing on a trampoline as he watshes held by his friend .",
+        "img": 366,
+        "cap": 0
+      },
+      {
+        "ref": "Two bicycles are standing behind two people sitting on the grass near a body of water .",
+        "hyp": "A woman in a blue shirt is sitting on a wooden bench .",
+        "img": 368,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog carrying an object out of the water .",
+        "hyp": "A black dog with a blue collar is moving the black looking at something in the water .",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A white dog with a black collar runs for a forest in the background .",
+        "img": 380,
+        "cap": 0
+      },
+      {
+        "ref": "a man in a harness being dragged across the water",
+        "hyp": "Two women walking down a sidewalk .",
+        "img": 402,
+        "cap": 0
+      },
+      {
+        "ref": "A girl smiles as she runs across the white sandy beach in her swimsuit .",
+        "hyp": "A woman is sitting on a bench and is wearing a hat .",
+        "img": 407,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in boots is active in the grass .",
+        "hyp": "A woman sits on a red sledge down and looks daward swings at the wood the two other kids .",
+        "img": 415,
+        "cap": 0
+      },
+      {
+        "ref": "A person is laughing on a roller coaster ride .",
+        "hyp": "A small crowd raises his hands as they leaps over a bar .",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "A dog on two legs with its mouth opened toward a blue ball in the air .",
+        "hyp": "A dog is running along a beach with a red ball .",
+        "img": 435,
+        "cap": 0
+      },
+      {
+        "ref": "A child in a black shirt standing on a wooden dock near a picnic table .",
+        "hyp": "A little boy is standing in front of a wooden bridge alley .",
+        "img": 440,
+        "cap": 0
+      },
+      {
+        "ref": "A man in the near distance is pointing to a silver sedan near him .",
+        "hyp": "A man in a blue shirt and jeans plays with a dog .",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "A hiker is walking a treeless path up a hill .",
+        "hyp": "Two men stand on a street with blue backpack .",
+        "img": 453,
+        "cap": 0
+      },
+      {
+        "ref": "a man in a harness climbing a rock wall",
+        "hyp": "A man in a sweatshirt and blue shorts stands on a red bench .",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "Children participate in a sport on a green field while in uniforms .",
+        "hyp": "Three children are playing with a dog in the back of a big white boy and a littempors .",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "A boy doing a handstand on the beach .",
+        "hyp": "A young boy in a blue shirt stands on a stone bed",
+        "img": 483,
+        "cap": 0
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "Two people are in a raft into the ocean , wearing a helmet .",
+        "img": 521,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is trotting through a shallow stream",
+        "hyp": "A dog runs through the grass towards land .",
+        "img": 543,
+        "cap": 0
+      },
+      {
+        "ref": "A couple dressed in hoodies kissing on the beach .",
+        "hyp": "Two boys are sitting on a street with a man in the background .",
+        "img": 548,
+        "cap": 0
+      },
+      {
+        "ref": "A man dressed in camouflage riding a motorbike",
+        "hyp": "A woman in a red dester looks at a dramp .",
+        "img": 553,
+        "cap": 0
+      },
+      {
+        "ref": "A boy points .",
+        "hyp": "A boy in a blue shirt runs down from a wooden fence .",
+        "img": 558,
+        "cap": 0
+      },
+      {
+        "ref": "A brown , black , and tan dog run in the ocean .",
+        "hyp": "A dog is running away from another dog and an agility .",
+        "img": 567,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is running with a yellow tennis ball and wearing a red harness .",
+        "hyp": "A dog runs through a field .",
+        "img": 573,
+        "cap": 0
+      },
+      {
+        "ref": "A boxy building , A group of trees , a church at sunset .",
+        "hyp": "A crate car throwing a striped dress taking a picture of a racetrack .",
+        "img": 583,
+        "cap": 0
+      },
+      {
+        "ref": "A girl is reading while drinking Starbuck 's coffee .",
+        "hyp": "A girl in a red shirt is watching a board in a pool of walking past a rope .",
+        "img": 588,
+        "cap": 0
+      },
+      {
+        "ref": "Boys kicking soccer ball in the grass under a tree",
+        "hyp": "Two women sit on a subway station .",
+        "img": 589,
+        "cap": 0
+      },
+      {
+        "ref": "A big hound dog walking on a log in the woods .",
+        "hyp": "A dog is running through the grass .",
+        "img": 593,
+        "cap": 0
+      }
+    ],
+    "aud_en>txt_en": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A person in a green and white team and the ground holding a ball in the background",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A person wearing a blue headband sitting on a wall while an older shaped like a shirted boy while one wearshors behind them dreessses thior .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A crowd watches the man in a blue cap on a cellphone with a crowd watches .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A man and a woman are standing on a sidewalk in front of a building .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A woman with a blue blannet is standing near a crowd .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman in a black shirt and blue shorts playing with a red hat .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A child swings on the swing .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A woman is sitting at a table in a park .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman wearing a pink Tinkerbell stands in front of a red building .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A woman and a young girl sit on a bench in a park .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A little boy is sitting in a colorful balls .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "A boy with a safety hat is carrying a beach .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A little boy in a red shirt plays on a bed .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "Children are standing on the beach .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A boy slides down a blue slide with a bubble sun .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man sits on a bench while standing on a sunny day allen .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A man and woman sit on a park bench on a sunny day .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man sits on a car .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "A man in a black hat holds a sign with a camera up on the couch .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man in a suit along a picture with a blond girl in front of him .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A small white dog walking in water , one is hinging mask .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A person sitting at a table fire .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A white dog with a muzzle is running on the grass .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A white dog is about to catch a yellow ball in its mouth .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A white dog is running through the snow .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A boy with a broken arm is sliding on his head .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A boy swings on a swing set .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "A boy in a red shirt is splashing along a path with a blue palm that is reaching fishing boat .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "A child plays in a swing writing on a swing .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A little boy is playing on a trampoline .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black and white dog jumps over a bar .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A black dog is running in a field of grass .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A black dog with a red collar plays in the water .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A black dog is running across a grassy field .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "A black and white dog is catching a toy in its mouth .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A cricket bird flies off waring .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A black horse with a blue blanket is parked eating some beaded .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A snowboarder is jumping over a snowy hill .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A woman is holding a baby in orange and yellow shoes in a bed .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A little boy in a red top is running through a flowery train",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A light brown dog is running in the grass with a brown colored dog .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "A dog runs through the grass .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "Three dogs are playing in a field , one doing that is behind .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A small dog runs through a field .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A dog is running through a field of grass and another dog toy in its mouth .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A person with a straw hat is smiling and holding her big bout of his face .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A little girl is sitting in a chair in a shopping cart .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A young boy is draping a green flag machine with a scooter .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A little boy is standing in front of a wooden deck with his hands in the air .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A boy with a broken arm asleep on a training leaves .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A dog is running through the snow .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A dog is swimming in a lake with a stick in its mouth .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A greyhound shown is walking a muzzle racing on a track .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A brown dog is walking over the leafy ground .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A black dog is running through the water .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy in a stuffer dances in the sand .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A boy in a purple shirt jumps into a backyard of a blue sky with a ride barrel .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A boy smiles as he leaps into the water .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A little boy is standing in front of a swirling on his head .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy in a blue shirt is standing in the street .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "img>txt_en": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A woman sits on a decorated with a dog ipeople behind him .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A woman sits at an outdoor cafe top .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A man is standing on a park bench as they leaning day too in foreing of one pole .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A woman is sitting on a roller coaster rears an art gallery .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A woman sits at an outdoor cafe table while performing in a parade",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman in a blue sweater is sitting on a sidewalk with her brown hair walking next to her .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A woman in a blue sweater is sitting on a subway train with a volleyball net outside .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A woman in a blue sweater is sitting on a subway train with a volleyball net outside .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman in a blue sweater is sitting on a sidewalk with her brown hair walks near the other .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A woman in a blue sweater is sitting on a sidewalk with her brown hair walking down a street .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "Boy with young boy swim trunks .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "Boy with boy holding cold smile for the camera .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "Boy with young boy swim trunks .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "Boy with young boy swim trunks .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "Boy with young boy swim trunks .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man and woman boy sit on a shore bandanna , pig that talks on a cement while dancing on the snow .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A man and a woman are walking along a beautiful string one sitting on a white ball covered in blackground with oten behind him .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man and a woman are walking along a beautiful net tiniter front of them .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "A man and a woman are walking along a beautiful net trees from the other children .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "An adolard on a bright shoe at a piece , piggeon who is tent in the front and in white red shirts .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A white dog drinks are with a mouth scandles as they reaching , holding out a stiffed .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A white dog drinks water on a mossed trail .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A white dog drinks water on a muddy leople",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A white dog sits on a green moves that leads \"\" Ok her Bue Canon .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A white dog sits on a green colored sled with white sunglasses .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A child in a ball pitcheling on the baseball .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "Child in blue shirt plays with a bubble bath .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "Child in blue shirt and catches a ball .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "Child in blue shirt and catches a ball .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "Child in blue shirt plays with a ball of balls .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black dog on a white dog grass .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A black dog on a white dog grass .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A black dog and a white dog grass .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A black dog and a white dog grass .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "A black dog and object at a green grassy field .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A the tenss ink girl under the table steen .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A the tenss in line umbrella tikes with deep snow .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A thite standing in multicolored white steams in water .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A the tenss playing hurmul t-shirt entived snowy trainse .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A the tailer sticking up from the water selies .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A light colored dog runs along the grass .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "A light colored dog runs along the grass .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "A light colored dog runs along the grass .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A light colored dog runs along the grass .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A light colored dog runs along the grass .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A young boy in a blue shirt stands in the stairs .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A young boy in a blue shirt stands smiles .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A young boy in a blue shirt stands in the swing .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A young boy in a blue shirt stands in the swing .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A young boy in a blue shirt stands splashes in a painting .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A dog stret dog streads through an obstacle .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A dog trying to catch hurdle in a sandy tree .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A dog stret dog with hurdle is above a steep in the forest .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A dog trying to catch her and a brown stick .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A dog stirs through dround around a sandy tigeetly .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A young boy in a blue shirt stripes to make a hold .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A young boy in a blue shirt stripes to make a chainsaली 's to her .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A young boy in a blue shirt stripes to make a chainsaली 's to her beach .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A young boy in a blue shirt stripes to make a chrowd hair flies in the background .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A young boy in a blue shirt stripes to make a chainsaली 's to her beach .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "txt_en>txt_en": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A man and a woman are wearing swimming coful pants with a blue hat in a black coat sitting a sand with a brown dog .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A man and woman sit on a bench .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A woman in a black shirt and hat sitting on a bench are walking down a wooden paint in front of something red .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A man in a white waterskiing rocks as a yellow kayak with a waterfall picture .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A woman walks with her arms out in the background neck outside .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman wearing a hat and sunglasses on her chest .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A woman sits on a concrete shop .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A woman sits at a table outside has on a stone bed looking at a table .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman wearing a red hat and blue jacket is sitting on a red carpeted for a yellow car ember .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A woman wearing a black shirt and blue jeans is sitting on a blue car while grass fly .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A boy wearing a blue shirt is running through the sand .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "A boy is standing on the beach .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A boy splashing through water on a beach with a man .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "Children play in the sun at beach .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A boy is splashing in the ocean .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man is standing on a hill looking at the camera .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A man and woman sit on a park bench in a park .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man and a woman sit on a bench .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "A man and a woman sitting next to a lake .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man and a woman sitting on a bench on a sunny day .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A white dog is attempting to catch something in a flower pond .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A small white dog holds a bird in its mouth .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A white dog is chasing a stick in the grass .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A white dog is standing on its hind legs to reach to the side of a building .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A white dog is jumping on the side of a boat of water .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A boy with a short hat .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A young boy with a blue coat is walking along a red toy .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "A little boy in a blue shirt is standing in front of a small criem colored hat is on a  todd a hot .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "A child sliding down a slip and slide .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A boy with his face paint on his mouth .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black dog jumps over a bar on a slide .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A black dog plays with a ball in a yard .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A black dog plays with a toy .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A black dog runs through the grass .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "A black dog is running through the grass .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A black and white dog wearing green white sheet on superious .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A black and white dog with a blue halter riding on its hind legs .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A bird is in the distance on the edge of the steps of a dusty landscape .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A white bird floats leaves two showglers in the snow .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A child in a blue shirt and a blue shirt is in the air above the soccer ball .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A light colored dog runs through the grass .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "A dog runs through the grass .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "A dog is running through the grass with a stick in his mouth .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A dog is running towards the grass .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A dog is running through a field of grass and another dog toy in its mouth .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A small child wearing a blue shirt with drinks is playing with a toy crowd .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A small child wearing a blue outfit and blue hat is standing beside a smiling yellow .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A baby with a beach with a water spout .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A little boy in a red top is wearing a helmet , gloved up , plust and eating mobiles .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A baby with a baseball in his mouth , and a bandanna .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A black and white dog is running through snow .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A dog swims in the water .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A dog with a red toy in its mouth is standing in a shallow pond .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A white dog with brown spots is running on a dry surrrounded by pittes .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "Two brown and white dogs are standing in the water .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy jumps off a high kit .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A boy jumps off a dive into the air .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A boy jumps off a high muster .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A child jumps in the air on a tripod .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy wearing blue shoes jumps on the bed .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "txt_en>txt_hi": [
+      {
+        "ref": "एक जोड़ा और एक शिशु, एक पुरुष द्वारा पकड़, एक तालाब के पास टहलते हुए एक तालाब के पास बैठते हैं ।",
+        "hyp": "एक स्त्री जिसके बाल हो सकता है एक महिला अपने उंगली से बाहर एक ",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "एक जोड़ा घास पर एक बच्चे के साथ बैठता है ।",
+        "hyp": "दो व्यक्ति एक कार्ड के बाद जा सकते हैं.",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "एक जोड़ा अपने नवजात शिशु के साथ एक पेड़ के नीचे एक झील का सामना करता है ।",
+        "hyp": "दो महिला और एक आदमी एक किनारे के बाहर एक किया जा सकता है.",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "एक पुरुष और स्त्री पानी के एक शरीर के साथ एक शिशु की देखरेख करते हैं ।",
+        "hyp": "एक आदमी एक खेत में एक पत्थर के साथ एक बस्के हैं.",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "एक बच्चे के साथ लड़का - लड़की बाहर बैठते हैं ।",
+        "hyp": "दो औरत एक बूढ़ी औरत बाहर खेलते हैं जबकि एक व्यक्‍ति द्वारा खड",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "एक ब्लू शर्ट में एक ब्लॉडी महिला एक सवारी के लिए इंतजार करने के लिए दिखाई देती है.",
+        "hyp": "एक औरत जिसके पास सफेद गुलदर कार में ले जाया जा रहा है.",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "एक ब्लॉड औरत सड़क पर एक टैक्सी की बौछार पर है.",
+        "hyp": "एक औरत एक गाय की टोपी पहनती है और कमड़े का खाते हैं.",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "एक औरत ट्रैफिक जाम की तरफ इशारा करती है ।",
+        "hyp": "एक औरत एक गिलास के पेड़ पर बैठते हैं अपने गुलों में बैठी है ।",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "एक औरत जिसके बाल नीले नली के ऊपर हैं एक सड़क के किनारे हिल सकती है।",
+        "hyp": "एक औरत जिसके पास ब्लॉब के साथ सड़क पर चल रही है ।",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "एक नीले पोशाक में एक महिला यातायात आने पर अपने हाथ बाहर पकड़ रहे हैं.",
+        "hyp": "एक औरत अपने सिर के सामने बैग से बाहर हो रही है जब वह एक बंदूसे क",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "एक लड़का समुद्र तट पर थोड़ा तैर रहा है.",
+        "hyp": "एक छोटा लड़का समुद्र तट पर नीचे गिरता है.",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "समुद्र तट पर कैमरा के लिए एक लड़का मुस्कान.",
+        "hyp": "एक छोटा लड़का समुद्र तट पर नीले गेंद के साथ.",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "एक छोटा लड़का एक किनारे पर अपनी भुजा के साथ चलते हुए चल रहा है ।",
+        "hyp": "एक लड़का पानी में खेलते हैं और उसके मुँह में पानी के साथ सवारी",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "एक समुद्र तट पर बच्चे खेलते हैं.",
+        "hyp": "समुद्र तट पर बच्चे खेल रही है.",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "एक लड़का समुद्र तट पर खेल किया जा रहा है.",
+        "hyp": "एक छोटा लड़का समुद्र तट पर पानी महलार पर है",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "एक महिला और कोई शर्ट के साथ एक आदमी एक डॉक पर बैठ।",
+        "hyp": "एक आदमी एक पहाड़ी के शर्ट पर एक भीड़ हो.",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी और एक औरत एक नाव पर बैठते हैं.",
+        "hyp": "एक औरत और एक आदमी एक किताब पर बैठी है",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "एक आदमी और एक औरत एक डॉक पर बैठते हैं.",
+        "hyp": "एक आदमी औरत एक कुप्तॉतारण पकड़.",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "एक आदमी औरत एक झील के बगल में बैठता है.",
+        "hyp": "दो व्यक्‍ति एक दुकान के पास एक पत्थर बैठते हैं ।",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "एक कमीना आदमी और एक औरत एक नाव पर बैठते हैं.",
+        "hyp": "दो व्यक्‍ति एक आदमी एक काट्ठंग से बाहर खड़े हैं ।",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "एक सफेद कुत्ता का एक बंद अंग है जो अपने पंजे पर अपना सिर रखता है.",
+        "hyp": "एक सफेद कुत्ता एक बैले हुए है और उसके मुँह में एक टन पकड़ा.",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा सफेद कुत्ता फर्श पर पड़ा है.",
+        "hyp": "एक सफेद कुत्ता अपने कुत्ते के साथ बैठता है",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "एक सफेद कुत्ता जमीन पर सिर है.",
+        "hyp": "एक सफेद कुत्ता अपने मुँह में गेंद के लिए दौड़ रहा है.",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "एक सफेद कुत्ता अपनी आँख खुले हुए फर्श पर अपना सिर रखता है.",
+        "hyp": "एक सफेद कुत्ता एक बैग के ऊपर एक छड़ी वापस लटका हुआ है.",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "एक सफेद कुत्ता अपने सिर patoo ईंटों पर आराम करते हैं.",
+        "hyp": "एक सफेद कुत्ता अपने मुँह में गेंद के लिए कूदता है.",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "एक शेर बंदूक के साथ एक लड़का.",
+        "hyp": "एक छोटा लड़का पहले जाना है.",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "नारंगी में एक छोटा सा बच्चा.",
+        "hyp": "एक छोटा लड़का एक किनारे पर बैठा हुआ है हँआ....... हाथ के साथीय.",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "एक जवान लड़के ने अपने पैरों के बल से आग के सामने कैमरा पर एक पैर रखा ।",
+        "hyp": "एक छोटा लड़का जिस पर हाथ के साथ एक खोपड़ी और उस पर कैम पर बैठ जा",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "एक युवा बच्चे अपने नए प्रकाश अप के साथ खेलता है.",
+        "hyp": "एक छोटा बच्चा एक पेड़ में खेलता है.",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "कैमरा पर बंदूक बिंदु के साथ लड़का.",
+        "hyp": "एक छोटा लड़का सिर्फ देखो.",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "एक काला कुत्ता एक रस्सी पकड़ने के लिए कूद",
+        "hyp": "एक काला कुत्ता एक नारंगी से चलता है.",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "एक काला कुत्ता खेल रस्सी की गेंद के साथ लाने के लिए.",
+        "hyp": "एक काला कुत्ता अपने मुँह में एक छड़ी के साथ खेलता है.",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "एक काला कुत्ता एक रस्सी पाने के लिए बह रहा है।",
+        "hyp": "एक काला कुत्ता एक चिह्न के चारों ओर कूदता है.",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "एक काला कुत्ता अपनी रस्सी के बाद दौड़ता है।",
+        "hyp": "एक काला कुत्ता घास के माध्यम से चलता है.",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "एक बड़ा काला कुत्ता घास के आँगन में खेल रहा है।",
+        "hyp": "एक काला कुत्ता घास के माध्यम से चलता है.",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "काले और सफेद पक्षी किसी के हाथ से बीज खाते हैं",
+        "hyp": "एक काले और सफेद कुत्ता के साथ कुछ विमान के साथ काम करता है.",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "एक काले और सफेद पक्षी हाथ में खड़े हैं।",
+        "hyp": "एक काले और सफेद कुत्ता कब्र पर चल रहे हैं.",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "एक छोटा पक्षी एक व्यक्ति के हाथ में बैठता है और बीज खाता है.",
+        "hyp": "एक सफेद कुत्ता एक झील के तल पर एक छोटा - सा हार के चारों ओर उसके ",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "काला और सफेद पक्षी किसी के हाथ में सूरज के फूल पकड़ रहा है",
+        "hyp": "एक काला और सफेद कुत्ता बर्फ के पार चलता है.",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "एक छोटा पक्षी हाथ की उंगली से थामे रहता है ।",
+        "hyp": "एक छोटा लड़का बड़े होकर ऊपर होता है ।",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "घास के माध्यम से बड़े कान के साथ एक छोटा सा कुत्ते.",
+        "hyp": "एक कुत्ता घास के माध्यम से चलता है.",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "एक सुन्दर कुत्ता घास के माध्यम से चलता है.",
+        "hyp": "एक पीला कुत्ता घास के पार चला जा रहा है.",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "एक छोटा कुत्ता कान घास में दौड़ते हुए चलता है.",
+        "hyp": "एक कुत्ता घास के माध्यम से एक रंग ही हवा के माध्यम से कूदा जा र",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "एक छोटा कुत्ता एक मैदान के पार चला जा रहा है.",
+        "hyp": "एक कुत्ता घास के माध्यम से चलता है.",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "यह एक छोटा सा कुत्ता घास मैदान में चलता है",
+        "hyp": "एक सफेद कुत्ता घास के पार चला जा रहा है जब वह पाड़ के पास घूमतत",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "श्‍वेत वस्त्र में बच्चा चाँद और तारों के साथ एक झंडा धारण करता है ।",
+        "hyp": "एक बच्चे के सिर पर गुलाबी कमी महिल जाता है और कैमरा पर देखो.",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "एक बच्चा चाँद पर एक छोटे से काले ध्वज और एक तारे के साथ पकड़ रहा है।",
+        "hyp": "एक छोटा बच्चा कैमरा पर मुस्कुराते हैं और एक कार में बहुत तट पर",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "एक बच्चे को सफेद रंग की लहर पहनाता है एक मुसलमान झंडा.",
+        "hyp": "एक बच्चे के पास एक हीब स्कोट पहनी जा रही है.",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "सफेद रंग के एक छोटे - से कपड़े पहने हुए जब एक महिला उसे झंडे की लहरों की मदद करती है ।",
+        "hyp": "एक छोटा बच्चा कुछ के नियंत्रण पकड़ किया जा रहा है.",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "श्‍वेत पर काले और सफेद ध्वज में बेबी.",
+        "hyp": "एक बच्चा का एक आदमी के कागज पकड़ लिया जा सकता है।",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "एक भूरे और सफेद कुत्ता बर्फ के बाहर खड़े हैं.",
+        "hyp": "बर्फ में काले और भूरे कुत्ते को पहनते हैं.",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ता पानी के पास कुछ देखो.",
+        "hyp": "एक कुत्ता पानी में तैर रहा है.",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "अपने कोट को हिलाकर पानी को पोंछने की कोशिश करता है ।",
+        "hyp": "एक कुत्ता अपने मुँह में एक छड़ी के साथ फैल्ट उड़ाता है.",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "एक सफ़ेद और भूरे कुत्ते अपने आत्मो को हिला देते हैं.",
+        "hyp": "एक सफेद कुत्ता एक ब्लू हरी घास में चलता है।",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "बड़े भूरे रंग के और सफेद कुत्ता पानी से काँपते हैं ।",
+        "hyp": "दो कुत्ता एक साथ खेलते वक्‍त देखता है जब वह एक साथ खेलता है.",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "एक लड़का बिस्तर पर कूद किया जा रहा है.",
+        "hyp": "एक छोटा लड़का एक मैदान में चला जाता है.",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का एक हरे बिस्तर से कूद जाता है.",
+        "hyp": "एक लड़का हवा में कूद किया जा रहा है.",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "एक लड़का एक बिस्तर से दूसरे को कूदता है.",
+        "hyp": "एक छोटा लड़का मुस्कुराता हुआ चट्टान स्मार्ग सवारी किया जा रह",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "एक छोटा बच्चा बिस्तर पर कूद जाता है.",
+        "hyp": "एक छोटा लड़का एक झूलिया जा रहा है.",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "नीले छोटे में एक लड़का बिस्तर पर चिल्ला हो.",
+        "hyp": "एक छोटा लड़का लाल रंग की पोशाक में कूद हो.",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "txt_hi>txt_en": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A man wearing a black hat and black colored coat looks like a dog stands with a cigarette bag .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A little girl stands on a tree swing .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A woman is sitting on a rock beside a waterfall while a woman rolls of in the background",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A man and woman sit together small crowd and tattoo with a table .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A little boy is holding a blue sleeping while another little girl sitting on a grass read .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A person in a red jacket and blue strides a vehicle along the side of a classic road .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A woman wearing a blue coat and hat sits on the sidewalk .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A woman wearing a red scarf rimes her bike in a dark room .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman in a red jacket is standing on a sidewalk next to a woman .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A woman wearing a blue coat and hat walks down the street with bright shopping into a man wearing a red walking .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A boy in blue shorts standing on a beach .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "A boy wearing a red shirt is splashing in the ocean .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A boy walks with a shopping bag walking along a path .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "A child in a black shirt plays in the ocean .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A boy is walking on the beach .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man and a woman sit at a woman and looks at a lady .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A man and woman sit on a bench .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man and a woman sit at a table in a park .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "A woman sits at a table outside .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man sits on a bench with a white hat and an adult shirt .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A white dog is carrying a stick in its mouth while standing in a f face .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A small white dog is jumping on the grass .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A white dog is playing with a stick .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A white dog is airborne on a stone while a man forest .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "A small dog is looking at a brown and white dog in a forest .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A boy in a skateboard going down a handrail .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A child plays on the kids .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "A young boy stands on a street with a boy in a striped sweats in orange shop with large stream .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "A little boy is holding a lit silly up from spinny car .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A boy and a good holding a young blond kisses .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black dog is standing on a black rope",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A black dog is chasing after a red ball .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A black dog with a blue collar is standing by a body of water .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A black dog runs through the grass .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "A black dog is running through the grass .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A white bird flies over a flower .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A black and white dog is playing with a toy outside .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A bald man in a trorne outfit on the back of a book shelf .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A black and white dog is playing with a white and blue towards the camera , white playing on top of the side .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A baby is sitting in the saw ins the bright in the park .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A dog runs in a field of two white and blue cow flowers .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "A white dog runs through the yard .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "Two dogs run around in a grassy area .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A white dog runs through a field .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A white dog runs through the grass .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A boy with a brown top and a green shirt is standing in a grassy field",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A child with a hat is sitting on the sand in front of a blue sky .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A small child is holding a baby on the floor .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A girl wearing a helmet is sitting on her head protective grab on a street check .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A boy wearing a helmet is standing outside .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A small white dog in the snow with a snowball in its mouth .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A dog is running in the water .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A man is surfing underwater in a wave .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A white dog is running through the water using a plain .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A white dog is standing in front of a blue stream .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A boy jumps off a high jump .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A boy jumps off a downport and one maneutable .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A boy jumps high indoor some sort on a beach .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A little girl jumps on a tree .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A boy is blowing bubbles over a set .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "aud_yo>txt_hi": [
+      {
+        "ref": "एक ब्लू शर्ट में एक ब्लॉडी महिला एक सवारी के लिए इंतजार करने के लिए दिखाई देती है.",
+        "hyp": "दो बच्चे एक कुत्ते के साथ बच्चे हैं, जबकि एक व्यक्‍ति का उड़ा ",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का समुद्र तट पर थोड़ा तैर रहा है.",
+        "hyp": "एक छोटा लड़का सड़क पर चढ़ रहा है.",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "एक महिला और कोई शर्ट के साथ एक आदमी एक डॉक पर बैठ।",
+        "hyp": "एक जवान औरत हरा ईंट की जूती रारी हो.",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "एक सफेद कुत्ता का एक बंद अंग है जो अपने पंजे पर अपना सिर रखता है.",
+        "hyp": "दो कुत्ता घास के पास घर में खेलता है.",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "एक शेर बंदूक के साथ एक लड़का.",
+        "hyp": "एक लड़का एक पीले सड़क की साइकिल पर सवारी किया जा सकता है.",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "एक काला कुत्ता एक रस्सी पकड़ने के लिए कूद",
+        "hyp": "एक कुत्ता एक बाधा के ऊपर एक बोर्ड गेंद पकड़ने के लिए कूदता है.",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "घास के माध्यम से बड़े कान के साथ एक छोटा सा कुत्ते.",
+        "hyp": "एक छोटा कुत्ता एक बाधा के ऊपर कूदता है.",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "श्‍वेत वस्त्र में बच्चा चाँद और तारों के साथ एक झंडा धारण करता है ।",
+        "hyp": "दो लड़का एक जोड़े के रंग के एक और इमारत के बारे में सोच.",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "एक भूरे और सफेद कुत्ता बर्फ के बाहर खड़े हैं.",
+        "hyp": "दो कुत्ते बर्फ में एक साथ खेलते हैं.",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का बिस्तर पर कूद किया जा रहा है.",
+        "hyp": "छोटे बच्चे सभी सड़क पर अपनी साइकिल चलाते हैं.",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "फुटबॉल पोशाक में एक लड़का पोशाक और उसकी जूते एक कार से बाहर मिलता है.",
+        "hyp": "एक लड़का एक ज्वालामुखी पर हरे रंग के घूमता है.",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "नीले रंग की एक लड़की किनारे पर कूद के रूप में एक छोटी लहर उसके पास आती है.",
+        "hyp": "एक जवान लड़की एक समुद्र तट पर खेल रही है.",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "एक व्यक्‍ति की भीड़ एक व्यस्त किनारे पर चल रही है ।",
+        "hyp": "एक व्यक्‍ति एक पहाड़ पर लोग साइकिल चलाते हैं ।",
+        "img": 157,
+        "cap": 0
+      },
+      {
+        "ref": "दो बच्चे घास में हंस रहे हैं.",
+        "hyp": "एक छोटा लड़का एक स्टारो के ऊपर कूद जाते हैं जब एक संघटने के द्",
+        "img": 180,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का एक धूपदान के साथ खाना.",
+        "hyp": "एक बेकार आदमी काले रंग का कपड़ा पहन रहा है, पाल.",
+        "img": 182,
+        "cap": 0
+      },
+      {
+        "ref": "एक महिला एक छोटी लड़की को पकड़ने की कोशिश की जा रही है जो।",
+        "hyp": "एक छोटे - से बिर कोई अमेरित के बगल में साथ बैठी है",
+        "img": 195,
+        "cap": 0
+      },
+      {
+        "ref": "समुद्र तट के पास रेत में तीन बच्चे खेल रहे हैं.",
+        "hyp": "तीन बच्चे एक तीसरे विश्‍व की एक डराक की बंद कर देखते हैं ।",
+        "img": 208,
+        "cap": 0
+      },
+      {
+        "ref": "एक जोड़ा बाहर मेज़ पर बैठा हुआ होता है जिसमें छाता और बातचीत होती है ।",
+        "hyp": "लोग हरे बाहर हो.",
+        "img": 218,
+        "cap": 0
+      },
+      {
+        "ref": "एक साइकिलर कॉफी का आनंद लेते हैं.",
+        "hyp": "एक छोटा कुत्ता एक नारंगी सड़क नीचे रेखा के साथ एक जाम की जा रह",
+        "img": 223,
+        "cap": 0
+      },
+      {
+        "ref": "काले और सफेद कुत्ता बड़ी छड़ी लेकर चलते हैं",
+        "hyp": "एक कुत्ता एक गाय कुत्ता एक बीचे हरे रंग के कपड़े में.",
+        "img": 226,
+        "cap": 0
+      },
+      {
+        "ref": "एक रीफ़ेंस मेल पर पोशाक में व्यक्ति का एक समूह.",
+        "hyp": "दो जवान महिला कुछ पीले फूल में जैकी है.",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का पानी में बैठते हैं.",
+        "hyp": "एक छोटा बच्चा एक गुलाबी कमीज के साथ खेल रहे हैं गयूदता है ।",
+        "img": 245,
+        "cap": 0
+      },
+      {
+        "ref": "एक व्यक्‍ति पर्वत के पास एक टेलिफोन खंभे से लटका हुआ है ।",
+        "hyp": "दो बच्चे एक गुलाबी खेलते हैं.",
+        "img": 281,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का बारिश का आनंद ले रहा है.",
+        "hyp": "एक लड़का कदम पर खड़े हो सकते हैं, चश्मा, और एक टिसी के नीचे चल र",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का और एक लड़की समुद्र तट पर खेलते हैं.",
+        "hyp": "दो जवान लड़की एक दूसरे को देखते हैं कि मैदान में सफेद रंग के क",
+        "img": 293,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी सार्वजनिक परिवहन पर अपनी गोद में एक बैग के साथ सो रहा है",
+        "hyp": "आदमी साक्साफोन पर बाहर चलते हैं.",
+        "img": 295,
+        "cap": 0
+      },
+      {
+        "ref": "लोगों के लिए ज्वालामुखी के किनारे सड़क के कोने पर खड़े हैं और उनकी पृष्ठभूमि में एक - साथ खड़े होते हैं ।",
+        "hyp": "दो बच्चे एक ढोल की सवारी की गर्थ खेल.",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "तीन महिला एक शहर सड़क पर खड़े हैं.",
+        "hyp": "तीन लड़की नदी पर हरे हवा में चल रही हो.",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "तीन महिला सिर शो एक साथ खड़े हैं",
+        "hyp": "एक लड़की जिसके सिरे पर एक लड़के एक रेल में उड़ा दिया जा सकता ह",
+        "img": 310,
+        "cap": 0
+      },
+      {
+        "ref": "एक नीले रंग के कमीे में एक लड़का हरा कपड़ा बनाने की कला से पहले मुस्कुराता है ।",
+        "hyp": "एक लड़का पानी के पास खड़ा रहता है.",
+        "img": 314,
+        "cap": 0
+      },
+      {
+        "ref": "एक ब्लैड लड़की रेत में खड़े लॉग पर कदम किया जा सकता है.",
+        "hyp": "दो लड़की एक बड़ी शाखा पर चल रहे हैं, जबकि एक झाल पर स्लाल होती ह",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "एक टोप पहने आदमी पहाड़ की साइकिल पर एक चट्टान से कूद गया ।",
+        "hyp": "एक जवान आदमी एक हरी पकड़ा से ऊपर हवा में चाल करते हैं.",
+        "img": 350,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का टायर पर सवारी करता है.",
+        "hyp": "एक छोटा लड़का पानी में एक ज्वालामुखी पर हमो.",
+        "img": 352,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा आदमी नदी के किनारे एक और आदमी के साथ नाव के पीछे बैठा हुआ है ।",
+        "hyp": "एक आदमी एक खेत में बैठे हैं.",
+        "img": 356,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का एक कैमरा के साथ खेल रहा है जब एक धूल ट्रैक पर खड़े हो.",
+        "hyp": "एक लड़का एक जोमीटों पर हाथ बहुत से हुई बाहर पर है",
+        "img": 366,
+        "cap": 0
+      },
+      {
+        "ref": "दो साइकिलें दो व्यक्‍ति के पीछे पानी के पास घास पर बैठते हैं ।",
+        "hyp": "एक बैंजनी शर्ट में एक आदमी के सामने एक पैला नीले पर नीचे गिर ज",
+        "img": 368,
+        "cap": 0
+      },
+      {
+        "ref": "एक काला कुत्ता पानी से एक वस्तु ले जाता है.",
+        "hyp": "एक काले और सफेद कुत्ता के किनारे एक तालाब के साथ एक सफेद की जा ",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ता अपने मालिक के रूप में इंतज़ार करता है सामान के संग्रह के माध्यम से.",
+        "hyp": "एक सफेद और काले कुत्ता एक सफेद कुत्ता एक के साथ चलता है ।",
+        "img": 380,
+        "cap": 0
+      },
+      {
+        "ref": "एक कोट में एक आदमी पानी के पार खींच लिया जा रहा है",
+        "hyp": "दो कुत्ता एक पेड़ के रास्ते पर चल रही है.",
+        "img": 402,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़की मुस्कुराती है जब वह एक सफेद हिलते हुए समुद्र - तट पर जाती है ।",
+        "hyp": "एक औरत एक हाथी पंख के ऊपर एक रस्सी नीचे गिर जाता है ।",
+        "img": 407,
+        "cap": 0
+      },
+      {
+        "ref": "बूट में एक लड़की घास में सक्रिय हो.",
+        "hyp": "एक लड़की बड़ी कुछ झूलती हुई लड़की, बैठी होकर खेलती है.",
+        "img": 415,
+        "cap": 0
+      },
+      {
+        "ref": "एक व्यक्‍ति एक रोलर तट पर हँस रहे हैं।",
+        "hyp": "एक सफेद क्रेन के लिए खड़ा है और एक मारी नीचे जाना हो.",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "दो पैर पर एक कुत्ता अपने मुँह के साथ हवा में एक नीले गेंद की ओर.",
+        "hyp": "एक कुत्ता घास के माध्यम से एक रास्तोर पर चलता है.",
+        "img": 435,
+        "cap": 0
+      },
+      {
+        "ref": "एक काले शर्ट में एक बच्चा एक कवरिंग टेबल के पास एक लकड़ी के डाक पर खड़ा है ।",
+        "hyp": "एक छोटा लड़का एक संग्रहालय की कोशिश से पर बात किया जा सकता है.",
+        "img": 440,
+        "cap": 0
+      },
+      {
+        "ref": "निकटस्थ मनुष्य उसके निकट चान्दी की ओर संकेत करता है।",
+        "hyp": "एक छोटा लड़का भारी भूरे रंग के कपड़े पहने हुए एक तार्मिक के बग",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "एक सवार एक पहाड़ी पर एक सीधे मार्ग पर चल रहा है.",
+        "hyp": "दो आदमी एक पहाड़ी से शर्ट पहनते हैं.",
+        "img": 453,
+        "cap": 0
+      },
+      {
+        "ref": "एक टायर में एक आदमी एक चट्टान की दीवार पर चढ़ रहा है",
+        "hyp": "एक आदमी अपनी जीभ से स्त्री का ध्वज के साथ सवारी करते हैं.",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "जब वे मिलते हैं, तो वे हरे - भरे खेत में भी हिस्सा लेते हैं ।",
+        "hyp": "दो जवान लड़के एक कोर में एक छोटी लड़की एक तसीरी लाल दूसरे के ब",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का समुद्र तट पर एक हाथ खड़ा है.",
+        "hyp": "एक छोटा लड़का पाल कमीज़ में खड़ा है एक नाव के टैंक में सिखाती ",
+        "img": 483,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़े पहाड़ पर चढ़ जाते हैं",
+        "hyp": "दो व्यक्‍ति एक बड़ी समुद्र तट पर एक दूसरे में खड़े हैं ।",
+        "img": 521,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ते को पागल धारा के माध्यम से रख लिया जाता है",
+        "hyp": "एक भूरे कुत्ते के मुँह में एक धूल ट्रैक के साथ हो.",
+        "img": 543,
+        "cap": 0
+      },
+      {
+        "ref": "एक समुद्र तट पर चुंबन में एक जोड़े का पोशाक.",
+        "hyp": "दो जवान लड़के एक दूसरे को गाड़ी के रूप में उनके साथ.",
+        "img": 548,
+        "cap": 0
+      },
+      {
+        "ref": "एक आदमी मोटरकेक की सवारी में पोशाक",
+        "hyp": "एक स्त्री सड़क के पास चलते हैं.",
+        "img": 553,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़का बिंदु.",
+        "hyp": "एक लड़का ट्रांसमीटर के माध्यम से अपने हाथ पकड़.",
+        "img": 558,
+        "cap": 0
+      },
+      {
+        "ref": "एक भूरे रंग की, काले, और कुत्ते समुद्र में घूमते हैं.",
+        "hyp": "एक क्षेत्र में कुत्ते एक साथ कुत्ते की ओर दौड़.",
+        "img": 567,
+        "cap": 0
+      },
+      {
+        "ref": "एक कुत्ता एक पीले बेवकूफ़ गेंद के साथ दौड़ता है और एक लाल स्टूच पहनता है.",
+        "hyp": "एक भूरे रंग के कुत्ते को बाड़ पर कूदता है.",
+        "img": 573,
+        "cap": 0
+      },
+      {
+        "ref": "एक बॉक्सी इमारत, पेड़ के एक समूह, सूर्यास्त के समय एक चर्च.",
+        "hyp": "एक सफेद ट्रक के पास इमारत की बास्केट खड़े हो सकता है.",
+        "img": 583,
+        "cap": 0
+      },
+      {
+        "ref": "एक लड़की को स्टारर की कॉफी पीने के दौरान पढ़ा जाना चाहिए.",
+        "hyp": "एक लाल सूट में नदी कमी है कि में हाथ से दौड़ती है ।",
+        "img": 588,
+        "cap": 0
+      },
+      {
+        "ref": "लड़के किक फुटबॉल की गेंद एक पेड़ के नीचे घास में",
+        "hyp": "एक समुद्री डाकू समुद्र में मुस्कुराती है.",
+        "img": 589,
+        "cap": 0
+      },
+      {
+        "ref": "एक बड़ा कुत्ता लकड़ी के एक लॉग पर चल रहा है.",
+        "hyp": "एक कुत्ता घास के माध्यम से चलता है.",
+        "img": 593,
+        "cap": 0
+      }
+    ],
+    "txt_en>aud_en (round trip)": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A woman in a striped dress stands in front of a crowd .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A man with a camera .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A woman wearing a pink Tinkerbell stands in front of a crowd and signing being race .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A man sits on a couch outside and looks at the camera .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A woman sits at a table outdoors .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman sits on a concrete with a blue blanket .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A woman in a blue shirt swinging a kite near and while one making a bright underwomons are nearby .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A man sits on a couch outside and looks at the camera .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman in a blue shirt and tie is laying on the ground with a city street .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A man wearing a blue shirt sits on a bench .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A man with a camera sits and glass are sitting on a chest .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "A woman sits on a bench at a backdrop of city .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A man sits on a bench outside a store at a food boarded all .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "A man sits on a bench outside a table on the bench .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A man sits on a bench near a bright safety mask .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A woman in a black hat and a brick wall in the air above his head .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A person with a blue hat opening her covers .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man sits in a subway hole in the air .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "A man in a black cap stands on the beach sitting on a bench .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man with a camera on his chopping a boat .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A man with a camera and an electronic .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A man sits on a bench and a woman and looks on at the couch .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A woman sits at a table in an outdoor market .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A group of people are standing by a fence at a city street .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "Three people in complete conversation on the street .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A woman stands in a crowd .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A man sits on a bench with a white hat is sitting on a red canon .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "A man in a red sweater is standing by a window .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "A man with a camera stop looks at the camera .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A woman is sitting on the same of a picture outdoors .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A man sits on a bench outside a store and look over a dog .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A woman sits on a bench at a backdrop .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A woman is holding a baby in front of a white by a dog .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A person sitting on a bench next a tree as painted paint .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "A woman sits on a cliff overlooking the couple .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A man sits on a bench and lean against a wooden tils .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A woman is sitting at a table while reading a beautiful -shirt .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A person with a baby wearing a big spit deformant deck .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A man sits on a bench outside a small boat on the beach .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A woman in a blue shirt and a woman watch .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A woman sits on a chair near a bench .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "A man sits on a bench near a bright safety mask .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "A man sits on a bench near a bright pole .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A man sits on a bench next to a dog on a patio of wood blocks him .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A man sits on a bench in a wooden park at a forest .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A person sits on a floor in front of a wooden deck .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "A woman in a blue shirt is sitting on a couch .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "A man sits on a bench and lean against a wall .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "A person is holding a small girl in the air .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A couple with a brown hat stands on a busy street holding behind her",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A woman is sitting at a table in a park .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A man sits on a bench near a body of water .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A man sits on a boat an indoor sit in a booth alongstar at a book .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A person sitting on a green bat waiting for a bridge .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A man sits on a bench and a green balloon in a field of green jacket .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A man is standing on a hill overlooking a canne .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "A man is sitting on a bench and oversized scarfs .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A man with a beard in his face is playing a large splash .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A man is standing on a couch sculpture .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "A woman holds a baby who is holding a camera .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "aud_yo>aud_en (round trip)": [
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman stands near a deck readlock and holds a camera .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A woman sits at a table outside .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man in a blue shirt is standing in front of a bus with a tree brown building beside him .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A woman in a bikini climbing by the big of a brightly lit and watches .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "A woman in a black shirt and blue shorts is standing near the ocean .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A person in a blue jacket is riding a bicycle on a wooden path .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A woman is sitting on a bench eating a band of a wooden bench .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A man is sitting at a table full of military items and black flag .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "People are playing instrument outside .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A man sits on a blue star traffic conese .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy dressed in soccer attire and holding his shoes getting out of a car .",
+        "hyp": "A man is sitting at a table funtly beard .",
+        "img": 130,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in blue is jumping on the shore as small waves approach her .",
+        "hyp": "Three people sit on a bench and woman are talking on a bench .",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "A crowd of people walk down a busy sidewalk .",
+        "hyp": "A woman sits on a curb after somersione .",
+        "img": 157,
+        "cap": 0
+      },
+      {
+        "ref": "Two children are laughing in the grass .",
+        "hyp": "A man sits on a bench next to a body of water and a bottled overlooking a city .",
+        "img": 180,
+        "cap": 0
+      },
+      {
+        "ref": "A boy eats with a spoon .",
+        "hyp": "A person sits on a flower piece of the near a dumpsto .",
+        "img": 182,
+        "cap": 0
+      },
+      {
+        "ref": "A lady holds a little girl who is trying to catch bubbles .",
+        "hyp": "A man in a suit along a piece of sheervent .",
+        "img": 195,
+        "cap": 0
+      },
+      {
+        "ref": "Three children are playing in sand near to the beach .",
+        "hyp": "Three people sit at a table in front of them .",
+        "img": 208,
+        "cap": 0
+      },
+      {
+        "ref": "A couple of people sit outdoors at a table with an umbrella and talk .",
+        "hyp": "A group of men sit and holding a camera .",
+        "img": 218,
+        "cap": 0
+      },
+      {
+        "ref": "a biker enjoys a coffee .",
+        "hyp": "A person in a blue shirt is performing a trick and orange jacket .",
+        "img": 223,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white dog carrying a large stick",
+        "hyp": "A person stands near a car seats in the park .",
+        "img": 226,
+        "cap": 0
+      },
+      {
+        "ref": "A group of people in costume at a renaissance fair .",
+        "hyp": "A bride and groom at a bus while holding his face .",
+        "img": 238,
+        "cap": 0
+      },
+      {
+        "ref": "A boy sitting in water .",
+        "hyp": "A man sits on a bench and lean against a wall .",
+        "img": 245,
+        "cap": 0
+      },
+      {
+        "ref": "A person hanging from a telephone pole near the mountains .",
+        "hyp": "A woman is holding a baby in a public area .",
+        "img": 281,
+        "cap": 0
+      },
+      {
+        "ref": "a boy enjoys a rain shower .",
+        "hyp": "A person with a backpack stands on a city street with a barrier .",
+        "img": 289,
+        "cap": 0
+      },
+      {
+        "ref": "A boy and a girl playing on the beach .",
+        "hyp": "Three women in dresses standing by a cano' patring .",
+        "img": 293,
+        "cap": 0
+      },
+      {
+        "ref": "A man sleeping with a bag on his lap on public transportation",
+        "hyp": "A person is walking their tea ladies in a cave .",
+        "img": 295,
+        "cap": 0
+      },
+      {
+        "ref": "People stand on a street corner at dusk , with a pharmacy in the background .",
+        "hyp": "A man is sitting in a raincoat padder and a long pipes behind him .",
+        "img": 296,
+        "cap": 0
+      },
+      {
+        "ref": "Three women standing on a city street .",
+        "hyp": "A group of people stand in a crowded street .",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "three females wearing head scarves standing together",
+        "hyp": "A man sits in a boat neck while a woman watches .",
+        "img": 310,
+        "cap": 0
+      },
+      {
+        "ref": "A blond boy in a blue tee shirts stands smiling before a craft of green nylon fabric .",
+        "hyp": "A woman with a straw hat is sitting on a concrete bender in a green lesh .",
+        "img": 314,
+        "cap": 0
+      },
+      {
+        "ref": "A blonde girl is stepping on vertical logs in the sand .",
+        "hyp": "A man and woman sit on a bench near a large set of a large mountain .",
+        "img": 331,
+        "cap": 0
+      },
+      {
+        "ref": "A helmeted man jumping off a rock on a mountain bike .",
+        "hyp": "A man in a striped shirt with a cellphone while another looks on .",
+        "img": 350,
+        "cap": 0
+      },
+      {
+        "ref": "A boy rides on a tire swing .",
+        "hyp": "A woman in a blue shirt and a blue shirt is standing near the ocean .",
+        "img": 352,
+        "cap": 0
+      },
+      {
+        "ref": "A large man sits in the back of a canoe with another man in front on a river .",
+        "hyp": "A man with a camera , stretches , a corner .",
+        "img": 356,
+        "cap": 0
+      },
+      {
+        "ref": "a boy is playing with a camera whilst standing on a dirt track .",
+        "hyp": "A woman sits on a concrete bench and leather over a bridge .",
+        "img": 366,
+        "cap": 0
+      },
+      {
+        "ref": "Two bicycles are standing behind two people sitting on the grass near a body of water .",
+        "hyp": "A woman in a blue shirt and a woman in a black shirt line .",
+        "img": 368,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog carrying an object out of the water .",
+        "hyp": "A couple of people are standing on a bench in front of a building .",
+        "img": 379,
+        "cap": 0
+      },
+      {
+        "ref": "A dog waits as his owner rummages through a collection of stuff .",
+        "hyp": "A woman sits on a bench outside and look up to see to lane .",
+        "img": 380,
+        "cap": 0
+      },
+      {
+        "ref": "a man in a harness being dragged across the water",
+        "hyp": "Two women in period dress standing next to a statue .",
+        "img": 402,
+        "cap": 0
+      },
+      {
+        "ref": "A girl smiles as she runs across the white sandy beach in her swimsuit .",
+        "hyp": "A man with a camera , star-shaped like a brown hat .",
+        "img": 407,
+        "cap": 0
+      },
+      {
+        "ref": "A girl in boots is active in the grass .",
+        "hyp": "A woman is sitting at a table outside .",
+        "img": 415,
+        "cap": 0
+      },
+      {
+        "ref": "A person is laughing on a roller coaster ride .",
+        "hyp": "A woman sits and looks at the top of a man in a blue life jacket watches .",
+        "img": 416,
+        "cap": 0
+      },
+      {
+        "ref": "A dog on two legs with its mouth opened toward a blue ball in the air .",
+        "hyp": "A person sits on a log overlooking the ocean .",
+        "img": 435,
+        "cap": 0
+      },
+      {
+        "ref": "A child in a black shirt standing on a wooden dock near a picnic table .",
+        "hyp": "A man sits on a bench outside a store and look up from a cliff intertal .",
+        "img": 440,
+        "cap": 0
+      },
+      {
+        "ref": "A man in the near distance is pointing to a silver sedan near him .",
+        "hyp": "A man with a camera store next to his bag and a city .",
+        "img": 449,
+        "cap": 0
+      },
+      {
+        "ref": "A hiker is walking a treeless path up a hill .",
+        "hyp": "A man sits on a rock near a bird of store .",
+        "img": 453,
+        "cap": 0
+      },
+      {
+        "ref": "a man in a harness climbing a rock wall",
+        "hyp": "A man with a blue hat and a backpack is wearing a blue shirt and red horse a box .",
+        "img": 465,
+        "cap": 0
+      },
+      {
+        "ref": "Children participate in a sport on a green field while in uniforms .",
+        "hyp": "A woman sits on a concrete wall in the back of a fountain .",
+        "img": 473,
+        "cap": 0
+      },
+      {
+        "ref": "A boy doing a handstand on the beach .",
+        "hyp": "A woman stands in a cross a street .",
+        "img": 483,
+        "cap": 0
+      },
+      {
+        "ref": "a group of skiers going up a mountain",
+        "hyp": "A group of people stand around a busy street in urban sign .",
+        "img": 521,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is trotting through a shallow stream",
+        "hyp": "A woman with a baby with a white floor .",
+        "img": 543,
+        "cap": 0
+      },
+      {
+        "ref": "A couple dressed in hoodies kissing on the beach .",
+        "hyp": "A group of people sit on a bench with a drum .",
+        "img": 548,
+        "cap": 0
+      },
+      {
+        "ref": "A man dressed in camouflage riding a motorbike",
+        "hyp": "A woman with a straw hat is smiling .",
+        "img": 553,
+        "cap": 0
+      },
+      {
+        "ref": "A boy points .",
+        "hyp": "A man sits on a bench near a body of water .",
+        "img": 558,
+        "cap": 0
+      },
+      {
+        "ref": "A brown , black , and tan dog run in the ocean .",
+        "hyp": "A man sits on a bench near a body of water .",
+        "img": 567,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is running with a yellow tennis ball and wearing a red harness .",
+        "hyp": "A person sits on a sandy bank over a body of water .",
+        "img": 573,
+        "cap": 0
+      },
+      {
+        "ref": "A boxy building , A group of trees , a church at sunset .",
+        "hyp": "A man is standing on a hill overlooking a city outdoors .",
+        "img": 583,
+        "cap": 0
+      },
+      {
+        "ref": "A girl is reading while drinking Starbuck 's coffee .",
+        "hyp": "A woman wearing a blue coat and hat sits on the sidewalk of a city street .",
+        "img": 588,
+        "cap": 0
+      },
+      {
+        "ref": "Boys kicking soccer ball in the grass under a tree",
+        "hyp": "Two people stand in the sand .",
+        "img": 589,
+        "cap": 0
+      },
+      {
+        "ref": "A big hound dog walking on a log in the woods .",
+        "hyp": "A woman and a child holding a baby umbrella .",
+        "img": 593,
+        "cap": 0
+      }
+    ],
+    "txt_en>aud_yo (round trip)": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "Two children standing next to each other on the riverbanker .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A woman sits on the curb after some rests .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A man and a woman are sitting on a bench outside a building with a table concret .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "Two people walking down a snowy hill with a large fence .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "Three people sit on a boat in the water .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman in a blue shirt is sitting on a brown coat .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "A man sits on a couch outside .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "Two desting on a striped corn on some grass",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A girl in a pink shirt is walking on the street with their bands in her hair .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A man is riding his yellow steps outside a building .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "A girl is standing on a rope swing near a street .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "Two girls sit on the curb of a wooden string .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A girl in a pink tutu standing on a bed with a blue helmet in the blue shirt on a bright sachore .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "Two children sit on a slide .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A child in a red shirt is playing in a blue shorts slide .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A man is standing on a bench and yellow ski looks on .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "Three people standing on a street .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "A man is standing on a boardwalk near a forest .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "Two girls sit by a wall their ride .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man sits on a bench in front of a tree and some board .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "A small terrier is stretching between two sporting into the air .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "The girls are sitting on the grass in front of a tree .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "Two white dogs are playing in the water .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "A white dog is standing on a large stick in the grass with his tongue ear .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "Two dogs are playing together on the sand .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "Two girls play on a swing .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A little boy is splashing in shallow water .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "Two boys in blue shirts swinging together a swimming pool at of the camera with r सिely togues themal .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "Two children swing on a swing set .",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A little boy is standing in front of a wetry tent .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A dog walks across the train car .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "A dog running through the sand",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A brown dog is trying to bite pitch .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A dog with a sled along a long dirt path in the woods .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "Two black and tan dogs running through shallow water .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "A person in a red jacket riding a mountain bike through the woods .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "A person is sitting in a wooden feedior .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A white duck is sprinklers action outdoors .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A dog with a ball in his mouth colored toe is home in the water .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "A person in a yellow shirt and grey shorts is standing in a wooded area .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "Two dogs are playing in the water with a tennis ball in its mouth .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "Two white dogs are running through the water .",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "A white dog with a brown collar runs through an obstacle three long green grass .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A dog runs through the woods .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A white dog walks along the beach with a red Frisbee in it .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "A little boy in a red shirt is standing in a street with wood the sticking toother .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "Two children sitting on a white boat comic roled and red shirt on a bridge in the foreground .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "Two girls wearing red print flows .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "Two children standing in the mud .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "A little boy in a red shirt is standing in a street with wood the sticking towards the water .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "A dog walks across the snowy ground and the are surrounded by snow .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "Two dogs play in the sand .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "A white dog is running through the water with a stick in his mouth .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "The white pelder the start of the bushes .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A white dog with a blue collar is running through the grass .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "A girl in a school uniform .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "Two children sit inside a red play huckey .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "Two people sit on the steps outside .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A person is riding a bike on a wooden set next to a tree .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "Two children in the blue sitting on rocks in front of a blue climbs at the contem .",
+        "img": 126,
+        "cap": 4
+      }
+    ],
+    "aud_en>aud_yo (round trip)": [
+      {
+        "ref": "A couple and an infant , being held by the male , sitting next to a pond with a near by stroller .",
+        "hyp": "A baby wearing a blue shirt is standing in a store with a baby wearing a black hoodle .",
+        "img": 17,
+        "cap": 0
+      },
+      {
+        "ref": "A couple sit on the grass with a baby and stroller .",
+        "hyp": "A person in a blue shirt and blue shorts playing with a red toy in blue look on .",
+        "img": 17,
+        "cap": 1
+      },
+      {
+        "ref": "A couple with their newborn baby sitting under a tree facing a lake .",
+        "hyp": "A group of men sit at a table out the window of his mouth .",
+        "img": 17,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman care for an infant along the side of a body of water .",
+        "hyp": "A person sitting on a bench watches the white and orange shoe next to his bike coming to her .",
+        "img": 17,
+        "cap": 3
+      },
+      {
+        "ref": "Couple with a baby sit outdoors next to their stroller .",
+        "hyp": "A group of people are standing together outside a building .",
+        "img": 17,
+        "cap": 4
+      },
+      {
+        "ref": "A blond woman in a blue shirt appears to wait for a ride .",
+        "hyp": "A woman in a blue shirt and tan shorts are sitting on a wooden bench .",
+        "img": 42,
+        "cap": 0
+      },
+      {
+        "ref": "A blond woman is on the street hailing a taxi .",
+        "hyp": "Two girls in sunglasses .",
+        "img": 42,
+        "cap": 1
+      },
+      {
+        "ref": "A woman is signaling is to traffic , as seen from behind .",
+        "hyp": "A person in a scuba suit on a bench .",
+        "img": 42,
+        "cap": 2
+      },
+      {
+        "ref": "A woman with blonde hair wearing a blue tube top is waving on the side of the street .",
+        "hyp": "A woman in a blue shirt and black pants sits on a bed .",
+        "img": 42,
+        "cap": 3
+      },
+      {
+        "ref": "The woman in the blue dress is holding out her arm at oncoming traffic .",
+        "hyp": "A woman wearing a pink Tinkerbell stands on the street .",
+        "img": 42,
+        "cap": 4
+      },
+      {
+        "ref": "A boy in his blue swim shorts at the beach .",
+        "hyp": "Two children sit on a slide .",
+        "img": 48,
+        "cap": 0
+      },
+      {
+        "ref": "A boy smiles for the camera at a beach .",
+        "hyp": "Two children sit inside .",
+        "img": 48,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+        "hyp": "A child in a blue shirt is standing in a shallow carrying a baby hands .",
+        "img": 48,
+        "cap": 2
+      },
+      {
+        "ref": "Children playing on the beach .",
+        "hyp": "Three children playing on the street .",
+        "img": 48,
+        "cap": 3
+      },
+      {
+        "ref": "The boy is playing on the shore of an ocean .",
+        "hyp": "A child sliding down a slide with sled .",
+        "img": 48,
+        "cap": 4
+      },
+      {
+        "ref": "A lady and a man with no shirt sit on a dock .",
+        "hyp": "A woman in a blue shirt and brown shorts is rock and his treaining .",
+        "img": 64,
+        "cap": 0
+      },
+      {
+        "ref": "A man and a woman are sitting on a dock together .",
+        "hyp": "A man with a beard and a groom with a white bag .",
+        "img": 64,
+        "cap": 1
+      },
+      {
+        "ref": "A man and a woman sitting on a dock .",
+        "hyp": "Two girls sit on top of some steps .",
+        "img": 64,
+        "cap": 2
+      },
+      {
+        "ref": "A man and woman sitting on a deck next to a lake .",
+        "hyp": "An old man in a black coat and hat sits on a bench and leans on the right .",
+        "img": 64,
+        "cap": 3
+      },
+      {
+        "ref": "A shirtless man and a woman sitting on a dock .",
+        "hyp": "A man in a black shirt smiles for the camera .",
+        "img": 64,
+        "cap": 4
+      },
+      {
+        "ref": "A closeup of a white dog that is laying its head on its paws .",
+        "hyp": "Two white dogs running through the sand .",
+        "img": 65,
+        "cap": 0
+      },
+      {
+        "ref": "a large white dog lying on the floor .",
+        "hyp": "A woman riding a bike .",
+        "img": 65,
+        "cap": 1
+      },
+      {
+        "ref": "A white dog has its head on the ground .",
+        "hyp": "A white dog is running through the water with a stick in his mouth .",
+        "img": 65,
+        "cap": 2
+      },
+      {
+        "ref": "A white dog is resting its head on a tiled floor with its eyes open .",
+        "hyp": "Two dogs running in water .",
+        "img": 65,
+        "cap": 3
+      },
+      {
+        "ref": "A white dog rests its head on the patio bricks .",
+        "hyp": "Two dogs are running through the leafy grasse with a brown dog .",
+        "img": 65,
+        "cap": 4
+      },
+      {
+        "ref": "A boy with a toy gun .",
+        "hyp": "Two girls sit on the street .",
+        "img": 87,
+        "cap": 0
+      },
+      {
+        "ref": "A little boy in orange shorts playing with a toy .",
+        "hyp": "A little kid slides down a snowy hill .",
+        "img": 87,
+        "cap": 1
+      },
+      {
+        "ref": "A young boy with his foot outstretched aims a toy at the camera in front of a fireplace .",
+        "hyp": "Two children are playing on a boat in front of a white and red player on it .",
+        "img": 87,
+        "cap": 2
+      },
+      {
+        "ref": "A young child plays with his new light-up toy .",
+        "hyp": "A little boy stands amongst from a shad",
+        "img": 87,
+        "cap": 3
+      },
+      {
+        "ref": "Boy with toy gun pointed at the camera .",
+        "hyp": "A little girl sitting on a wheelbarron .",
+        "img": 87,
+        "cap": 4
+      },
+      {
+        "ref": "a black dog jumping to catch a rope toy",
+        "hyp": "A black and white dog runs through the white water .",
+        "img": 98,
+        "cap": 0
+      },
+      {
+        "ref": "A black dog playing fetch with a ball of rope .",
+        "hyp": "Two white dogs are running through the white string .",
+        "img": 98,
+        "cap": 1
+      },
+      {
+        "ref": "A black dog pounces to get a rope toy .",
+        "hyp": "A black and white dog with a brown dog on a leash .",
+        "img": 98,
+        "cap": 2
+      },
+      {
+        "ref": "A black dog running after his rope toy .",
+        "hyp": "A black and white dog walks in a forest in the woods watching in its mouth .",
+        "img": 98,
+        "cap": 3
+      },
+      {
+        "ref": "A large black dog is playing in a grassy yard .",
+        "hyp": "Two white dogs are running through the white water and brown dog with one shirt .",
+        "img": 98,
+        "cap": 4
+      },
+      {
+        "ref": "A black and white bird eating seeds out of someone 's hand",
+        "hyp": "Two dogs run through shallow water , from dry green fence in background .",
+        "img": 107,
+        "cap": 0
+      },
+      {
+        "ref": "A black and white bird standing on a hand .",
+        "hyp": "Two dogs , one bigger than of the other , one of them throwing a tennis ball .",
+        "img": 107,
+        "cap": 1
+      },
+      {
+        "ref": "A small bird sits in a person 's hand and eats seeds .",
+        "hyp": "A woman wearing a blue swimsuit stands on a water spray .",
+        "img": 107,
+        "cap": 2
+      },
+      {
+        "ref": "Black and white bird standing on hand of someone holding sunflower seeds",
+        "hyp": "A woman in a blue shirt is sitting on a bench with a white dog wearing a bottle .",
+        "img": 107,
+        "cap": 3
+      },
+      {
+        "ref": "The small bird is clinging to a finger of the hand holding the seeds .",
+        "hyp": "Three children standing on a rock in front of a set of standing money from step .",
+        "img": 107,
+        "cap": 4
+      },
+      {
+        "ref": "A little tan dog with large ears running through the grass .",
+        "hyp": "A white dog with brown spots is running on a drier .",
+        "img": 110,
+        "cap": 0
+      },
+      {
+        "ref": "A playful dog is running through the grass .",
+        "hyp": "Two dogs are running through a grassy area with long shady water",
+        "img": 110,
+        "cap": 1
+      },
+      {
+        "ref": "A small dogs ears stick up as it runs in the grass .",
+        "hyp": "A woman in a blue shirt is walking through the woods .",
+        "img": 110,
+        "cap": 2
+      },
+      {
+        "ref": "The small dog is running across the lawn .",
+        "hyp": "A black dog with a red collar runs through the fall .",
+        "img": 110,
+        "cap": 3
+      },
+      {
+        "ref": "this is a small beige dog running through a grassy field",
+        "hyp": "A white dog is running along a containe together on the road .",
+        "img": 110,
+        "cap": 4
+      },
+      {
+        "ref": "A baby in a white garment holds a flag with crescent moon and star .",
+        "hyp": "Two girls sit on the shore of a stage .",
+        "img": 116,
+        "cap": 0
+      },
+      {
+        "ref": "A baby is holding a small black flag with a moon and a star on it .",
+        "hyp": "Three children playing on a rock wall .",
+        "img": 116,
+        "cap": 1
+      },
+      {
+        "ref": "A baby wearing a white gown waves a Muslim flag .",
+        "hyp": "Two children sit inside .",
+        "img": 116,
+        "cap": 2
+      },
+      {
+        "ref": "A little toddler dressed in white is smiling while a lady helps him wave a flag .",
+        "hyp": "Two children walk on the sidewalk .",
+        "img": 116,
+        "cap": 3
+      },
+      {
+        "ref": "Baby in white outfit holding black and white flag .",
+        "hyp": "Two dogs are sitting on the grass in front of the woods .",
+        "img": 116,
+        "cap": 4
+      },
+      {
+        "ref": "A brown and white dog stands outside while it snows .",
+        "hyp": "Two white dogs are running through the water on the beach .",
+        "img": 124,
+        "cap": 0
+      },
+      {
+        "ref": "A dog is looking at something near the water .",
+        "hyp": "A brown dog walks out of the water .",
+        "img": 124,
+        "cap": 1
+      },
+      {
+        "ref": "A furry dog attempts to dry itself by shaking the water off its coat .",
+        "hyp": "Two people are standing on a sidewalk wearing a black shirt and red headress flags away from each other .",
+        "img": 124,
+        "cap": 2
+      },
+      {
+        "ref": "A white and brown dog shaking its self dry .",
+        "hyp": "A dog runs through the water near some trees .",
+        "img": 124,
+        "cap": 3
+      },
+      {
+        "ref": "The large brown and white dog shakes off water .",
+        "hyp": "A dog with a ball in his mouth swimming in the water .",
+        "img": 124,
+        "cap": 4
+      },
+      {
+        "ref": "A boy is jumping on a bed .",
+        "hyp": "Two children sit inside .",
+        "img": 126,
+        "cap": 0
+      },
+      {
+        "ref": "A boy jumped up from the green bed .",
+        "hyp": "Two boys are playing with a string on a red carpeted leaning on the background .",
+        "img": 126,
+        "cap": 1
+      },
+      {
+        "ref": "A boy jumps from one bed to another .",
+        "hyp": "A mother sits on a stool her side with her bus .",
+        "img": 126,
+        "cap": 2
+      },
+      {
+        "ref": "A small child is jumping on a bed .",
+        "hyp": "A little boy in a yellow shirt and blue shorts is running on a tree branch in the woods .",
+        "img": 126,
+        "cap": 3
+      },
+      {
+        "ref": "The boy in blue shorts is bouncing on the bed .",
+        "hyp": "Two boys sitting in the flowert next to another boy .",
+        "img": 126,
+        "cap": 4
+      }
+    ]
+  }
+}

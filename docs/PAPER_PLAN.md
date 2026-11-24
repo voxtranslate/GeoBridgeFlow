@@ -18,6 +18,21 @@ Measured and **not** supported at this scale, so not to be claimed: the optimal-
 codes, read-hub exposure and hub jitter (no effect within noise), and "the reader keeps the speaker out of the
 hub" (it leaks less than the ODE read-out, not nothing).
 
+**Where the claims stand after two full Flickr8k runs** (one seed; `RESULTS.md`, section 0):
+
+- C1, the hub: works at the level of "what is in the picture" (right kind of subject in 91 % of text → text
+  outputs, 79 % for Hindi → English without parallel data; chance 22 %) and not at the level of wording (word
+  error rate 78 %). The paper has to be written about meaning-level conversion and scored with content measures
+  next to their chance levels. Counterfactual credit, the specific novelty, is mixed on validation data: the hub
+  explains more with it and is harder to read; there is no test number yet.
+- C2, the tonality gate: **no support on real data** in either run. Unless a longer representation phase with
+  converged gates shows otherwise, it is a SynthWorld-only result and cannot carry a third of the paper.
+- C3, attaching the island: Yorùbá speech → English text is right about the subject in 63 % of outputs from 985
+  image pairs and no Yorùbá text (chance 18 %; BLEU 3.6 against about 1.1). Whether back-translation contributes
+  on real data is unknown, and Yorùbá's validation scores fall while it runs. This is the next thing to measure.
+- Missing for any submission: seeds, the baselines of section 3 on real data, and a recogniser listening to the
+  written speech.
+
 Negative result worth a paragraph: entropic Gromov–Wasserstein docking, the roadmap's central proposal, does not
 dock an unpaired speech island (pure GW drives it to chance; semi-relaxed collapses; balanced fused GW ties with
 no docking). It stays in the `island` ablation.

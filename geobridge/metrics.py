@@ -1,7 +1,11 @@
 """Evaluation of every conversion direction, always through the hub and never with the paired image.
 
 Text out      BLEU / chrF++ (sacrebleu) against the parallel reference and against all captions of the image;
-              WER / CER for same-language transcription; exact content accuracy on SynthWorld.
+              content F1 (word overlap weighted by inverse document frequency, so that "a", "in", "the" count
+              for nothing); WER / CER for same-language transcription; exact content accuracy on SynthWorld.
+              Every score comes with its CHANCE LEVEL: the same outputs scored against the reference of another
+              image.  A caption model that ignores its source still writes fluent captions and collects n-gram
+              matches; on Flickr8k that is about 1 BLEU and 15 chrF++, so a BLEU of 3 is not "almost nothing".
 Hub space     recall@k of utterance -> image (hub code explained by gallery patches), cross-lingual
               speech -> text retrieval.
 Image out     the image latent written from a hub code, retrieved among the true image latents (recall@k).
@@ -13,9 +17,12 @@ Tone          learned gate per language, tone-reliance index (how far the hub co
 """
 from __future__ import annotations
 
+import math
+from collections import Counter
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+import regex
 import torch
 import torch.nn.functional as F
 
@@ -59,10 +66,55 @@ def bleu_chrf(hyps: Sequence[str], refs: Sequence[Sequence[str]]) -> Dict[str, f
     return {"bleu": float(bleu.score), "chrf": float(chrf.score)}
 
 
+def words(s: str) -> List[str]:
+    """Lower-cased words of any script: letters with their combining marks (Devanagari vowel signs, Yoruba tone
+    marks) and digits; punctuation is dropped."""
+    return regex.findall(r"[\p{L}\p{M}\p{N}]+", normalize_text(s).lower())
+
+
+def content_f1(hyps: Sequence[str], refs: Sequence[str], pool: Optional[Sequence[str]] = None) -> float:
+    """Corpus-level word F1 (%) with every word weighted by its inverse document frequency in ``pool`` (default:
+    the references).  Function words occur in most sentences and weigh almost nothing; a word that occurs in few
+    sentences is what tells one caption from another.  Needs no stop-word list, so it is the same measure in
+    every language.  A word of the output that no reference contains gets the largest weight (it is an invention)."""
+    docs = [set(words(r)) for r in (pool if pool is not None else refs)]
+    n = len(docs)
+    df = Counter(w for d in docs for w in d)
+    idf = lambda w: math.log((n + 1.0) / (df.get(w, 0) + 1.0))
+    match = w_hyp = w_ref = 0.0
+    for h, r in zip(hyps, refs):
+        ch, cr = Counter(words(h)), Counter(words(r))
+        match += sum(idf(w) * min(c, cr[w]) for w, c in ch.items() if w in cr)
+        w_hyp += sum(idf(w) * c for w, c in ch.items())
+        w_ref += sum(idf(w) * c for w, c in cr.items())
+    if match <= 0.0:
+        return 0.0
+    prec, rec = match / w_hyp, match / w_ref
+    return 100.0 * 2.0 * prec * rec / (prec + rec)
+
+
+def other_image(imgs: Sequence[int]) -> List[int]:
+    """For every item, the index of an item that belongs to another image (a fixed rotation by half the list, moved
+    on while the image is the same).  Scoring outputs against these references gives the chance level."""
+    n = len(imgs)
+    out = []
+    for i in range(n):
+        j, tries = (i + n // 2) % n, 0
+        while imgs[j] == imgs[i] and tries < n:
+            j, tries = (j + 1) % n, tries + 1
+        out.append(j)
+    return out
+
+
 def recall_at_k(scores: torch.Tensor, target: torch.Tensor, ks=(1, 5, 10)) -> Dict[str, float]:
     """scores [n, G]; target [n] index of the correct gallery item (ties with identical galleries allowed)."""
     rank = (scores > scores.gather(1, target.view(-1, 1))).sum(1)
     return {f"r{k}": 100.0 * float((rank < k).float().mean()) for k in ks}
+
+
+def eval_settings(cfg) -> Dict:
+    """The settings that change what an evaluation measures without changing the trained model."""
+    return {k: getattr(cfg, k) for k in ("ode_steps", "ode_solver", "eval_temp", "read_mode", "draft_t0")}
 
 
 # ------------------------------------------------------------------------------------------ evaluator
@@ -77,7 +129,7 @@ class Evaluator:
     def collect(self, model, split: str, max_items: int = 0, flat_tone: bool = True, steps: Optional[int] = None,
                 read_mode: Optional[str] = None) -> Dict:
         data, dev = self.data, self.device
-        groups = data.eval_groups(split, max_items)
+        groups = data.eval_groups(split, max_items, favour=self.cfg.island_langs)
         store: Dict = {"groups": groups, "views": {}, "img_of_group": [], "V": {}, "Z": {}, "img_hub": [], "ground": {}}
         check_ground = self.synth and self.cfg.hub_mode == "bary"
         g0 = 0
@@ -173,10 +225,15 @@ class Evaluator:
             return {}, []
         hy = [hyps[i] for i in keep]
         refs1 = [[self._ref(groups[i], tgt)] for i in keep]
+        flat = [r[0] for r in refs1]
         m = bleu_chrf(hy, refs1)
-        out = {"bleu": m["bleu"], "chrf": m["chrf"]}
+        out = {"bleu": m["bleu"], "chrf": m["chrf"], "cf1": content_f1(hy, flat)}
         multi = [self.data.references(groups[i]["img"], tgt) or refs1[n] for n, i in enumerate(keep)]
         out["bleu_multi"] = bleu_chrf(hy, multi)["bleu"]
+        if len({groups[i]["img"] for i in keep}) > 1:   # chance level: the reference of another image
+            wrong = [flat[j] for j in other_image([groups[i]["img"] for i in keep])]
+            c = bleu_chrf(hy, [[r] for r in wrong])
+            out.update(chance_bleu=c["bleu"], chance_chrf=c["chrf"], chance_cf1=content_f1(hy, wrong, pool=flat))
         if same_lang:
             out["wer"] = error_rate(hy, [r[0] for r in refs1], "word")
             out["cer"] = error_rate(hy, [r[0] for r in refs1], "char")
@@ -214,7 +271,10 @@ class Evaluator:
     # ---- main entry
     @torch.no_grad()
     def evaluate(self, model, split: str = "valid", max_items: int = 0, quick: bool = False,
-                 save_path: Optional[str] = None, steps: Optional[int] = None, read_mode: Optional[str] = None) -> Dict[str, float]:
+                 save_path: Optional[str] = None, steps: Optional[int] = None, read_mode: Optional[str] = None,
+                 step: Optional[int] = None) -> Dict[str, float]:
+        """``step``: training step of the evaluated state; saved with the settings that shape an evaluation, so
+        that a stored file says what it measured."""
         cfg, data = self.cfg, self.data
         was_training = model.training
         model.eval()
@@ -259,7 +319,7 @@ class Evaluator:
             if mod == "aud" and views[(mod, src)].get("hub_flat") is not None and (not quick or src in island):
                 hy_f = self._gen_text(model, views[(mod, src)]["hub_flat"], tgt)
                 mf, _ = self._score_text(hy_f, [groups[i] for i in gi.tolist()], tgt, same_lang=(src == tgt))
-                M.update({f"{name}/flat_{k}": v for k, v in mf.items() if k in ("bleu", "content_acc", "color_acc")})
+                M.update({f"{name}/flat_{k}": v for k, v in mf.items() if k in ("bleu", "cf1", "content_acc", "color_acc")})
 
         # ---------------- hub-space retrieval
         img_index = {i: n for n, i in enumerate(store["img_ids"])}
@@ -308,7 +368,8 @@ class Evaluator:
                     name = f"{mod}_{src}>aud_{S}"
                     hy, gi = self._speech_roundtrip(model, views[(mod, src)], views[("aud", S)], S, H)
                     m, s = self._score_text(hy, [groups[i] for i in gi], H, same_lang=False)
-                    M.update({f"{name}/rt_{k}": v for k, v in m.items() if k in ("bleu", "chrf", "content_acc", "color_acc")})
+                    M.update({f"{name}/rt_{k}": v for k, v in m.items()
+                              if k in ("bleu", "chrf", "cf1", "chance_cf1", "content_acc", "color_acc")})
                     samples[name + " (round trip)"] = s
 
         # ---------------- codecs
@@ -343,14 +404,16 @@ class Evaluator:
                     d_ref = ((rec["hub"] - rec["hub"].roll(1, 0)) ** 2).mean()
                     M[f"tone/reliance_{name}"] = float(d_flat / d_ref.clamp_min(1e-8))
 
-        # ---------------- headline score (used for best-checkpoint selection)
-        score_keys = [k for k in M if any(k.startswith(f"aud_{L}>txt_") for L in island) and k.endswith("/bleu")]
-        if not score_keys:
-            score_keys = [k for k in M if k.endswith("/bleu")]
-        M["score"] = float(np.mean([M[k] for k in score_keys])) if score_keys else 0.0
+        # ---------------- selection score: content above chance, averaged over the text directions
+        # (The island direction alone was too noisy to select on: with 67 of its utterances in the validation
+        # subset its BLEU moved by more than a point from one validation to the next, and the first one won.)
+        lifts = [M[k] - M.get(k[:-len("cf1")] + "chance_cf1", 0.0) for k in M
+                 if k.endswith("/cf1") and ">txt_" in k and "/flat_" not in k and "/rt_" not in k]
+        M["score"] = float(np.mean(lifts)) if lifts else 0.0
         self.samples = samples
         if save_path:
-            save_json({"metrics": M, "samples": samples}, save_path)
+            save_json({"meta": {"step": step, "split": split, "items": max_items, "quick": quick, **eval_settings(cfg)},
+                       "metrics": M, "samples": samples}, save_path)
         model.train(was_training)
         return M
 

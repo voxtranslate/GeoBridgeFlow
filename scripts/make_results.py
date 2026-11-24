@@ -4,11 +4,12 @@
 Every number in the document is read from a file under runs/; nothing is typed by hand.
 
     python scripts/make_results.py --synth runs/sf_ablation/_full/full_s0 --ablation runs/sf_ablation \
-        --real_check runs/real_smoke
+        --real_eval docs/results/real_run2/eval_test_step22000.json
 """
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import os
 from typing import Dict, List, Optional
@@ -247,12 +248,51 @@ def real_check_section(run: str) -> List[str]:
             "(`GeoBridgeFlow_single_cell.ipynb`, preset `flickr8k_yo_t4`, or `scripts/paper_experiments.sh`).", ""]
 
 
+def real_eval_section(path: str, title: str) -> List[str]:
+    """A full real-data run of which only the evaluation file is at hand (it was trained elsewhere)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from chance_levels import chance_table
+
+    ev = load(path)
+    if ev is None:
+        return [f"## {title}", "", f"_No evaluation found at `{path}`._", ""]
+    m, H, L, T = ev["metrics"], "en", "yo", "hi"
+    md = [f"## {title}", "", f"Evaluation file: `{path}`. English text and speech, Yorùbá speech (orthography held out), "
+          "Hindi text; test split, every direction through the hub, no image at test time.", "",
+          "| Direction | BLEU | BLEU, all captions of the image | chrF++ | WER |", "|---|---|---|---|---|"]
+    names = [(f"txt_{H}>txt_{H}", "English text → English text"), (f"aud_{H}>txt_{H}", "English speech → English text"),
+             (f"txt_{T}>txt_{H}", "Hindi text → English text, zero-pair"), (f"txt_{H}>txt_{T}", "English text → Hindi text, zero-pair"),
+             (f"img>txt_{H}", "image → English text"), (f"aud_{L}>txt_{H}", "Yorùbá speech → English text, zero-pair"),
+             (f"aud_{L}>txt_{T}", "Yorùbá speech → Hindi text, zero-pair")]
+    f = lambda k, d=2: f"{m[k]:.{d}f}" if k in m else "–"
+    for k, lab in names:
+        md.append(f"| {lab} | {f(k + '/bleu')} | {f(k + '/bleu_multi')} | {f(k + '/chrf', 1)} | {f(k + '/wer', 1)} |")
+    md += ["", "| Image retrieval among the test images | R@1 | R@5 | R@10 | R@1 of the written image latent |", "|---|---|---|---|---|"]
+    for k, lab in ((f"txt_{H}", "English text"), (f"txt_{T}", "Hindi text"), (f"aud_{H}", "English speech"), (f"aud_{L}", "Yorùbá speech")):
+        md.append(f"| {lab} | {f(k + '>img/r1')} | {f(k + '>img/r5')} | {f(k + '>img/r10')} | {f(k + '>img_gen/r1')} |")
+    md += ["", f"- Tonality gate: English {f('tone/gate_' + H)}, Yorùbá {f('tone/gate_' + L)}; hub code moved by removing the "
+           f"pitch contour (share of the distance between two utterances): English {f('tone/reliance_' + H)}, Yorùbá "
+           f"{f('tone/reliance_' + L)}; Yorùbá speech → English text with the contour removed: BLEU "
+           f"{f('aud_' + L + '>txt_' + H + '/flat_bleu')}.",
+           f"- Text codec alone (encode, decode): character error rate {f('codec_txt_' + H + '/cer', 1)} % English, "
+           f"{f('codec_txt_' + T + '/cer', 1)} % Hindi.", "",
+           "**Distance from chance** of the stored outputs (60 per direction): own reference against the references of "
+           "other images, mean ± spread over 200 re-pairings (`scripts/chance_levels.py`). \"Subject\": the output names "
+           "the right kind of subject (English word list).", "",
+           "| Direction | n | content F1 (chance) | BLEU (chance) | chrF++ (chance) | right subject, % (chance) |", "|---|---|---|---|---|---|"]
+    cell = lambda c, d=1: f"{c[0]:.{d}f} ({c[1]:.{d}f} ± {c[2]:.{d}f})" if c else "–"
+    for name, n, cells in chance_table(ev["samples"]):
+        md.append(f"| `{name}` | {n} | {cell(cells[0])} | {cell(cells[1])} | {cell(cells[2])} | {cell(cells[3], 0)} |")
+    return md + [""]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--synth", default="")
     ap.add_argument("--ablation", default="")
     ap.add_argument("--real", default="", help="a real-data run whose metrics are worth a table")
     ap.add_argument("--real_check", default="", help="a real-data run that only shows the pipeline works (no metrics)")
+    ap.add_argument("--real_eval", default="", help="eval_*.json of a full real-data run trained elsewhere")
     ap.add_argument("--header", default="docs/RESULTS_HEADER.md")
     ap.add_argument("--out", default="docs/RESULTS.md")
     a = ap.parse_args()
@@ -273,6 +313,8 @@ def main() -> None:
                           "This is a pipeline check on a small subset with a small model, not a result to cite.")
     if a.real_check:
         md += real_check_section(a.real_check)
+    if a.real_eval:
+        md += real_eval_section(a.real_eval, "3. Flickr8k-Tri: second full run (2 × T4), last state")
     md += export_assets(a)
     with open(a.out, "w", encoding="utf8") as f:
         f.write("\n".join(md) + "\n")

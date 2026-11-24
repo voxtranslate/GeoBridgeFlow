@@ -27,8 +27,9 @@ class TextCodec(nn.Module):
         self.unit_emb = nn.Embedding(unit_vocab, W, padding_idx=unit_pad)
         self.intra_pos = nn.Parameter(torch.zeros(unit_bytes, W))
         self.unit_proj = nn.Sequential(nn.Linear(2 * W, W), nn.GELU(), nn.Linear(W, W))
-        self.enc = nn.ModuleList([Block(W, cfg.text_heads, dropout=cfg.dropout) for _ in range(cfg.text_enc_layers)])
-        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.text_heads, dropout=cfg.dropout)
+        p_enc = max(cfg.dropout, cfg.enc_dropout)
+        self.enc = nn.ModuleList([Block(W, cfg.text_heads, dropout=p_enc) for _ in range(cfg.text_enc_layers)])
+        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.text_heads, dropout=p_enc)
         # decoder
         self.byte_emb = nn.Embedding(BYTE_VOCAB, W)
         self.lang_emb = nn.Embedding(n_lang, W)

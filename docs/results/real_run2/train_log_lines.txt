@@ -1,0 +1,261 @@
+18:56:25 | [setup] Kaggle | torch 2.11.0+cu130 | runs -> /kaggle/working/geobridge | data -> /kaggle/temp/geobridge_data
+18:56:25 | [setup] cuda:0 Tesla T4 14.6 GB
+18:56:25 | [setup] cuda:1 Tesla T4 14.6 GB
+18:56:25 | [setup] 2 GPU(s): one batch per GPU in every training step
+18:56:25 | [setup] session started 3 min ago; training stops cleanly in 10.9 h (TIME_BUDGET_HOURS = 11.0)
+18:58:01 | [splits] created /kaggle/temp/geobridge_data/cache/flickr8k_yo/splits.json: {'train': 6847, 'valid': 620, 'test': 624}
+18:59:42 | [cache] vision tokens (8091, 50, 768) -> /kaggle/temp/geobridge_data/cache/flickr8k_yo/vision_google-siglip-base-patch16-224_g7
+19:00:25 | [cache] thumbnails (8091, 64, 64, 3) -> /kaggle/temp/geobridge_data/cache/flickr8k_yo/vision_google-siglip-base-patch16-224_g7/thumbs_64.npy
+19:35:43 | [cache] speech: 45981 utterances, 4533984 frames (50.38 h) -> /kaggle/temp/geobridge_data/cache/flickr8k_yo/audio_utter-project-mHuBERT-147_L8-9_p2
+19:48:04 | [cache] mel (speecht5, 62.5 fps): 45981 utterances -> /kaggle/temp/geobridge_data/cache/flickr8k_yo/mel_speecht5_utter-project-mHuBERT-147_L8-9_p2
+19:48:20 | [model] 74.01M params | text 9.95M | audio 11.61M | hub 6.61M | spokes 45.65M | per-language adapter 627.6k (1.43% of the shared flow backbone)
+19:48:20 | [data] groups {'train': 30272, 'valid': 3100, 'test': 3120} | bridge pairs 985 | unpaired island 3963 | device cuda x2 (DataParallel) | 2 batch(es) of 64 per step | amp True
+20:04:26 | [valid] step 1000 phase A | txt_ce 0.692 | txt_acc 0.791 | sem_mse 0.873 | mel_l1 0.209 | ground 2.128 | ground_acc 0.390 | agree 0.016 | read_txt 0.290 | read_aud 0.296 | unexplained 0.463 | read 0.293 | loss 6.346
+20:04:26 | [speed] 1.04 steps/s | waiting for batches 0.009s, computing 0.949s per step
+20:20:25 | [valid] step 2000 phase A | txt_ce 0.280 | txt_acc 0.914 | sem_mse 0.840 | mel_l1 0.194 | ground 1.540 | ground_acc 0.561 | agree 0.022 | read_txt 0.276 | read_aud 0.299 | unexplained 0.484 | read 0.288 | loss 5.296
+20:20:25 | [speed] 1.05 steps/s | waiting for batches 0.008s, computing 0.940s per step
+20:36:30 | [valid] step 3000 phase A | txt_ce 0.166 | txt_acc 0.950 | sem_mse 0.830 | mel_l1 0.186 | ground 1.346 | ground_acc 0.612 | agree 0.046 | read_txt 0.290 | read_aud 0.328 | unexplained 0.520 | read 0.309 | loss 5.082
+20:36:30 | [speed] 1.05 steps/s | waiting for batches 0.008s, computing 0.947s per step
+20:52:28 | [valid] step 4000 phase A | txt_ce 0.136 | txt_acc 0.961 | sem_mse 0.827 | mel_l1 0.181 | ground 1.290 | ground_acc 0.630 | agree 0.065 | read_txt 0.287 | read_aud 0.330 | unexplained 0.516 | read 0.308 | loss 5.312
+20:52:28 | [speed] 1.05 steps/s | waiting for batches 0.008s, computing 0.941s per step
+21:08:40 | [valid] step 5000 phase A | txt_ce 0.125 | txt_acc 0.967 | sem_mse 0.829 | mel_l1 0.179 | ground 1.354 | ground_acc 0.622 | agree 0.062 | read_txt 0.193 | read_aud 0.211 | unexplained 0.529 | read 0.202 | loss 5.064
+21:08:40 | [speed] 1.04 steps/s | waiting for batches 0.009s, computing 0.952s per step
+21:24:54 | [valid] step 6000 phase A | txt_ce 0.125 | txt_acc 0.969 | sem_mse 0.833 | mel_l1 0.177 | ground 1.399 | ground_acc 0.597 | agree 0.057 | read_txt 0.183 | read_aud 0.207 | unexplained 0.525 | read 0.195 | loss 5.084
+21:24:54 | [speed] 1.04 steps/s | waiting for batches 0.009s, computing 0.954s per step
+21:40:50 | [valid] step 7000 phase A | txt_ce 0.128 | txt_acc 0.971 | sem_mse 0.834 | mel_l1 0.176 | ground 1.449 | ground_acc 0.587 | agree 0.056 | read_txt 0.176 | read_aud 0.206 | unexplained 0.521 | read 0.191 | loss 5.121
+21:40:50 | [speed] 1.06 steps/s | waiting for batches 0.008s, computing 0.938s per step
+21:56:48 | [valid] step 8000 phase A | txt_ce 0.134 | txt_acc 0.970 | sem_mse 0.836 | mel_l1 0.175 | ground 1.496 | ground_acc 0.577 | agree 0.056 | read_txt 0.174 | read_aud 0.202 | unexplained 0.525 | read 0.188 | loss 5.178
+21:56:48 | [speed] 1.06 steps/s | waiting for batches 0.010s, computing 0.938s per step
+21:56:52 | [phase] the transport phase starts from the phase-A state of step 5000 (validation grounding + sufficiency + read = 2.085, the best after the release); later states fit the training set better and the validation set worse
+21:56:53 | [phase] representation phase finished at step 8000; codecs and grounder are now frozen, training the writers and the reader
+21:58:30 | [cache] latents and hub codes of 52356 paired views and 3963 unpaired island utterances cached in 94.5s; phase B no longer runs the codecs or the grounder
+22:07:52 | [valid] step 9000 phase B | read_txt 0.192 | read_aud 0.255 | cfm_txt 0.408 | cfm_aud 0.337 | cfm_img 0.399 | dec_ce 0.472 | dec_acc 0.859 | loss 2.062 | aud_yo>txt_en/bleu 5.319 | aud_yo>txt_en/bleu_multi 12.856 | aud_en>txt_en/bleu 5.520 | aud_en>txt_en/bleu_multi 14.161 | aud_en>txt_en/wer 85.388 | img>txt_en/bleu 2.975 | img>txt_en/bleu_multi 8.681 | txt_en>txt_en/bleu 6.987 | txt_en>txt_en/bleu_multi 16.072 | txt_en>txt_en/wer 80.774 | txt_en>img/r1 18.500 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 19.000 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.830 | tone/reliance_en 0.163 | tone/gate_yo 0.612 | tone/reliance_yo 0.079 | score 5.319
+22:07:52 | [speed] 1.90 steps/s | waiting for batches 0.007s, computing 0.520s per step
+22:07:52 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs are playing in a black dog .
+22:07:52 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman is sitting on a bench .
+22:07:52 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt and a black shirt is standing in the snow .
+22:07:52 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog with a black dog is running through a field .
+22:07:52 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a snowboard skiing down a snowy hill .
+22:07:52 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is running through the water .
+22:17:19 | [valid] step 10000 phase B | read_txt 0.193 | read_aud 0.259 | cfm_txt 0.344 | cfm_aud 0.288 | cfm_img 0.349 | dec_ce 0.433 | dec_acc 0.871 | loss 1.866 | aud_yo>txt_en/bleu 5.032 | aud_yo>txt_en/bleu_multi 10.346 | aud_en>txt_en/bleu 5.708 | aud_en>txt_en/bleu_multi 15.168 | aud_en>txt_en/wer 83.473 | img>txt_en/bleu 3.562 | img>txt_en/bleu_multi 11.468 | txt_en>txt_en/bleu 8.625 | txt_en>txt_en/bleu_multi 18.054 | txt_en>txt_en/wer 77.352 | txt_en>img/r1 20.500 | aud_yo>img/r1 1.493 | txt_en>img_gen/r1 17.000 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.830 | tone/reliance_en 0.172 | tone/gate_yo 0.612 | tone/reliance_yo 0.088 | score 5.032
+22:17:19 | [speed] 1.92 steps/s | waiting for batches 0.007s, computing 0.515s per step
+22:17:19 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play with a ball .
+22:17:19 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman in a brown dog shirt and a blue shirt and brown dog is sitting on a red bench .
+22:17:19 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill another man in a snowy hill .
+22:17:19 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog with a black dog is chasing a ball .
+22:17:19 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill .
+22:17:19 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is running through the water .
+22:27:43 | [valid] step 11000 phase B | read_txt 0.195 | read_aud 0.258 | cfm_txt 0.314 | cfm_aud 0.264 | cfm_img 0.333 | dec_ce 0.423 | dec_acc 0.875 | loss 1.787 | aud_yo>txt_en/bleu 5.165 | aud_yo>txt_en/bleu_multi 9.652 | aud_en>txt_en/bleu 5.367 | aud_en>txt_en/bleu_multi 13.665 | aud_en>txt_en/wer 83.323 | img>txt_en/bleu 3.365 | img>txt_en/bleu_multi 10.658 | txt_en>txt_en/bleu 8.812 | txt_en>txt_en/bleu_multi 18.466 | txt_en>txt_en/wer 78.379 | txt_en>img/r1 20.000 | aud_yo>img/r1 1.493 | txt_en>img_gen/r1 17.500 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.830 | tone/reliance_en 0.176 | tone/gate_yo 0.612 | tone/reliance_yo 0.087 | score 5.165
+22:27:43 | [speed] 1.72 steps/s | waiting for batches 0.007s, computing 0.575s per step
+22:27:43 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play with a ball in the grass .
+22:27:43 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman in a blue shirt and blue shorts sits on a store with a book of water .
+22:27:43 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill are standing in front of a mountain .
+22:27:43 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a blue collar is standing in a street .
+22:27:43 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill .
+22:27:43 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog walks along the water .
+22:41:57 | [valid] step 12000 phase B | read_txt 0.197 | read_aud 0.257 | cfm_txt 0.293 | cfm_aud 0.250 | cfm_img 0.325 | dec_ce 0.424 | dec_acc 0.876 | loss 1.747 | aud_yo>txt_en/bleu 3.856 | aud_yo>txt_en/bleu_multi 8.809 | aud_en>txt_en/bleu 5.637 | aud_en>txt_en/bleu_multi 13.228 | aud_en>txt_en/wer 86.572 | img>txt_en/bleu 3.068 | img>txt_en/bleu_multi 9.429 | txt_en>txt_en/bleu 9.043 | txt_en>txt_en/bleu_multi 17.277 | txt_en>txt_en/wer 78.229 | txt_en>img/r1 20.250 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 18.750 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.830 | tone/reliance_en 0.178 | tone/gate_yo 0.612 | tone/reliance_yo 0.077 | score 3.856
+22:41:57 | [speed] 1.24 steps/s | waiting for batches 0.007s, computing 0.802s per step
+22:41:57 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play in a grassy field .
+22:41:57 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman in a blue shirt sits on a restaurant with a table in his mouth .
+22:41:57 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill another man in a snow covered hill .
+22:41:57 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog and a brown dog is playing with a blue ball .
+22:41:57 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill .
+22:41:57 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog swims in water .
+22:56:09 | [valid] step 13000 phase B | read_txt 0.199 | read_aud 0.260 | cfm_txt 0.281 | cfm_aud 0.244 | cfm_img 0.322 | dec_ce 0.431 | dec_acc 0.877 | loss 1.737 | aud_yo>txt_en/bleu 3.580 | aud_yo>txt_en/bleu_multi 8.300 | aud_en>txt_en/bleu 6.209 | aud_en>txt_en/bleu_multi 13.911 | aud_en>txt_en/wer 85.948 | img>txt_en/bleu 3.157 | img>txt_en/bleu_multi 9.037 | txt_en>txt_en/bleu 8.810 | txt_en>txt_en/bleu_multi 17.164 | txt_en>txt_en/wer 79.021 | txt_en>img/r1 20.500 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 16.750 | aud_yo>img_gen/r1 4.478 | tone/gate_en 0.830 | tone/reliance_en 0.184 | tone/gate_yo 0.612 | tone/reliance_yo 0.077 | score 3.580
+22:56:09 | [speed] 1.24 steps/s | waiting for batches 0.007s, computing 0.800s per step
+22:56:09 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play in a field .
+22:56:09 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman in a blue shirt sitting on a red couch in a store .
+22:56:09 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill at the mountains .
+22:56:09 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog and a brown dog is running .
+22:56:09 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill .
+22:56:09 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog swims in the water .
+23:10:15 | [valid] step 14000 phase B | read_txt 0.201 | read_aud 0.262 | cfm_txt 0.273 | cfm_aud 0.240 | cfm_img 0.321 | dec_ce 0.445 | dec_acc 0.876 | loss 1.742 | aud_yo>txt_en/bleu 3.402 | aud_yo>txt_en/bleu_multi 8.473 | aud_en>txt_en/bleu 5.980 | aud_en>txt_en/bleu_multi 14.198 | aud_en>txt_en/wer 85.216 | img>txt_en/bleu 2.648 | img>txt_en/bleu_multi 9.313 | txt_en>txt_en/bleu 8.721 | txt_en>txt_en/bleu_multi 16.812 | txt_en>txt_en/wer 79.491 | txt_en>img/r1 19.750 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 16.750 | aud_yo>img_gen/r1 4.478 | tone/gate_en 0.830 | tone/reliance_en 0.190 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 3.402
+23:10:15 | [speed] 1.25 steps/s | waiting for batches 0.007s, computing 0.796s per step
+23:10:15 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play in a ball .
+23:10:15 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman is sitting on a bench with a black dog in the background .
+23:10:15 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill .
+23:10:15 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog and a brown dog play in the snow .
+23:10:15 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill .
+23:10:15 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar is standing in the water .
+23:24:19 | [valid] step 15000 phase B | read_txt 0.203 | read_aud 0.264 | cfm_txt 0.267 | cfm_aud 0.238 | cfm_img 0.322 | dec_ce 0.464 | dec_acc 0.874 | loss 1.758 | aud_yo>txt_en/bleu 3.379 | aud_yo>txt_en/bleu_multi 7.852 | aud_en>txt_en/bleu 6.033 | aud_en>txt_en/bleu_multi 13.272 | aud_en>txt_en/wer 84.054 | img>txt_en/bleu 2.667 | img>txt_en/bleu_multi 9.485 | txt_en>txt_en/bleu 9.100 | txt_en>txt_en/bleu_multi 17.047 | txt_en>txt_en/wer 78.315 | txt_en>img/r1 20.500 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 16.500 | aud_yo>img_gen/r1 4.478 | tone/gate_en 0.830 | tone/reliance_en 0.198 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 3.379
+23:24:19 | [speed] 1.25 steps/s | waiting for batches 0.007s, computing 0.794s per step
+23:24:19 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two black puppy is gnawing at a ball .
+23:24:19 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman sits on a bench with a brown colored bags .
+23:24:19 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill .
+23:24:19 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog with a brown spot on the ground .
+23:24:19 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill with a snowboard in the mountains .
+23:24:19 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+23:38:25 | [valid] step 16000 phase B | read_txt 0.205 | read_aud 0.266 | cfm_txt 0.263 | cfm_aud 0.237 | cfm_img 0.324 | dec_ce 0.488 | dec_acc 0.873 | loss 1.783 | aud_yo>txt_en/bleu 2.939 | aud_yo>txt_en/bleu_multi 6.591 | aud_en>txt_en/bleu 6.017 | aud_en>txt_en/bleu_multi 13.091 | aud_en>txt_en/wer 84.054 | img>txt_en/bleu 2.732 | img>txt_en/bleu_multi 9.562 | txt_en>txt_en/bleu 9.831 | txt_en>txt_en/bleu_multi 18.373 | txt_en>txt_en/wer 77.032 | txt_en>img/r1 21.000 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 17.250 | aud_yo>img_gen/r1 5.970 | tone/gate_en 0.830 | tone/reliance_en 0.205 | tone/gate_yo 0.612 | tone/reliance_yo 0.077 | score 2.939
+23:38:25 | [speed] 1.25 steps/s | waiting for batches 0.007s, computing 0.793s per step
+23:38:25 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two black puppy carrying a toy .
+23:38:25 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman sits on a bench with a brown colored bags .
+23:38:25 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill looking at the mountains .
+23:38:25 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is licking its nose .
+23:38:25 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill with a snowball in the snow .
+23:38:25 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+23:52:26 | [valid] step 17000 phase B | read_txt 0.207 | read_aud 0.268 | cfm_txt 0.260 | cfm_aud 0.236 | cfm_img 0.327 | dec_ce 0.515 | dec_acc 0.871 | loss 1.814 | aud_yo>txt_en/bleu 3.568 | aud_yo>txt_en/bleu_multi 7.312 | aud_en>txt_en/bleu 6.271 | aud_en>txt_en/bleu_multi 13.534 | aud_en>txt_en/wer 84.291 | img>txt_en/bleu 2.927 | img>txt_en/bleu_multi 9.182 | txt_en>txt_en/bleu 9.896 | txt_en>txt_en/bleu_multi 17.911 | txt_en>txt_en/wer 78.700 | txt_en>img/r1 21.500 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 18.750 | aud_yo>img_gen/r1 4.478 | tone/gate_en 0.830 | tone/reliance_en 0.211 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 3.568
+23:52:26 | [speed] 1.26 steps/s | waiting for batches 0.007s, computing 0.789s per step
+23:52:26 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two black puppy is gnawing at a ball .
+23:52:26 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman sits between two girls and bonnets on a boat .
+23:52:26 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill looking at the mountains .
+23:52:26 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is licking its legged winter .
+23:52:26 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while standing in the snow .
+23:52:26 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+00:06:23 | [valid] step 18000 phase B | read_txt 0.210 | read_aud 0.270 | cfm_txt 0.257 | cfm_aud 0.235 | cfm_img 0.331 | dec_ce 0.547 | dec_acc 0.869 | loss 1.851 | aud_yo>txt_en/bleu 2.911 | aud_yo>txt_en/bleu_multi 6.844 | aud_en>txt_en/bleu 5.915 | aud_en>txt_en/bleu_multi 13.199 | aud_en>txt_en/wer 84.764 | img>txt_en/bleu 2.633 | img>txt_en/bleu_multi 8.925 | txt_en>txt_en/bleu 9.782 | txt_en>txt_en/bleu_multi 17.523 | txt_en>txt_en/wer 78.251 | txt_en>img/r1 19.750 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 17.250 | aud_yo>img_gen/r1 5.970 | tone/gate_en 0.830 | tone/reliance_en 0.217 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 2.911
+00:06:23 | [speed] 1.26 steps/s | waiting for batches 0.007s, computing 0.788s per step
+00:06:23 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two black dogs are playing with a ball .
+00:06:23 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman is sitting on a bench with a brown dog in a baby .
+00:06:23 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill looking at the mountains .
+00:06:23 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is sitting on a bench .
+00:06:23 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while standing on a snow covered mountains .
+00:06:23 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+00:20:20 | [valid] step 19000 phase B | read_txt 0.211 | read_aud 0.272 | cfm_txt 0.256 | cfm_aud 0.235 | cfm_img 0.336 | dec_ce 0.581 | dec_acc 0.867 | loss 1.891 | aud_yo>txt_en/bleu 2.258 | aud_yo>txt_en/bleu_multi 6.236 | aud_en>txt_en/bleu 5.727 | aud_en>txt_en/bleu_multi 12.910 | aud_en>txt_en/wer 85.819 | img>txt_en/bleu 2.622 | img>txt_en/bleu_multi 7.927 | txt_en>txt_en/bleu 9.572 | txt_en>txt_en/bleu_multi 16.927 | txt_en>txt_en/wer 79.021 | txt_en>img/r1 19.000 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 16.750 | aud_yo>img_gen/r1 4.478 | tone/gate_en 0.830 | tone/reliance_en 0.224 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 2.258
+00:20:20 | [speed] 1.26 steps/s | waiting for batches 0.007s, computing 0.785s per step
+00:20:20 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two black dogs are playing with a ball .
+00:20:20 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman is sitting on a bench with a brown dog in a backyard .
+00:20:20 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill looking at the mountains .
+00:20:20 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is sitting on a bench .
+00:20:20 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while standing on a snow covered mountains .
+00:20:20 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+00:34:17 | [valid] step 20000 phase B | read_txt 0.213 | read_aud 0.273 | cfm_txt 0.254 | cfm_aud 0.235 | cfm_img 0.340 | dec_ce 0.614 | dec_acc 0.865 | loss 1.930 | aud_yo>txt_en/bleu 3.120 | aud_yo>txt_en/bleu_multi 6.725 | aud_en>txt_en/bleu 5.510 | aud_en>txt_en/bleu_multi 12.591 | aud_en>txt_en/wer 86.206 | img>txt_en/bleu 2.323 | img>txt_en/bleu_multi 7.258 | txt_en>txt_en/bleu 9.605 | txt_en>txt_en/bleu_multi 16.420 | txt_en>txt_en/wer 79.234 | txt_en>img/r1 19.250 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 15.500 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.830 | tone/reliance_en 0.229 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 3.120
+00:34:17 | [speed] 1.26 steps/s | waiting for batches 0.007s, computing 0.785s per step
+00:34:17 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs play with a red ball .
+00:34:17 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman is sitting on a bench with a blanket on her lap .
+00:34:17 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill at a snow-covered mountain .
+00:34:17 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is sitting on a bench .
+00:34:17 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while ski cap mountains .
+00:34:17 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+00:48:08 | [valid] step 21000 phase B | read_txt 0.215 | read_aud 0.275 | cfm_txt 0.254 | cfm_aud 0.235 | cfm_img 0.345 | dec_ce 0.643 | dec_acc 0.863 | loss 1.966 | aud_yo>txt_en/bleu 2.433 | aud_yo>txt_en/bleu_multi 6.029 | aud_en>txt_en/bleu 5.514 | aud_en>txt_en/bleu_multi 12.334 | aud_en>txt_en/wer 86.056 | img>txt_en/bleu 2.339 | img>txt_en/bleu_multi 7.601 | txt_en>txt_en/bleu 9.362 | txt_en>txt_en/bleu_multi 16.656 | txt_en>txt_en/wer 79.833 | txt_en>img/r1 19.000 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 15.500 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.830 | tone/reliance_en 0.233 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 2.433
+00:48:08 | [speed] 1.27 steps/s | waiting for batches 0.007s, computing 0.780s per step
+00:48:08 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs are playing with a red ball .
+00:48:08 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman sits between a decorated baby with a tan tennis ball .
+00:48:08 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on top of snow and looks at a park .
+00:48:08 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is standing up its nose .
+00:48:08 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while ski cap mountains .
+00:48:08 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+01:02:03 | [valid] step 22000 phase B | read_txt 0.216 | read_aud 0.275 | cfm_txt 0.253 | cfm_aud 0.236 | cfm_img 0.348 | dec_ce 0.668 | dec_acc 0.862 | loss 1.996 | aud_yo>txt_en/bleu 1.701 | aud_yo>txt_en/bleu_multi 4.885 | aud_en>txt_en/bleu 5.306 | aud_en>txt_en/bleu_multi 12.198 | aud_en>txt_en/wer 86.012 | img>txt_en/bleu 2.314 | img>txt_en/bleu_multi 6.859 | txt_en>txt_en/bleu 9.323 | txt_en>txt_en/bleu_multi 16.560 | txt_en>txt_en/wer 79.577 | txt_en>img/r1 19.250 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 15.000 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.830 | tone/reliance_en 0.236 | tone/gate_yo 0.612 | tone/reliance_yo 0.078 | score 1.701
+01:02:03 | [speed] 1.26 steps/s | waiting for batches 0.007s, computing 0.784s per step
+01:02:03 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two dogs are playing with a red ball .
+01:02:03 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A woman sits between a decorated baby with a tan tennis ball .
+01:02:03 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill at a snow-covered mountain .
+01:02:03 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A dog is standing up its nose in a dog showerhay .
+01:02:03 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man is skiing down a snowy hill while ski cap makes a mountain .
+01:02:03 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar splashes in the water .
+01:02:14 | [fit] done: 22000 steps, best score 5.319 at step 9000
+01:12:20 | [eval] test: aud_yo>txt_en/bleu 4.12 | aud_en>txt_en/bleu 5.65 | img>txt_en/bleu 2.60 | txt_en>txt_en/bleu 7.37 | txt_en>txt_hi/bleu 4.89 | txt_hi>txt_en/bleu 5.93 | aud_yo>txt_hi/bleu 2.22 | txt_en>img/r1 14.74 | txt_hi>img/r1 8.56 | aud_en>img/r1 5.23 | aud_yo>img/r1 1.54 | txt_en>img_gen/r1 11.86 | txt_hi>img_gen/r1 6.70 | aud_en>img_gen/r1 3.82 | aud_yo>img_gen/r1 0.96 | score 3.17
+01:14:39 | [ablation] 37 runs in 10 group(s), 37 without results yet.  A variant that keeps the representation costs one transport phase; the full model is the main run.
+01:14:39 | [cell] hub / barycentric hub, mutual sufficiency (ours) / seed 0  (the main run, /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2)
+01:14:42 | [model] 74.01M params | text 9.95M | audio 11.61M | hub 6.61M | spokes 45.65M | per-language adapter 627.6k (1.43% of the shared flow backbone)
+01:14:42 | [data] groups {'train': 30272, 'valid': 3100, 'test': 3120} | bridge pairs 985 | unpaired island 3963 | device cuda x2 (DataParallel) | 2 batch(es) of 64 per step | amp True
+01:14:47 | [resume] /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2/checkpoints/last.pt -> step 22000 (epoch 81, batch 260, phase B)
+01:14:47 | [fit] run already complete (22000/22000 steps)
+01:26:16 | [phase A] training shared representation f33b28eefa
+01:26:18 | [model] 74.01M params | text 9.95M | audio 11.61M | hub 6.61M | spokes 45.65M | per-language adapter 627.6k (1.43% of the shared flow backbone)
+01:26:18 | [data] groups {'train': 30272, 'valid': 3100, 'test': 3120} | bridge pairs 985 | unpaired island 3963 | device cuda x2 (DataParallel) | 2 batch(es) of 64 per step | amp True
+01:42:26 | [valid] step 1000 phase A | txt_ce 0.691 | txt_acc 0.792 | sem_mse 0.872 | mel_l1 0.209 | ground 2.062 | ground_acc 0.417 | agree 0.007 | read_txt 0.290 | read_aud 0.292 | unexplained 0.515 | read 0.291 | loss 6.358
+01:42:26 | [speed] 1.04 steps/s | waiting for batches 0.009s, computing 0.949s per step
+01:58:42 | [valid] step 2000 phase A | txt_ce 0.348 | txt_acc 0.895 | sem_mse 0.840 | mel_l1 0.194 | ground 1.553 | ground_acc 0.552 | agree 0.018 | read_txt 0.275 | read_aud 0.297 | unexplained 0.536 | read 0.286 | loss 5.478
+01:58:42 | [speed] 1.04 steps/s | waiting for batches 0.010s, computing 0.956s per step
+02:15:13 | [valid] step 3000 phase A | txt_ce 0.180 | txt_acc 0.946 | sem_mse 0.830 | mel_l1 0.186 | ground 1.338 | ground_acc 0.605 | agree 0.038 | read_txt 0.289 | read_aud 0.334 | unexplained 0.576 | read 0.312 | loss 5.213
+02:15:13 | [speed] 1.02 steps/s | waiting for batches 0.010s, computing 0.970s per step
+02:31:42 | [valid] step 4000 phase A | txt_ce 0.140 | txt_acc 0.961 | sem_mse 0.827 | mel_l1 0.182 | ground 1.252 | ground_acc 0.627 | agree 0.082 | read_txt 0.310 | read_aud 0.354 | unexplained 0.582 | read 0.332 | loss 5.487
+02:31:42 | [speed] 1.02 steps/s | waiting for batches 0.009s, computing 0.970s per step
+02:48:22 | [valid] step 5000 phase A | txt_ce 0.126 | txt_acc 0.968 | sem_mse 0.827 | mel_l1 0.179 | ground 1.300 | ground_acc 0.618 | agree 0.053 | read_txt 0.155 | read_aud 0.156 | unexplained 0.594 | read 0.156 | loss 4.994
+02:48:22 | [speed] 1.01 steps/s | waiting for batches 0.010s, computing 0.978s per step
+03:05:01 | [valid] step 6000 phase A | txt_ce 0.124 | txt_acc 0.970 | sem_mse 0.828 | mel_l1 0.177 | ground 1.336 | ground_acc 0.600 | agree 0.047 | read_txt 0.139 | read_aud 0.145 | unexplained 0.604 | read 0.142 | loss 4.997
+03:05:01 | [speed] 1.01 steps/s | waiting for batches 0.011s, computing 0.977s per step
+03:21:36 | [valid] step 7000 phase A | txt_ce 0.126 | txt_acc 0.971 | sem_mse 0.829 | mel_l1 0.176 | ground 1.376 | ground_acc 0.596 | agree 0.044 | read_txt 0.131 | read_aud 0.148 | unexplained 0.608 | read 0.139 | loss 5.039
+03:21:36 | [speed] 1.02 steps/s | waiting for batches 0.009s, computing 0.976s per step
+03:38:17 | [valid] step 8000 phase A | txt_ce 0.130 | txt_acc 0.972 | sem_mse 0.830 | mel_l1 0.175 | ground 1.413 | ground_acc 0.585 | agree 0.043 | read_txt 0.129 | read_aud 0.146 | unexplained 0.616 | read 0.137 | loss 5.091
+03:38:17 | [speed] 1.02 steps/s | waiting for batches 0.011s, computing 0.974s per step
+03:38:21 | [phase] the transport phase starts from the phase-A state of step 5000 (validation grounding + sufficiency + read = 2.049, the best after the release); later states fit the training set better and the validation set worse
+03:38:22 | [phase] representation phase finished at step 8000; codecs and grounder are now frozen, training the writers and the reader
+03:38:42 | [fit] done: 8000 steps, best score -1000000000.000 at step -1
+03:38:43 | [cell] hub / no counterfactual patch credit (softmax gradient only) / seed 0
+03:38:48 | [model] 74.01M params | text 9.95M | audio 11.61M | hub 6.61M | spokes 45.65M | per-language adapter 627.6k (1.43% of the shared flow backbone)
+03:38:48 | [data] groups {'train': 30272, 'valid': 3100, 'test': 3120} | bridge pairs 985 | unpaired island 3963 | device cuda x2 (DataParallel) | 2 batch(es) of 64 per step | amp True
+03:38:51 | [init] weights from /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2_ablation/_phase_a/f33b28eefa/checkpoints/phase_a.pt; starting at step 8000 (phase B)
+03:40:31 | [cache] latents and hub codes of 52356 paired views and 3963 unpaired island utterances cached in 99.6s; phase B no longer runs the codecs or the grounder
+03:50:07 | [valid] step 9000 phase B | read_txt 0.154 | read_aud 0.190 | cfm_txt 0.442 | cfm_aud 0.349 | cfm_img 0.397 | dec_ce 0.470 | dec_acc 0.860 | loss 2.002 | aud_yo>txt_en/bleu 5.795 | aud_yo>txt_en/bleu_multi 11.871 | aud_en>txt_en/bleu 5.789 | aud_en>txt_en/bleu_multi 15.393 | aud_en>txt_en/wer 82.591 | img>txt_en/bleu 2.265 | img>txt_en/bleu_multi 6.761 | txt_en>txt_en/bleu 7.138 | txt_en>txt_en/bleu_multi 17.947 | txt_en>txt_en/wer 78.678 | txt_en>img/r1 20.750 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 17.500 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.127 | tone/gate_yo 0.426 | tone/reliance_yo 0.035 | score 5.795
+03:50:07 | [speed] 1.84 steps/s | waiting for batches 0.008s, computing 0.535s per step
+03:50:07 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two people play in a red collar is playing a game .
+03:50:07 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man and a woman wearing a black and white dress and a bright back .
+03:50:07 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing on a snowy mountain .
+03:50:07 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A man is running through the water .
+03:50:07 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man with a black hat is standing on a snowy mountain .
+03:50:07 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is running through the water .
+04:00:04 | [valid] step 10000 phase B | read_txt 0.156 | read_aud 0.194 | cfm_txt 0.374 | cfm_aud 0.296 | cfm_img 0.348 | dec_ce 0.434 | dec_acc 0.870 | loss 1.801 | aud_yo>txt_en/bleu 6.126 | aud_yo>txt_en/bleu_multi 12.187 | aud_en>txt_en/bleu 6.205 | aud_en>txt_en/bleu_multi 14.108 | aud_en>txt_en/wer 86.012 | img>txt_en/bleu 3.462 | img>txt_en/bleu_multi 9.234 | txt_en>txt_en/bleu 8.214 | txt_en>txt_en/bleu_multi 17.744 | txt_en>txt_en/wer 79.769 | txt_en>img/r1 19.750 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 17.000 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.135 | tone/gate_yo 0.426 | tone/reliance_yo 0.039 | score 6.126
+04:00:04 | [speed] 1.82 steps/s | waiting for batches 0.008s, computing 0.542s per step
+04:00:04 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A soccer player in a red collar .
+04:00:04 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man in a black and white dress with a black and white dog is standing on the sidewalk .
+04:00:04 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt is standing on a snowy mountain .
+04:00:04 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A man is standing in a rock water with a stick in the water .
+04:00:04 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing on a snowy mountain .
+04:00:04 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is running through the water .
+04:10:59 | [valid] step 11000 phase B | read_txt 0.158 | read_aud 0.189 | cfm_txt 0.342 | cfm_aud 0.272 | cfm_img 0.332 | dec_ce 0.425 | dec_acc 0.874 | loss 1.718 | aud_yo>txt_en/bleu 5.683 | aud_yo>txt_en/bleu_multi 11.034 | aud_en>txt_en/bleu 6.524 | aud_en>txt_en/bleu_multi 13.990 | aud_en>txt_en/wer 85.539 | img>txt_en/bleu 3.754 | img>txt_en/bleu_multi 10.228 | txt_en>txt_en/bleu 8.993 | txt_en>txt_en/bleu_multi 17.760 | txt_en>txt_en/wer 81.758 | txt_en>img/r1 21.250 | aud_yo>img/r1 1.493 | txt_en>img_gen/r1 16.750 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.138 | tone/gate_yo 0.426 | tone/reliance_yo 0.034 | score 5.683
+04:10:59 | [speed] 1.66 steps/s | waiting for batches 0.008s, computing 0.597s per step
+04:10:59 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two children play in a race .
+04:10:59 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man in a black and white shirt and green t-shirt and a brown walking down the street .
+04:10:59 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt and hat stands on the side of a mountain .
+04:10:59 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is swimming in a rock wall with a stream in the background .
+04:10:59 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing on a snowy mountain .
+04:10:59 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is standing in the water .
+04:25:42 | [valid] step 12000 phase B | read_txt 0.160 | read_aud 0.186 | cfm_txt 0.318 | cfm_aud 0.258 | cfm_img 0.325 | dec_ce 0.427 | dec_acc 0.876 | loss 1.673 | aud_yo>txt_en/bleu 3.885 | aud_yo>txt_en/bleu_multi 9.745 | aud_en>txt_en/bleu 6.237 | aud_en>txt_en/bleu_multi 14.016 | aud_en>txt_en/wer 86.572 | img>txt_en/bleu 3.350 | img>txt_en/bleu_multi 9.029 | txt_en>txt_en/bleu 9.170 | txt_en>txt_en/bleu_multi 17.534 | txt_en>txt_en/wer 82.015 | txt_en>img/r1 20.000 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 16.250 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.140 | tone/gate_yo 0.426 | tone/reliance_yo 0.032 | score 3.885
+04:25:42 | [speed] 1.19 steps/s | waiting for batches 0.008s, computing 0.830s per step
+04:25:42 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: Two soccer players are fighting over a red and blue tries to take a photograph .
+04:25:42 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man wearing a black and white dog is wearing a brown jacket and shorter on a brick wall 
+04:25:42 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt and helmet stands on a city street .
+04:25:42 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is splashing in the water with a stick in its mouth .
+04:25:42 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing in the snow .
+04:25:42 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is standing in the water .
+04:40:08 | [valid] step 13000 phase B | read_txt 0.162 | read_aud 0.188 | cfm_txt 0.304 | cfm_aud 0.251 | cfm_img 0.321 | dec_ce 0.434 | dec_acc 0.875 | loss 1.661 | aud_yo>txt_en/bleu 5.210 | aud_yo>txt_en/bleu_multi 12.438 | aud_en>txt_en/bleu 5.679 | aud_en>txt_en/bleu_multi 13.439 | aud_en>txt_en/wer 86.142 | img>txt_en/bleu 3.131 | img>txt_en/bleu_multi 9.051 | txt_en>txt_en/bleu 8.944 | txt_en>txt_en/bleu_multi 17.724 | txt_en>txt_en/wer 81.865 | txt_en>img/r1 20.500 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 17.250 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.746 | tone/reliance_en 0.144 | tone/gate_yo 0.426 | tone/reliance_yo 0.034 | score 5.210
+04:40:08 | [speed] 1.22 steps/s | waiting for batches 0.007s, computing 0.811s per step
+04:40:08 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A man in a red suit is riding a ball in a rodeo .
+04:40:08 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A brown and white dog with a brown hair and a black and white shirt and red buildings .
+04:40:08 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt and helmet is sitting on a rock .
+04:40:08 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is running through the water while a waterfall .
+04:40:08 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing in the snow .
+04:40:08 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is swimming in the water .
+04:54:37 | [valid] step 14000 phase B | read_txt 0.164 | read_aud 0.189 | cfm_txt 0.296 | cfm_aud 0.247 | cfm_img 0.320 | dec_ce 0.447 | dec_acc 0.875 | loss 1.663 | aud_yo>txt_en/bleu 3.427 | aud_yo>txt_en/bleu_multi 9.490 | aud_en>txt_en/bleu 5.947 | aud_en>txt_en/bleu_multi 13.322 | aud_en>txt_en/wer 85.604 | img>txt_en/bleu 3.238 | img>txt_en/bleu_multi 9.032 | txt_en>txt_en/bleu 9.355 | txt_en>txt_en/bleu_multi 18.209 | txt_en>txt_en/wer 80.282 | txt_en>img/r1 19.750 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 17.750 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.148 | tone/gate_yo 0.426 | tone/reliance_yo 0.035 | score 3.427
+04:54:37 | [speed] 1.21 steps/s | waiting for batches 0.007s, computing 0.817s per step
+04:54:37 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A red holding a ball in a rodeo car .
+04:54:37 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A brown and white dog with a brown hair and a black and white shirt and red hoodie .
+04:54:37 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a red shirt standing on the sidewalk .
+04:54:37 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is running through the water while a waterfall .
+04:54:37 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing in the snow .
+04:54:37 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog is swimming in the water .
+05:08:47 | [valid] step 15000 phase B | read_txt 0.166 | read_aud 0.191 | cfm_txt 0.289 | cfm_aud 0.245 | cfm_img 0.321 | dec_ce 0.466 | dec_acc 0.873 | loss 1.678 | aud_yo>txt_en/bleu 2.989 | aud_yo>txt_en/bleu_multi 8.972 | aud_en>txt_en/bleu 6.270 | aud_en>txt_en/bleu_multi 13.344 | aud_en>txt_en/wer 84.312 | img>txt_en/bleu 3.185 | img>txt_en/bleu_multi 8.821 | txt_en>txt_en/bleu 9.254 | txt_en>txt_en/bleu_multi 17.647 | txt_en>txt_en/wer 79.790 | txt_en>img/r1 19.250 | aud_yo>img/r1 2.985 | txt_en>img_gen/r1 16.750 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.151 | tone/gate_yo 0.426 | tone/reliance_yo 0.036 | score 2.989
+05:08:47 | [speed] 1.24 steps/s | waiting for batches 0.007s, computing 0.798s per step
+05:08:47 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A red holding a blue ball in a car .
+05:08:47 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man wearing a black and white shirt and a brown and white cap is driving down a street .
+05:08:47 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a red shirt standing on a rock .
+05:08:47 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is running through the water while a waterfall .
+05:08:47 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a black shirt is standing in the snow .
+05:08:47 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog swims in water with a stick in its mouth .
+05:22:24 | [valid] step 16000 phase B | read_txt 0.168 | read_aud 0.192 | cfm_txt 0.285 | cfm_aud 0.243 | cfm_img 0.324 | dec_ce 0.490 | dec_acc 0.871 | loss 1.702 | aud_yo>txt_en/bleu 2.822 | aud_yo>txt_en/bleu_multi 7.860 | aud_en>txt_en/bleu 6.294 | aud_en>txt_en/bleu_multi 13.453 | aud_en>txt_en/wer 84.463 | img>txt_en/bleu 1.920 | img>txt_en/bleu_multi 7.664 | txt_en>txt_en/bleu 9.601 | txt_en>txt_en/bleu_multi 17.853 | txt_en>txt_en/wer 79.598 | txt_en>img/r1 19.250 | aud_yo>img/r1 5.970 | txt_en>img_gen/r1 17.750 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.156 | tone/gate_yo 0.426 | tone/reliance_yo 0.036 | score 2.822
+05:22:24 | [speed] 1.29 steps/s | waiting for batches 0.007s, computing 0.767s per step
+05:22:24 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A man in a red suit is scoreding a small ride .
+05:22:24 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man wearing a black and white shirt and a black shirt wearing red and black mask trees .
+05:22:24 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt standing on a cliff .
+05:22:24 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A person is running through a water while another man is driving down a rope .
+05:22:24 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill with a snowball .
+05:22:24 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog swims in water with a stick in its mouth .
+05:36:06 | [valid] step 17000 phase B | read_txt 0.170 | read_aud 0.194 | cfm_txt 0.282 | cfm_aud 0.242 | cfm_img 0.328 | dec_ce 0.517 | dec_acc 0.869 | loss 1.732 | aud_yo>txt_en/bleu 3.351 | aud_yo>txt_en/bleu_multi 8.564 | aud_en>txt_en/bleu 6.287 | aud_en>txt_en/bleu_multi 13.405 | aud_en>txt_en/wer 84.571 | img>txt_en/bleu 1.887 | img>txt_en/bleu_multi 7.440 | txt_en>txt_en/bleu 9.678 | txt_en>txt_en/bleu_multi 17.712 | txt_en>txt_en/wer 80.689 | txt_en>img/r1 19.250 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 16.250 | aud_yo>img_gen/r1 1.493 | tone/gate_en 0.746 | tone/reliance_en 0.160 | tone/gate_yo 0.426 | tone/reliance_yo 0.036 | score 3.351
+05:36:06 | [speed] 1.28 steps/s | waiting for batches 0.007s, computing 0.771s per step
+05:36:06 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A man in a red shirt and helmet is sitting on a rock .
+05:36:06 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man wearing a black jacket and a hat is smiling and laddy looks at the camera .
+05:36:06 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt standing on a cliff .
+05:36:06 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A man is running through a water raft in the background .
+05:36:06 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill with a dog .
+05:36:06 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar is standing in water .
+05:49:44 | [valid] step 18000 phase B | read_txt 0.172 | read_aud 0.195 | cfm_txt 0.279 | cfm_aud 0.241 | cfm_img 0.332 | dec_ce 0.549 | dec_acc 0.867 | loss 1.768 | aud_yo>txt_en/bleu 3.372 | aud_yo>txt_en/bleu_multi 8.562 | aud_en>txt_en/bleu 5.984 | aud_en>txt_en/bleu_multi 12.737 | aud_en>txt_en/wer 85.862 | img>txt_en/bleu 1.904 | img>txt_en/bleu_multi 7.855 | txt_en>txt_en/bleu 9.195 | txt_en>txt_en/bleu_multi 16.963 | txt_en>txt_en/wer 81.245 | txt_en>img/r1 18.250 | aud_yo>img/r1 4.478 | txt_en>img_gen/r1 15.750 | aud_yo>img_gen/r1 2.985 | tone/gate_en 0.746 | tone/reliance_en 0.165 | tone/gate_yo 0.426 | tone/reliance_yo 0.037 | score 3.372
+05:49:44 | [speed] 1.29 steps/s | waiting for batches 0.007s, computing 0.766s per step
+05:49:44 | [sample] aud_yo>txt_en | ref: A family playing on a tractor on a beautiful day | out: A man in a red shirt and her head runs for a pink store .
+05:49:44 | [sample] aud_yo>txt_en | ref: A mother and children is fishing on a boardwalk at night . | out: A man wearing a black coat is standing in front of a small crowd .
+05:49:44 | [sample] aud_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man in a blue shirt is standing on a cliff .
+05:49:44 | [sample] aud_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A man is running through a water rocky green water .
+05:49:44 | [sample] txt_en>txt_en | ref: Man on skis looking at artwork for sale in the snow | out: A man stands on a snowy hill with a snowball .
+05:49:44 | [sample] txt_en>txt_en | ref: A black lab with tags frolicks in the water . | out: A black dog with a red collar is standing in water .
+05:53:09 | [ablation] tables and plots in /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2_ablation
+05:53:09 | [time] time budget used up at step 18259/22000 of 'no_counterfactual_patch_credit__softmax_gradient_s0' (phase B); the step is saved, run again to continue from it
+05:53:09 | [time] stopped before the session limit: run this cell again (same settings) to continue

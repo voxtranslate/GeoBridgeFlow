@@ -80,6 +80,26 @@ def tiny_run(tmp_path_factory):
     return cfg, tr
 
 
+def test_content_f1_ignores_function_words_and_has_a_chance_level():
+    from geobridge.metrics import content_f1, other_image, words
+
+    assert words("एक कुत्ता घास में खेलता है.") == ["एक", "कुत्ता", "घास", "में", "खेलता", "है"]   # vowel signs stay in the word
+    assert words("Ọmọkùnrin kan , ń sáré !") == ["ọmọkùnrin", "kan", "ń", "sáré"]
+    refs = ["a dog runs in the snow .", "a man climbs a rock .", "a girl in a red dress .", "a boat on the water .",
+            "a child plays in the sand .", "a bird sits in a tree ."]
+    assert content_f1(refs, refs) == pytest.approx(100.0)
+    generic = ["a man in the ."] * len(refs)                   # a fluent caption that ignores its source
+    right_content = ["dog snow", "man rock", "girl dress red", "boat water", "child sand", "bird tree"]
+    assert content_f1(right_content, refs) > 60.0
+    imgs = [0, 0, 0, 1, 1, 2]                                  # captions of the same image are never their own chance pair
+    wrong = other_image(imgs)
+    assert all(imgs[i] != imgs[j] for i, j in enumerate(wrong))
+    shuffled = [refs[j] for j in wrong]
+    # what a generic caption scores, it scores against any reference: the distance from chance is what counts
+    lift = lambda hyps: content_f1(hyps, refs) - content_f1(hyps, shuffled, pool=refs)
+    assert content_f1(generic, refs) > 5.0 and abs(lift(generic)) < 5.0 < 50.0 < lift(right_content)
+
+
 def test_training_runs_and_checkpoints(tiny_run):
     cfg, tr = tiny_run
     assert tr.step == cfg.total_steps
@@ -143,6 +163,15 @@ def test_inference_and_evaluation(tiny_run):
     assert isinstance(out[0], str)
     metrics = inf.evaluate("test", 16)
     assert "score" in metrics and all(math.isfinite(v) for v in metrics.values())
+    H = cfg.hub_langs[0]
+    for k in ("cf1", "chance_cf1", "bleu", "chance_bleu", "chrf", "chance_chrf"):      # every text score has its chance level
+        assert f"txt_{H}>txt_{H}/{k}" in metrics, k
+    lifts = [metrics[k] - metrics[k[:-3] + "chance_cf1"] for k in metrics
+             if k.endswith("/cf1") and ">txt_" in k and "/flat_" not in k and "/rt_" not in k]
+    assert abs(metrics["score"] - sum(lifts) / len(lifts)) < 1e-9                      # selection: content above chance
+    import json
+    meta = json.load(open(os.path.join(cfg.run_dir, "eval_test.json")))["meta"]
+    assert meta["step"] == inf.ck["step"] and meta["split"] == "test" and meta["items"] == 16
     rep = inf.run_all("test")
     assert not rep.get("failed"), rep.get("failed")
     assert os.path.exists(os.path.join(cfg.run_dir, "inference", "01_slot_attention.png"))
@@ -354,6 +383,19 @@ def test_ablation_never_retrains_the_main_run(tiny_run):
     assert runner._phase_a(variant) == os.path.join(cfg.run_dir, "checkpoints", "phase_a.pt")
     summary = runner.run(["private"])
     assert set(summary) == {"private"}
+    assert next(iter(summary["private"]["stats"])).startswith("hub + private Gaussian tokens")   # the full model leads
+    # a group never compares a run with itself: exactly one variant is the full model, whatever the base settings
+    from geobridge.ablation import GROUPS
+    for base in (cfg.clone(w_dec=1.0), cfg.clone(w_dec=0.0)):
+        r = AblationRunner(base, seeds=[cfg.seed])
+        for g, spec in GROUPS.items():
+            # ("bridge" compares budgets against its own 20 % reference, which is not this base's budget)
+            assert sum(r._is_full(o) for _, o in spec["variants"]) == (1 if g != "bridge" else 0), g
+    # cheapest first: what needs no new representation runs before what does, whatever the order asked for
+    cells = [("hub", n, o, cfg.seed) for n, o in GROUPS["hub"]["variants"][:2]] + \
+            [("island", n, o, cfg.seed) for n, o in GROUPS["island"]["variants"][:2]]
+    order = [runner._cost(*c) for c in runner._cheapest_first(cells)]
+    assert order == sorted(order) and order[-1] == 2 and runner._cheapest_first(cells)[-1][0] == "hub"
     assert os.path.exists(os.path.join(full_dir, "results.json")) and not os.path.isdir(os.path.join(full_dir, "checkpoints"))
     assert not os.path.isdir(os.path.join(runner.root, "_phase_a"))          # nothing was trained for phase A
     # another seed, or a main run trained with other settings, gets a run of its own

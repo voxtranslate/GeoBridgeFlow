@@ -78,8 +78,9 @@ class AudioCodec(nn.Module):
         self.gate_logit = nn.Parameter(torch.full((n_lang,), float(cfg.tone_gate_init)))
         self.gate_forced_open = False  # set by the trainer during the first part of phase A (not a parameter)
         self.lang_emb = nn.Embedding(n_lang, W)
-        self.enc = nn.ModuleList([Block(W, cfg.audio_heads, dropout=cfg.dropout) for _ in range(cfg.audio_enc_layers)])
-        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.audio_heads)
+        p_enc = max(cfg.dropout, cfg.enc_dropout)
+        self.enc = nn.ModuleList([Block(W, cfg.audio_heads, dropout=p_enc) for _ in range(cfg.audio_enc_layers)])
+        self.resampler = Resampler(W, N, d, layers=2, heads=cfg.audio_heads, dropout=cfg.enc_dropout)
         # ---- paralinguistic bypass
         self.bypass = MLP(spk_dim + 2, 2 * cfg.bypass_dim, cfg.bypass_dim)
         self.byp_in = nn.Linear(cfg.bypass_dim, W)

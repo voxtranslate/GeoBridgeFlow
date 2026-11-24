@@ -272,9 +272,13 @@ Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + bt_weight·(L_bt_
   run the validation grounding loss was best after 4,000 steps and rose for the remaining 12,000. The real-data
   presets use a shorter schedule, `phase_a_select` (the transport phase starts from the phase-A state with the
   best validation grounding + sufficiency + read losses after the release, not from the last one), noise on the
-  cached latents the reader is trained on, write-latent exposure, and the evidence-proportional gate price.
-  Residual dropout, speech time masking and stronger weight decay exist as options and are *not* in the presets:
-  on SynthWorld dropout 0.1 alone destroys the two-object coverage that the credit loss buys (13 % against 93 %).
+  cached latents the reader is trained on, and the evidence-proportional gate price. The transport phase is
+  10,000 steps: in the second run every validation curve had peaked within 9,000.
+  Residual dropout in the grounder and explainer, speech time masking and stronger weight decay exist as options
+  and are *not* in the presets: on SynthWorld dropout 0.1 there destroys the two-object coverage that the credit
+  loss buys (13 % against 93 %), and so does dropout confined to the text and speech encoders (`enc_dropout`: 15 %
+  against 97 %). The overfitting of the representation phase on Flickr8k is therefore answered only by selecting
+  an early state.
 - Resuming refuses to continue a run folder under different settings (anything but paths, logging, evaluation
   and the length of the transport phase), so a changed configuration can never silently inherit old checkpoints.
 - Checkpoints hold the model, the EMA, both optimisers, the AMP scaler, RNG states, the history and the position
@@ -286,7 +290,17 @@ Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + bt_weight·(L_bt_
 All conversions go through the hub and use no image at test time.
 
 - Text out: BLEU and chrF++ against the parallel reference and against all captions of the image; WER/CER for
-  same-language transcription; exact content accuracy on SynthWorld.
+  same-language transcription; exact content accuracy on SynthWorld; and **content F1**: corpus-level word F1 in
+  which every word is weighted by its inverse document frequency among the references, so that function words
+  count for almost nothing and no stop-word list is needed in any language.
+- **Chance level of every text score** (`chance_bleu`, `chance_chrf`, `chance_cf1`): the same outputs scored
+  against the reference of another image. Writers are generative: given any hub code they write a fluent caption,
+  and fluent captions share n-grams. On Flickr8k that is worth about 1 BLEU, 15 chrF++ and 6 content F1, so a BLEU
+  of 3 is three times chance, and a score without its chance level cannot be read.
+- **Selection score** (`score`, picks `best.pt`): content F1 minus its chance level, averaged over the text
+  directions scored during training. The island BLEU alone, which was the score before, selected the first
+  validation of the transport phase in the second Flickr8k run: the validation subset was 400 random caption
+  groups with 67 island utterances among them. The subset now gives up to half of its places to island captions.
 - Hub space: R@k of utterance → image (how well gallery patches explain the hub code), island speech → text.
 - Image out: R@k of the *written* image latent against the gallery, and the preview thumbnail.
 - Speech out: feature-level round trip (hub → speech latent → decoded frame features and predicted contour →
@@ -298,7 +312,12 @@ All conversions go through the hub and use no image at test time.
 ## 9. Known limits
 
 - Meaning that has no visual correlate cannot live in a barycentric hub code; it can only be carried by the
-  private tokens, which are not transferred across modalities. Abstract text will translate poorly.
+  private tokens, which are not transferred across modalities. Abstract text will translate poorly. Measured on
+  Flickr8k: the hub explains 47 % of the variance of a held-out caption's latent; text read into the hub and
+  written again names the right kind of subject in 91 % of cases and has a word error rate of 78 %. The model
+  converts meaning at the level of "what is in the picture"; it is not a recogniser or a translator of wording.
+- On real data the tonality gate is not a result: the gates are still closing when the representation phase
+  ends, the tonal language's closes faster, and removing the pitch contour does not change its scores.
 - The counterfactual credit is a first-order estimate through the explainer as it currently is; it also sends
   some slots to objects the sentence does not mention, which the minimality term then has to remove.
 - Image output is a latent of the frozen vision space plus a low-resolution preview; photo-realistic pixels need

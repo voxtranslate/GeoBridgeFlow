@@ -301,12 +301,19 @@ class GeoBridgeData:
         return DataLoader(ds, batch_size=batch_size or self.cfg.batch_size, shuffle=shuffle, drop_last=shuffle,
                           collate_fn=self.collate_groups, **worker_kwargs(self.cfg.num_workers if shuffle else 0))
 
-    def eval_groups(self, split: str, max_items: int = 0, require: Sequence[Tuple[str, str]] = ()) -> List[Dict]:
-        """Deterministic subset of caption groups that contain all required (modality, language) views."""
+    def eval_groups(self, split: str, max_items: int = 0, require: Sequence[Tuple[str, str]] = (),
+                    favour: Sequence[str] = ()) -> List[Dict]:
+        """Deterministic subset of caption groups that contain all required (modality, language) views.
+
+        ``favour``: languages whose captions fill up to half of the subset.  An island language owns one caption in
+        five, so a plain random subset of 400 groups holds about 70 of its utterances - too few to steer anything by."""
         gs = [g for g in self.groups[split]
               if all(any(v[0] == m and v[1] == l for v in g["all_views"]) for m, l in require)]
         if max_items and len(gs) > max_items:
-            idx = np.random.default_rng(0).permutation(len(gs))[:max_items]
+            order = np.random.default_rng(0).permutation(len(gs)).tolist()
+            first = [i for i in order if any(v[1] in favour for v in gs[i]["all_views"])][:max_items // 2] if favour else []
+            taken = set(first)
+            idx = first + [i for i in order if i not in taken][:max_items - len(first)]
             gs = [gs[i] for i in sorted(idx)]
         return gs
 

@@ -594,7 +594,9 @@ class Trainer:
         self.save_checkpoint()
         save_json(self.history, os.path.join(self.run_dir, "history.json"))
         self.plot_curves()
-        self.log.info(f"[fit] done: {self.step} steps, best score {self.best['score']:.3f} at step {self.best['step']}")
+        self.log.info(f"[fit] done: {self.step} steps, " + (
+            f"best score {self.best['score']:.3f} at step {self.best['step']}" if self.best["step"] >= 0
+            else "representation phase only (no transport phase, hence no score)"))
         return last_val
 
     # ------------------------------------------------------------------ phase-A model selection
@@ -626,10 +628,16 @@ class Trainer:
                       f"later states fit the training set better and the validation set worse")
 
     def _log_validation(self, val: Dict[str, float], phase: str) -> None:
-        keys = [k for k in val if k in TQDM_KEYS_A + TQDM_KEYS_B or k.endswith(("/bleu", "/bleu_multi", "/r1", "/wer"))
-                or k.endswith("content_acc") or k.startswith("tone/") or k == "score"]
+        keys = [k for k in val if k in TQDM_KEYS_A + TQDM_KEYS_B or k.endswith(("/r1", "content_acc"))
+                or k.startswith("tone/") or k == "score"]
         msg = " | ".join(f"{k} {val[k]:.3f}" for k in keys[:40])
         self.log.info(f"[valid] step {self.step} phase {phase} | {msg}")
+        for k in [k for k in val if k.endswith("/cf1") and "/flat_" not in k and "/rt_" not in k]:
+            d = k[:-len("/cf1")]   # one line per text direction: every score next to its chance level
+            parts = [f"{lab} {val[f'{d}/{m}']:.1f} (chance {val[f'{d}/chance_{m}']:.1f})"
+                     for m, lab in (("cf1", "content F1"), ("bleu", "BLEU"), ("chrf", "chrF++")) if f"{d}/chance_{m}" in val]
+            parts += [f"{lab} {val[f'{d}/{m}']:.1f}" for m, lab in (("bleu_multi", "BLEU multi-ref"), ("wer", "WER")) if f"{d}/{m}" in val]
+            self.log.info(f"[text] {d} | " + " | ".join(parts))
         recent = [h for h in self.history["train"][-max(1, self.cfg.eval_every // max(1, self.cfg.log_every)):] if "t_step" in h]
         if recent:
             data, step = np.mean([h["t_data"] for h in recent]), np.mean([h["t_step"] for h in recent])
@@ -682,15 +690,17 @@ class Trainer:
         fig.savefig(os.path.join(out, "losses_train_vs_valid.png"), dpi=130)
         plt.close(fig)
 
-        mkeys = sorted({k for h in va for k in h if k.endswith("/bleu") or k.endswith("/r1") or k.endswith("content_acc")
-                        or k.endswith("/wer")})
+        mkeys = sorted({k for h in va for k in h if (k.endswith(("/cf1", "/chance_cf1", "/r1", "content_acc")) or k == "score")
+                        and "/flat_" not in k and "/rt_" not in k})
         tone = sorted({k for h in tr for k in h if k.startswith("gate_")})
         fig, axes = plt.subplots(1, 3, figsize=(19, 5))
-        for k in mkeys[:14]:
+        for k in mkeys[:16]:
             xs, ys = series(va, k)
-            axes[0].plot(xs, ys, marker="o", ms=3, label=k)
-        axes[0].set_title("validation metrics (through the hub, no image at test time)")
-        if mkeys:
+            chance = k.endswith("/chance_cf1")
+            axes[0].plot(xs, ys, marker=None if chance else "o", ms=3, ls=":" if chance else "-", lw=1.0 if chance else 1.5,
+                         color="0.55" if chance else None, label=None if chance else k)
+        axes[0].set_title("validation metrics through the hub (dotted grey: chance level of content F1)")
+        if axes[0].get_legend_handles_labels()[0]:
             axes[0].legend(fontsize=6.5, ncol=2)
         for k in tone:
             xs, ys = series(tr, k)

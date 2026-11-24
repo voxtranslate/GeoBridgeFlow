@@ -91,6 +91,9 @@ class Config:
     latent_noise_max: float = 0.5        # noise-robust latent training (decoder sees z + sigma*eps)
     dropout: float = 0.0                 # residual dropout in the codecs, grounder, explainer and reader (never the flows).
                                          # Measured on SynthWorld: 0.1 destroys the two-object coverage; keep 0 with w_seek > 0
+    enc_dropout: float = 0.0             # residual dropout in the text and speech ENCODERS only (grounder and explainer
+                                         # stay deterministic).  Measured on SynthWorld: 0.1 destroys the two-object
+                                         # coverage as well (15 % against 97 %); kept as an ablation, not as a remedy
 
     # ------------------------------------------------------------------ audio codec (N5)
     audio_width: int = 256
@@ -139,7 +142,7 @@ class Config:
     p_read: float = 0.5                  # share of paired views written from a read hub instead of the grounded one
     hub_jitter: float = 0.15             # std (upper bound) of the noise added to the hub part of a writer's source
     read_noise: float = 0.0              # std (upper bound) of the noise on the latent the reader is trained on (phase B)
-    w_dec: float = 0.0                   # write-latent exposure: the byte decoder is trained on latents written by the
+    w_dec: float = 1.0                   # write-latent exposure: the byte decoder is trained on latents written by the
                                          # text writer (0 = decoder frozen after phase A)
     p_dec_written: float = 0.75          # ... share of those latents that are written (the rest are encoder latents)
     image_spoke: bool = True
@@ -332,7 +335,7 @@ PHASE_A_KEYS: Tuple[str, ...] = (
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
     "audio_dec_layers", "tone_mode", "bypass_dim", "use_bypass", "hub_width", "hub_layers",
     "hub_temp", "hub_inhibit", "hub_temp_start", "ground_temp", "agree_mode", "w_text_rec", "w_audio_rec", "w_mel", "w_orth", "w_gate", "w_ground",
-    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "dropout", "gate_price", "speech_mask", "phase_a_select", "w_pix", "text_replay", "thumb_size", "pix_width", "pix_contrast", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
+    "w_agree", "w_expl", "w_seek", "seek_gain", "seek_verify", "w_read", "w_min", "dropout", "enc_dropout", "gate_price", "speech_mask", "phase_a_select", "w_pix", "text_replay", "thumb_size", "pix_width", "pix_contrast", "batch_size", "island_batch_size", "phase_a_steps", "lr", "weight_decay",
     "lr_gate", "bridge_per_batch", "gate_release_frac", "tone_gate_init",
     "warmup_steps", "synth_n_images", "synth_caps_per_image", "synth_n_colors", "synth_n_shapes",
     "synth_grid", "synth_n_speakers", "synth_two_obj_prob", "synth_feat_noise", "synth_vision_dim", "synth_zipf",
@@ -346,29 +349,29 @@ _SYNTH = dict(
     max_text_bytes=96, max_graphemes=64, max_audio_sec=4.0, num_workers=0, amp=False,
 )
 
-# What the real benchmark changes relative to the defaults.  Each item answers something measured in the first
-# full Flickr8k run (2 x T4, 16,000 + 30,000 steps), and each either was validated on SynthWorld or cannot
-# disturb the representation phase:
-#   w_dec           text written through the hub was unreadable; on SynthWorld decoder exposure improves every
-#                   text output from a text or hub-language speech source (ablation group "decoder")
-#   phase_a_select  the validation grounding loss was best after 4,000 steps and rose for 12,000 more; this only
-#                   selects a state, it does not change the training dynamics
-#   read_noise      the reader's validation error rose throughout the transport phase (the cached latents never
+# What the real benchmark changes relative to the defaults.  Each item answers something measured in a full
+# Flickr8k run on 2 x T4, and each either was validated on SynthWorld or cannot disturb the representation phase:
+#   phase_a_select  the validation grounding loss is best after about 4,000 steps and rises afterwards, whatever
+#                   the schedule; this only selects a state, it does not change the training dynamics
+#   read_noise      the reader's validation error rises throughout the transport phase (the cached latents never
 #                   change); transport phase only
-#   gate_price      the Yoruba gate closed to 0 although Yoruba is the tonal language: it has few image pairs
-# Deliberately NOT here: dropout (measured on SynthWorld: it destroys the two-object coverage that the credit
-# loss buys, 13 % against 93 %), and speech masking / stronger weight decay (72 %, not separated from noise).
-_REAL = dict(mel_spec="speecht5", w_dec=1.0, phase_a_select=True, read_noise=0.2, gate_price="evidence")
+#   gate_price      with a uniform price the Yoruba gate closed to 0: it has few image pairs to defend it
+# Schedule: 8,000 + 10,000 steps.  In the second run every validation curve of the transport phase had peaked
+# within 9,000 of its steps (text read+write at 8,000-9,000, image -> text at 2,000) and declined afterwards.
+# Deliberately NOT here: dropout, anywhere upstream of the hub.  Measured on SynthWorld it destroys the two-object
+# coverage that the credit loss buys: 13 % against 93 % in the codecs, grounder and explainer; 15 % against 97 %
+# confined to the encoders.  The overfitting of the representation phase on Flickr8k has no remedy here yet.
+_REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence")
 
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)
-    "flickr8k_yo": dict(_REAL, text_replay=128, phase_a_steps=10000, phase_b_steps=20000, eval_every=1000),
+    "flickr8k_yo": dict(_REAL, text_replay=128, phase_a_steps=8000, phase_b_steps=10000, eval_every=1000),
     # same benchmark on two 16 GB GPUs (Kaggle "GPU T4 x2"); also runs on a single T4 (Colab), one batch per step.
     # Every step consumes one batch per GPU, so the schedule is counted in optimiser steps, not batches.
     "flickr8k_yo_t4": dict(
         _REAL, text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
-        phase_a_steps=8000, phase_b_steps=14000, eval_every=1000, save_every=1000, milestone_every=8000,
-        num_workers=3, eval_max_items=400,
+        phase_a_steps=8000, phase_b_steps=10000, eval_every=1000, save_every=1000, milestone_every=8000,
+        num_workers=3, eval_max_items=600,
     ),
     # same benchmark, sized for a laptop / CPU sanity run
     "flickr8k_yo_cpu": dict(

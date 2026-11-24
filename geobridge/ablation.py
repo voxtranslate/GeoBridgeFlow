@@ -1,8 +1,10 @@
 """Ablation runner: every architectural choice against its alternatives, multi-seed, resumable.
 
-Each *group* isolates one design decision; its first variant is always the full model ("ours").  A variant is
-a set of config overrides.  For every (variant, seed) the runner trains (or resumes), evaluates on the test
-split and stores ``results.json``; finished cells are skipped on re-run.  Nothing is trained twice:
+Each *group* isolates one design decision.  A variant is a set of config overrides; the variant whose settings
+are the base settings is the full model and is the first row of the group's table.  For every (variant, seed)
+the runner trains (or resumes), evaluates the state selected by the run's own validation score on the test split
+and stores ``results.json``; finished cells are skipped on re-run.  Cells run cheapest first, because a session
+has a time limit.  Nothing is trained twice:
 
   * the full model of the base seed is the main run ``<out_root>/<exp>`` itself when that run has the base
     settings (it is trained there if it does not exist yet);
@@ -21,7 +23,9 @@ Outputs in ``<out_root>/<exp>_ablation/``
 """
 from __future__ import annotations
 
+import json
 import os
+from collections import Counter
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -58,8 +62,8 @@ GROUPS: Dict[str, Dict] = {
     "decoder": {
         "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
         "variants": [
-            ("decoder frozen after the representation phase (reference)", {}),
             ("decoder trained on written latents (write-latent exposure)", {"w_dec": 1.0}),
+            ("decoder frozen after the representation phase", {"w_dec": 0.0}),
         ]},
     "island": {
         "question": "What should be done with the unpaired speech of the island language?",
@@ -85,6 +89,13 @@ GROUPS: Dict[str, Dict] = {
             ("no tone stream (single stream)", {"tone_mode": "off"}),
             ("gate without the sparsity price", {"w_gate": 0.0}),
             ("no paralinguistic bypass", {"use_bypass": False, "w_orth": 0.0}),
+        ]},
+    "regularise": {
+        "question": "Can the encoders be regularised without losing what the credit loss buys?",
+        "variants": [
+            ("no encoder dropout (ours)", {"enc_dropout": 0.0, "speech_mask": 0.0}),
+            ("encoder dropout 0.1 (grounder and explainer untouched)", {"enc_dropout": 0.1, "speech_mask": 0.0}),
+            ("encoder dropout 0.1 + speech time masking", {"enc_dropout": 0.1, "speech_mask": 0.1}),
         ]},
     "text_unit": {
         "question": "Which text unit feeds the compressor?",
@@ -117,6 +128,8 @@ GROUPS: Dict[str, Dict] = {
 
 # headline columns: (pattern, short name, higher-is-better)
 COLUMNS: List[Tuple[str, str, bool]] = [
+    ("aud_{L}>txt_{H}/cf1", "island ST content F1", True),
+    ("aud_{L}>txt_{H}/chance_cf1", "  ... chance level", False),
     ("aud_{L}>txt_{H}/bleu", "island ST BLEU", True),
     ("aud_{L}>txt_{H}/chrf", "island ST chrF++", True),
     ("aud_{L}>txt_{H}/content_acc", "island ST content acc", True),
@@ -126,11 +139,14 @@ COLUMNS: List[Tuple[str, str, bool]] = [
     ("aud_{L}>img/r1", "island speech->image R@1", True),
     ("aud_{L}>img_gen/r1", "island speech->written image R@1", True),
     ("aud_{H}>txt_{H}/content_acc", "hub ASR content acc", True),
+    ("aud_{H}>txt_{H}/cf1", "hub speech->text content F1", True),
     ("aud_{H}>txt_{H}/wer", "hub ASR WER", False),
+    ("txt_{H}>txt_{H}/cf1", "text read+write content F1", True),
     ("img>txt_{H}/bleu_multi", "captioning BLEU (multi-ref)", True),
     ("txt_{H}>txt_{T}/content_acc", "MT hub->written content acc", True),
     ("txt_{H}>txt_{T}/bleu", "MT hub->written BLEU", True),
     ("txt_{T}>txt_{H}/bleu", "MT written->hub BLEU", True),
+    ("txt_{T}>txt_{H}/cf1", "MT written->hub content F1", True),
     ("txt_{H}>img_gen/r1", "text->written image R@1", True),
     ("txt_{H}>aud_{L}/rt_bleu", "TTS into island (round-trip BLEU)", True),
     ("txt_{H}>aud_{L}/rt_content_acc", "TTS into island (round-trip content)", True),
@@ -169,12 +185,46 @@ class AblationRunner:
             return True   # not started yet: the full model is trained there and becomes the main run
         return not settings_diff(load_json(record), self.base.to_dict(), free=RESUME_FREE - {"phase_b_steps", "train_only"})
 
-    def _cell(self, group: str, name: str, over: Dict, seed: int) -> Tuple[Config, str]:
-        """(configuration to train, directory that holds the cell's results)."""
+    def _resolve(self, over: Dict) -> Dict:
+        """Overrides with relative values ("x4") turned into settings."""
         over = dict(over)
         if over.get("lora_rank") == "x4":
             over["lora_rank"] = self.base.lora_rank * 4
-        if all(getattr(self.base, k) == v for k, v in over.items()):
+        return over
+
+    def _is_full(self, over: Dict) -> bool:
+        """A variant whose settings are the base settings is the full model, wherever its group lists it."""
+        return all(getattr(self.base, k) == v for k, v in self._resolve(over).items())
+
+    def _cost(self, group: str, name: str, over: Dict, seed: int) -> int:
+        """0: nothing to train (finished, or the full model); 1: one transport phase (its representation exists);
+        2: a representation phase as well."""
+        cfg, out_dir = self._cell(group, name, over, seed)
+        if os.path.exists(os.path.join(out_dir, "results.json")) or self._is_full(over):
+            return 0
+        if cfg.phase_a_steps == 0 or os.path.exists(os.path.join(cfg.run_dir, "checkpoints", "last.pt")):
+            return 1
+        sig = cfg.signature(PHASE_A_KEYS)
+        if os.path.exists(os.path.join(self.root, "_phase_a", sig, "checkpoints", "phase_a.pt")):
+            return 1
+        return 1 if seed == self.base.seed and sig == self.base.signature(PHASE_A_KEYS) else 2
+
+    def _cheapest_first(self, cells: List[Tuple]) -> List[Tuple]:
+        """A session has a time limit, so the order decides how many answers it gives.  Cells that need no new
+        representation come first, in the order asked for; the rest follow grouped by the representation they share
+        (largest group first), so that each extra representation phase is paid for once and used at once."""
+        cost = [self._cost(*c) for c in cells]
+        sig = [self._cell(*c)[0].signature(PHASE_A_KEYS) if k == 2 else "" for c, k in zip(cells, cost)]
+        shared, first = Counter(sig), {}
+        for i, sg in enumerate(sig):
+            first.setdefault(sg, i)
+        order = sorted(range(len(cells)), key=lambda i: (cost[i], -shared[sig[i]] if cost[i] == 2 else 0, first[sig[i]], i))
+        return [cells[i] for i in order]
+
+    def _cell(self, group: str, name: str, over: Dict, seed: int) -> Tuple[Config, str]:
+        """(configuration to train, directory that holds the cell's results)."""
+        over = self._resolve(over)
+        if self._is_full(over):
             # the full model is the same run in every group: one run per seed, under _full/ ...
             own = self.base.clone(seed=seed, out_root=os.path.join(self.root, "_full"), exp_name=f"full_s{seed}")
             started = os.path.exists(os.path.join(own.run_dir, "checkpoints", "last.pt"))
@@ -205,7 +255,7 @@ class AblationRunner:
 
     def run_cell(self, group: str, name: str, over: Dict, seed: int) -> Dict[str, float]:
         from .inferencer import load_model
-        from .metrics import Evaluator
+        from .metrics import Evaluator, eval_settings
         from .trainer import Trainer
 
         cfg, out_dir = self._cell(group, name, over, seed)
@@ -218,11 +268,19 @@ class AblationRunner:
         self.log.info(f"[cell] {group} / {name} / seed {seed}" + (f"  (the main run, {cfg.run_dir})" if is_main else ""))
         tr = Trainer(cfg)
         tr.fit()
-        # every cell is scored the same way: its last state, on the test split
-        model, _ = load_model(cfg, tr.data, tr.device, os.path.join(cfg.run_dir, "checkpoints", "last.pt"))
+        # every cell is scored the same way: the state its own validation score selected, on the test split
+        best = tr.best["step"] if tr.best["step"] >= 0 else tr.step
         os.makedirs(out_dir, exist_ok=True)
-        res = Evaluator(cfg, tr.data, tr.device).evaluate(model, "test", self.test_items, quick=False,
-                                                         save_path=os.path.join(out_dir, "eval_test.json"))
+        want = {"step": best, "split": "test", "items": self.test_items, "quick": False, **eval_settings(cfg)}
+        stored = os.path.join(cfg.run_dir, "eval_test.json")   # written by the "eval" stage of the main run
+        if is_main and os.path.exists(stored) and load_json(stored).get("meta") == json.loads(json.dumps(want)):
+            res = load_json(stored)["metrics"]                  # the same state, split and settings: not measured twice
+            self.log.info(f"[cell] test scores taken from {stored}")
+        else:
+            model, _ = load_model(cfg, tr.data, tr.device, os.path.join(cfg.run_dir, "checkpoints", "best.pt"))
+            res = Evaluator(cfg, tr.data, tr.device).evaluate(model, "test", self.test_items, quick=False, step=best,
+                                                             save_path=os.path.join(out_dir, "eval_test.json"))
+        res["checkpoint_step"] = best
         res["params_total"] = tr.param_report["total"]
         res["per_language_pct"] = tr.param_report["per_language_pct_of_spokes"]
         save_json(res, res_path)
@@ -233,12 +291,15 @@ class AblationRunner:
         """Run every variant of the given groups (all groups by default).  ``only`` restricts the run to
         variants whose name contains one of the given substrings; the full model is always included."""
         groups = list(groups) if groups else list(GROUPS)
-        cells = [(g, name, over, s) for g in groups for i, (name, over) in enumerate(GROUPS[g]["variants"])
-                 if not only or i == 0 or any(o.lower() in name.lower() for o in only) for s in self.seeds]
+        cells = [(g, name, over, s) for g in groups for name, over in GROUPS[g]["variants"]
+                 if not only or self._is_full(over) or any(o.lower() in name.lower() for o in only) for s in self.seeds]
+        cells = self._cheapest_first(cells)
         dirs = {self._cell(*c)[1] for c in cells}
         todo = [d for d in dirs if not os.path.exists(os.path.join(d, "results.json"))]
-        self.log.info(f"[ablation] {len(dirs)} runs in {len(groups)} group(s), {len(todo)} without results yet.  A variant "
-                      f"that keeps the representation costs one transport phase; the full model is the main run.")
+        own_a = len({self._cell(*c)[0].signature(PHASE_A_KEYS) for c in cells if self._cost(*c) == 2})
+        self.log.info(f"[ablation] {len(dirs)} runs in {len(groups)} group(s), {len(todo)} without results yet.  Order: the "
+                      f"full model, then variants that reuse a representation that exists (one transport phase each), "
+                      f"then the others ({own_a} more representation phase(s) to train).")
         try:
             for c in cells:
                 self.run_cell(*c)
@@ -252,14 +313,15 @@ class AblationRunner:
         summary: Dict = {}
         for g in (list(groups) if groups else list(GROUPS)):
             rows: Dict[str, List[Dict]] = {}
-            for name, over in GROUPS[g]["variants"]:
-                done = []
-                for s in self.seeds:
-                    p = os.path.join(self._cell(g, name, over, s)[1], "results.json")
-                    if os.path.exists(p):
-                        done.append(load_json(p))
-                if done:
-                    rows[name] = done
+            used = set()
+            # the full model first, whatever its place in the list; a second variant that is the same run under
+            # these settings is left out (two rows of one run are not a comparison)
+            for name, over in sorted(GROUPS[g]["variants"], key=lambda v: not self._is_full(v[1])):
+                paths = tuple(os.path.join(self._cell(g, name, over, s)[1], "results.json") for s in self.seeds)
+                done = [load_json(p) for p in paths if os.path.exists(p)]
+                if done and paths not in used:
+                    rows[name + (" (the full model)" if self._is_full(over) and "(ours)" not in name else "")] = done
+                    used.add(paths)
             if len(rows) >= 2:  # a group with only the full model has nothing to compare
                 summary[g] = self._report(g, GROUPS[g]["question"], rows)
         self._write_summary(summary)
@@ -349,7 +411,8 @@ class AblationRunner:
     def _write_summary(self, summary: Dict) -> None:
         md = [f"# Ablation study: {self.base.exp_name}", "",
               f"Dataset `{self.base.dataset}`, seeds {self.seeds}.  Every number is measured on the test split, "
-              "through the hub, with no image and no text of the island language at test time.", ""]
+              "through the hub, with no image and no text of the island language at test time, at the state each "
+              "run's own validation score selected.  The first row of every table is the full model.", ""]
         for g, rep in summary.items():
             md += [rep["md"], ""]
             ours = next(iter(rep["stats"]))

@@ -52,7 +52,8 @@ def main_notebook() -> Dict[str, Any]:
         log.info("[time] stopped before the session limit: run this cell again (same settings) to continue")
     if EVAL_SPLIT in results:
         keep = {k: round(v, 2) for k, v in results[EVAL_SPLIT].items()
-                if k.endswith(("/bleu", "/chrf", "/wer", "/cer", "/r1", "content_acc")) or k.startswith("tone/") or k == "score"}
+                if k.endswith(("/cf1", "/chance_cf1", "/bleu", "/chance_bleu", "/wer", "/r1", "content_acc"))
+                or k.startswith("tone/") or k == "score"}
         print(json.dumps(keep, indent=1))
     if STAGES and SHOW_FIGURES:
         show_images(sorted(glob.glob(os.path.join(cfg.run_dir, "curves", "*.png"))))

@@ -27,7 +27,7 @@ around a hub that contains no text at all.
 | Document | Content |
 |---|---|
 | `GeoBridgeFlow_single_cell.ipynb` | the whole project in **one notebook cell** for Kaggle (GPU T4 x2) and Colab |
-| `docs/RESULTS.md` | what has been measured so far (small CPU runs, one seed), what works and what does not |
+| `docs/RESULTS.md` | what has been measured so far (two Flickr8k runs on 2 × T4, small CPU runs; one seed), what works and what does not |
 | `docs/METHOD.md` | equations, and every change made to the roadmap with the reason |
 | `docs/LITERATURE_AUDIT.md` | which of the roadmap's citations and novelty claims survive a check against the sources |
 | `docs/PAPER_PLAN.md` | claims mapped to the tables this code produces, controls reviewers will ask for, risks |
@@ -45,18 +45,25 @@ then the run. Paste the cell into a notebook and run it.
 * Running the cell again continues: downloads, the split file, feature caches, checkpoints and finished ablation
   variants are found on disk, and training resumes at the step it had reached. A run folder is only resumed with
   the settings it was started with; new settings need a new `EXP_NAME`.
-* Every validation prints `[sample]` lines (reference | output) and a `[speed]` line (time waiting for batches vs
-  computing), so a run that is not learning can be stopped early.
+* Every validation of the transport phase prints one `[text]` line per direction with content F1, BLEU and chrF++
+  **next to their chance level** (the same outputs scored against the caption of another image), `[sample]` lines
+  (reference | output) and a `[speed]` line. On Flickr8k a caption that ignores its source still scores about
+  1 BLEU and 15 chrF++; only the distance from chance is evidence.
 * `TIME_BUDGET_HOURS` (11 by default) stops the cell by itself, on a saved step, before the session limit; running
   it again continues. A session that is cut off instead can lose everything written after the last checkpoint.
 * `ABLATION_PRESET = PRESET` ablates the run of the cell: that run is the full model and provides the
-  representation, so only the variants are trained (`ABLATION_GROUPS`, `ABLATION_ONLY` choose which). On real
-  data a variant costs about two hours on 2 × T4 (four if it changes the representation), so a study spans
-  several sessions.
+  representation, so only the variants are trained, cheapest first (`ABLATION_GROUPS`, `ABLATION_ONLY` choose
+  which). On real data a variant costs 1.5 to 2 hours on 2 × T4, about four if it changes the representation, so a
+  study spans several sessions. The cell's defaults run the two variants that the last run left open: without
+  back-translation, and with the decoder frozen.
 
-**Status on real data.** The first full Flickr8k run on 2 × T4 ran without errors and used both GPUs, but the
-text it wrote through the hub was unreadable (`docs/RESULTS.md`, section 0). The real-data presets were changed in
-response; those changes have not yet been run at that scale.
+**Status on real data** (`docs/RESULTS.md`, section 0; one seed). The second full Flickr8k run on 2 × T4 writes
+fluent captions that are right about the kind of scene and wrong about most details: English text → hub → English
+text names the right kind of subject in 91 % of the stored outputs (22 % by chance), Hindi text → English text
+with no parallel data in 79 %, Yorùbá speech → English text, from 985 image pairs and no Yorùbá text, in 63 %
+(18 % by chance). BLEU is 9.2, 6.1 and 3.6, against about 1.1 for a caption that ignores its source. Word error
+rates are near 80 %: this is not transcription. The tonality gate has no support on real data, the effect of the
+counterfactual credit is mixed on validation data, and the effect of back-translation on real data is not known.
 
 The notebook is generated from the package and tested by executing the cell end to end on the tiny benchmark:
 
@@ -111,7 +118,7 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 | Preset | Data | Meant for |
 |---|---|---|
 | `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | one large GPU |
-| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 14,000 steps |
+| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 10,000 steps |
 | `flickr8k_yo_cpu` | 1,200-image subset, small model | pipeline check on a laptop |
 | `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
 | `synth_fast` | SynthWorld, 1,200 scenes, small model | ablations on a CPU |
@@ -133,8 +140,9 @@ position inside the epoch, and the epoch order is a function of (seed, epoch), s
 it stopped. Train-versus-valid curves are saved to `runs/<exp>/curves/` at every validation. With several GPUs
 every step uses one batch per GPU (`n_gpu`, `step_batches`).
 
-**`eval`** scores every direction on the test split and writes `runs/<exp>/eval_test.json` with metrics and
-sample outputs.
+**`eval`** scores every direction on the test split and writes `runs/<exp>/eval_test.json` with metrics, their
+chance levels and sample outputs. The evaluated state is `best.pt`: the validation with the highest content F1
+above chance, averaged over the text directions.
 
 **`infer`** writes translations, synthesised speech (`.wav`), generated image previews and sixteen figures to
 `runs/<exp>/inference/`: slot attention on the image, ODE trajectories, the hub manifold, alignment of unpaired
@@ -146,7 +154,8 @@ hub versus private tokens, codec reconstructions, generated images, and read / w
 **`ablate`** trains and evaluates every variant of every ablation group and writes Markdown, CSV and LaTeX tables
 and bar charts to `runs/<exp>_ablation/`. Nothing is trained twice: the full model is the run `runs/<exp>` itself
 (trained there if it does not exist), variants that do not change the representation start from its phase-A
-checkpoint, and finished cells are skipped on re-run. `--list` prints the groups, `--only` selects variants.
+checkpoint, and finished cells are skipped on re-run. Variants run cheapest first, and each is scored at the state
+its own validation selected. `--list` prints the groups, `--only` selects variants.
 
 `--hours H` on any command stops training cleanly after H hours (exit code 75); the same command continues.
 
@@ -174,6 +183,7 @@ checkpoint, and finished cells are skipped on re-run. `--list` prints the groups
 | `scripts/cpu_ablation_queue.sh` | the reduced single-seed ablation that produced `docs/RESULTS.md` |
 | `scripts/make_results.py` | rebuilds `docs/RESULTS.md` from the JSON files under `runs/` |
 | `scripts/refit_preview.py` | refits only the preview pixel decoder of a finished run (changes no metric) |
+| `scripts/chance_levels.py` | scores the stored outputs of any `eval_*.json` against chance (references of other images) |
 
 ## Using a trained model
 

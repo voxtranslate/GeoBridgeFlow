@@ -1,0 +1,5 @@
+01:14:39 | [ablation] 37 runs in 10 group(s), 37 without results yet.  A variant that keeps the representation costs one transport phase; the full model is the main run.
+01:14:39 | [cell] hub / barycentric hub, mutual sufficiency (ours) / seed 0  (the main run, /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2)
+01:26:16 | [phase A] training shared representation f33b28eefa
+03:38:43 | [cell] hub / no counterfactual patch credit (softmax gradient only) / seed 0
+05:53:09 | [ablation] tables and plots in /kaggle/working/geobridge/runs/flickr8k_yo_t4_v2_ablation

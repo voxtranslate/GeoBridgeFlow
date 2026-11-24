@@ -19,9 +19,10 @@
 #             saved, instead of being cut off (Kaggle ends a session after 12 hours).  Run it again to continue.
 #    A first look: PRESET = "synth_fast" runs the whole pipeline on the controlled benchmark in minutes, with no
 #             download.
-#    What to watch: every validation prints "[sample]" lines (reference | output) and a "[speed]" line (time waiting
-#             for batches vs computing).  If the samples of the transport phase are not readable text after a few
-#             thousand of its steps, stop the cell: more steps will not fix it.
+#    What to watch: every validation of the transport phase prints one "[text]" line per direction - content F1,
+#             BLEU and chrF++, each next to its chance level (the same outputs scored against the caption of another
+#             image) - and "[sample]" lines (reference | output).  A score is evidence only by its distance from
+#             chance: on Flickr8k a caption that ignores its source still gets about 1 BLEU and 15 chrF++.
 #
 #  CONTENTS
 #   00. SETTINGS AND ENVIRONMENT   (the only part meant to be edited)
@@ -36,19 +37,21 @@ PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k
                                  # "flickr8k_yo_cpu".  Controlled benchmark: "synth", "synth_fast", "synth_tiny".
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = "flickr8k_yo_t4_v2"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+EXP_NAME = "flickr8k_yo_t4_v3"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
                                  # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
-ABLATION_PRESET = ""             # benchmark of the ablation study, run after the stages above ("" = no ablation).
-                                 # "synth_fast" / "synth" are the controlled benchmark: every factor has a ground
-                                 # truth and one variant trains in minutes.  PRESET's own name ablates the run above:
-                                 # that run is the full model and provides the representation, so only the variants
-                                 # are trained.  On real data, 2 x T4: about 2 h for a variant that keeps the
-                                 # representation (groups read, decoder, island, private, lora), about 4 h for one
-                                 # that changes it (hub, tone, text_unit, bridge) - a few variants per session.
-ABLATION_GROUPS = ()             # () = all groups; or e.g. ("hub", "island", "tone")
-ABLATION_ONLY = ()               # () = every variant of those groups; or parts of variant names, e.g. ("no credit",)
+ABLATION_PRESET = PRESET         # benchmark of the ablation study, run after the stages above ("" = none).
+                                 # PRESET ablates the run above: that run is the full model and provides the
+                                 # representation, so only variants are trained, cheapest first.  On 2 x T4 a
+                                 # variant that keeps the representation costs 1.5-2 h (groups read, decoder, island,
+                                 # private, lora), one that changes it about 4 h (hub, tone, text_unit, bridge).
+                                 # "synth_fast" / "synth": the controlled benchmark, minutes per variant.
+ABLATION_GROUPS = ("island", "decoder")   # () = all groups
+ABLATION_ONLY = ("bridge pairs only", "decoder frozen")   # () = every variant of those groups; else parts of names.
+                                 # These two fit in the session after the main run and answer what the last run
+                                 # left open: does back-translation help on real data, and what is decoder
+                                 # exposure worth.
 ABLATION_SEEDS = (0,)            # e.g. (0, 1, 2) for mean +- std in the tables
 ABLATION_OVERRIDES = {}          # Config fields of the ablation runs (on top of OVERRIDES when the preset is PRESET)
 
