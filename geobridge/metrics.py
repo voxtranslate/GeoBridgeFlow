@@ -372,15 +372,16 @@ class Evaluator:
                               if k in ("bleu", "chrf", "cf1", "chance_cf1", "content_acc", "color_acc")})
                     samples[name + " (round trip)"] = s
 
-        # ---------------- codecs
-        if not quick:
-            for lang in written:
-                rec = views[("txt", lang)]
-                z = rec["z"][:200].to(self.device)
-                lid = torch.full((z.shape[0],), model.lang2id[lang], dtype=torch.long, device=self.device)
-                hy = model.text.generate(z, lid)
-                refs = [data.utts[u]["text"] for u in rec["utt"][:200].tolist()]
-                M[f"codec_txt_{lang}/cer"] = error_rate(hy, refs, "char")
+        # ---------------- codecs: text encoded and decoded with no hub in between.  Scored during training too:
+        # the decoder keeps training in the transport phase (write-latent exposure) and must not lose the exact
+        # latents over it, and whatever passes through the hub cannot be more exact than this.
+        for lang in (written if not quick else [l for l in written if l in hub_langs]):
+            rec = views[("txt", lang)]
+            z = rec["z"][: 100 if quick else 200].to(self.device)
+            lid = torch.full((z.shape[0],), model.lang2id[lang], dtype=torch.long, device=self.device)
+            hy = model.text.generate(z, lid)
+            refs = [data.utts[u]["text"] for u in rec["utt"][: len(z)].tolist()]
+            M[f"codec_txt_{lang}/cer"] = error_rate(hy, refs, "char")
 
         # ---------------- grounding (controlled benchmark): what the hub slots sit on
         for (mod, lang), c in store["ground"].items():

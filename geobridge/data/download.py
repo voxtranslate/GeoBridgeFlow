@@ -11,8 +11,15 @@ Benchmark "flickr8k_yo" = Flickr8k-Tri:
     yo speech (+text) .. 5,981 spoken Yoruba captions, 1 speaker (YFACC)    [Olaleye et al., 2023]
     hi text ............ 40,455 machine-translated Hindi captions (silver)  -> script-robustness branch
 
-Licensing note: the two speech mirrors carry no licence metadata on the Hub.  Cite the original corpora and
-check their terms before redistributing derived data.
+Extra hub-language data (``cfg.extra_images``), training only:
+    images + en text ... Flickr30k, 31,783 photos with 5 crowd captions each     [Young et al., 2014]
+                         8,091 of them ARE the Flickr8k photos, with the same captions.  They are dropped by
+                         photo id (flickr8k.py), all of them and whatever their split: otherwise test images and
+                         the captions held out for the other languages would come back in through this door.
+
+Licensing note: the two speech mirrors and the Flickr30k mirror carry no licence metadata on the Hub; the photos
+are under Flickr terms of use.  Cite the original corpora and check their terms before redistributing derived
+data.
 """
 from __future__ import annotations
 
@@ -42,6 +49,11 @@ FLICKR8K_YO: Dict[str, HubSource] = {
 }
 
 REGISTRY: Dict[str, Dict[str, HubSource]] = {"flickr8k_yo": FLICKR8K_YO}
+
+# Flickr30k as nine parquet shards (image bytes, five captions, file name = Flickr photo id), sorted by photo id.
+FLICKR30K = HubSource("lmms-lab/flickr30k", "765d117f3eec816f2bfdc2d73ebb50a6f77b86a4", ("data/test-*.parquet",),
+                      "Flickr30k photos + 5 English captions each")
+FLICKR30K_SHARDS = 9
 
 
 def local_dir(data_root: str, repo: str) -> str:
@@ -73,3 +85,24 @@ def download_sources(dataset: str, data_root: str, keys: List[str] = None, logge
                 f.write("ok\n")
         out[key] = d
     return out
+
+
+def download_flickr30k(data_root: str, shard: int, logger=None) -> str:
+    """Download one shard of the Flickr30k mirror (idempotent) and return its path.  Shards are fetched one by one,
+    so a small ``extra_images`` needs one file of 0.5 GB and not all 4.4 GB."""
+    from huggingface_hub import hf_hub_download
+
+    src = FLICKR30K
+    d = local_dir(data_root, src.repo)
+    name = f"data/test-{shard:05d}-of-{FLICKR30K_SHARDS:05d}.parquet"
+    path = os.path.join(d, name)
+    if not os.path.exists(path):
+        if logger:
+            logger.info(f"[download] {src.repo}@{src.revision[:8]} {name}  ({src.note})")
+        try:
+            hf_hub_download(src.repo, name, repo_type="dataset", revision=src.revision, local_dir=d)
+        except Exception as e:  # pinned commit gone -> latest
+            if logger:
+                logger.info(f"[download] pinned revision unavailable ({type(e).__name__}); using 'main'")
+            hf_hub_download(src.repo, name, repo_type="dataset", local_dir=d)
+    return path

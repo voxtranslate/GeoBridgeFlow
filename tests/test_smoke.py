@@ -404,3 +404,95 @@ def test_ablation_never_retrains_the_main_run(tiny_run):
     assert other._cell("private", "full", {}, cfg.seed)[0].run_dir.startswith(other.root)
     changed = other._cell("private", "no private", {"private_noise": False}, cfg.seed)[0]
     assert other._phase_a(changed) == os.path.join(cfg.run_dir, "checkpoints", "phase_a.pt")   # phase A is unchanged
+
+
+def test_extra_stream_of_the_sampler_is_a_function_of_its_position():
+    """Extra image-text groups join every batch from their own shuffled stream: no repeats within a lap of the
+    pool, the same batches after a restart at any batch, and the main stream is what it was without them."""
+    from geobridge.trainer import ResumableBatchSampler
+
+    plain = ResumableBatchSampler(40, 8, seed=3)
+    s = ResumableBatchSampler(40, 8, seed=3, aux_pool=range(40, 63), n_aux=5)      # 23 extra items, 5 per batch
+    assert len(s) == len(plain) == 5
+    epochs = []
+    for e in range(3):
+        s.set_state(e, 0)
+        plain.set_state(e, 0)
+        batches = list(s)
+        assert [b[:8] for b in batches] == list(plain)                             # main part unchanged
+        assert all(len(b) == 13 and all(40 <= i < 63 for i in b[8:]) for b in batches)
+        epochs.append(batches)
+    stream = [i for ep in epochs for b in ep for i in b[8:]]                        # 75 draws = 3 laps of 23 + 6
+    for lap in range(3):
+        assert sorted(stream[lap * 23: (lap + 1) * 23]) == list(range(40, 63))     # each lap visits every item once
+    s2 = ResumableBatchSampler(40, 8, seed=3, aux_pool=range(40, 63), n_aux=5)
+    s2.set_state(1, 3)                                                              # restart in the middle of epoch 1
+    assert list(s2) == epochs[1][3:]
+
+
+def test_flickr30k_extras_never_contain_a_flickr8k_photo(tmp_path, monkeypatch):
+    """Flickr30k contains the Flickr8k photos with the same captions.  Every one of them is dropped by photo id,
+    whatever its split and whether or not it is in the subset in use; over-long captions are dropped too."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from geobridge.data import flickr8k as F
+
+    cap_dir = tmp_path / "caps"
+    cap_dir.mkdir()
+    (cap_dir / "captions.txt").write_text("image,caption\n" + "".join(
+        f"{pid}_abc{k}.jpg,a caption\n" for pid in ("111", "222", "333") for k in range(2)), encoding="utf8")
+    rows = [("111.jpg", ["leak"] * 5), ("444.jpg", ["a  dog   runs .", "x" * 500, "", "a cat .", "two dogs ."]),
+            ("333.jpg", ["leak"] * 5), ("555.jpg", ["a man ."] * 5), ("666.jpg", ["a boy ."] * 5)]
+    shard = tmp_path / "test-00000-of-00009.parquet"
+    pq.write_table(pa.table({"filename": [r[0] for r in rows], "caption": [r[1] for r in rows]}), shard)
+    monkeypatch.setattr(F, "download_flickr30k", lambda root, k, logger=None: str(shard))
+    monkeypatch.setattr(F, "FLICKR30K_SHARDS", 1)
+    b = F.Flickr8kTri.__new__(F.Flickr8kTri)                     # no download: only the two files above are read
+    b.cfg, b.logger, b.dirs = Config.preset("flickr8k_yo_cpu"), None, {"captions": str(cap_dir)}
+    assert b.flickr8k_photo_ids() == {"111", "222", "333"}
+    m = b.extra_manifest(-1)
+    assert [im["id"] for im in m["images"]] == ["f30k_444", "f30k_555", "f30k_666"]
+    assert m["meta"]["dropped_flickr8k_photos"] == 2 and m["meta"]["dropped_captions_over_max_text_bytes"] == 2
+    first = [u for u in m["utts"] if u["img"] == 0]
+    assert [u["cap"] for u in first] == [0, 3, 4] and first[0]["text"] == "a dog runs ."     # caption index kept, spaces normalised
+    assert all(u["lang"] == "en" and not u["has_audio"] and m["images"][u["img"]]["official_split"] == "train" for u in m["utts"])
+    assert [im["id"] for im in b.extra_manifest(2)["images"]] == ["f30k_444", "f30k_555"]     # "the first N"
+
+
+def test_extra_image_text_pairs_train_only(tmp_path):
+    """Extra hub-language image-text pairs: training split only, text only, never in an evaluation, and the
+    benchmark's own images, splits and groups are exactly what they are without them."""
+    from geobridge.data import GeoBridgeData
+    from geobridge.trainer import Trainer
+
+    base = Config.preset("synth_tiny").update({"data_root": str(tmp_path / "data"), "out_root": str(tmp_path / "runs")})
+    plain = GeoBridgeData(base)
+    cfg = base.clone(exp_name="x", extra_images=40, extra_per_batch=6, phase_a_steps=6, phase_b_steps=6, eval_every=6, save_every=6)
+    data = GeoBridgeData(cfg)
+    n0 = len(plain.images)
+    assert data.n_base_images == n0 and len(data.images) == n0 + 40 and data.img_split[:n0] == plain.img_split
+    assert set(data.img_split[n0:]) == {"train"} and len(data.vision) == n0 + 40 and len(data.thumbs) == n0 + 40
+    assert np.array_equal(np.asarray(data.vision[5]), np.asarray(plain.vision[5]))
+    key = lambda g: (g["img"], g["cap"], tuple(g["train_views"]))
+    assert [key(g) for g in data.groups["train"][: data.n_own_groups]] == [key(g) for g in plain.groups["train"]]
+    extra = data.groups["train"][data.n_own_groups:]
+    assert len(extra) == 40 * cfg.synth_caps_per_image
+    assert all(g["extra"] and g["img"] >= n0 and [v[:2] for v in g["train_views"]] == [("txt", cfg.hub_langs[0])] for g in extra)
+    for split in ("valid", "test"):
+        assert [key(g) for g in data.groups[split]] == [key(g) for g in plain.groups[split]]
+        assert all(g["img"] < n0 for g in data.eval_groups(split))
+    d = data.describe()
+    assert d["images"] == plain.describe()["images"] and d["extra"]["images"] == 40 and d["extra"]["caption_groups"] == len(extra)
+    assert not os.path.exists(os.path.join(cfg.cache_dir, "splits.json")) or \
+        len(__import__("json").load(open(os.path.join(cfg.cache_dir, "splits.json")))["images"]) == n0    # splits untouched
+    tr = Trainer(cfg, data=data)
+    tr.sampler.set_state(0, 0)
+    batch = next(iter(tr.sampler))
+    assert len(batch) == cfg.batch_size + 6 and sum(i >= data.n_own_groups for i in batch) == 6
+    tr.fit()
+    assert tr.step == 12
+    c = tr.cache["train"]
+    assert c.n_groups == len(data.groups["train"]) and len(c.img_row) == len({g["img"] for g in data.groups["train"]})
+    b = c.batch(batch)                                       # a transport-phase batch with extra groups in it
+    assert b["B"] == len(batch) and b["img_lat"].shape[0] == len(batch) and int(b["txt"]["item"].max()) >= cfg.batch_size

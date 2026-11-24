@@ -88,6 +88,8 @@ class LatentCache:
         self.scene = torch.stack([scene[i] for i in imgs])
         self._all_hubs = torch.cat([self.hub[m][self.ok[m]] for m in self.mods]) if self.mods else torch.zeros(0)
         self._rows = {m: self.ok[m].nonzero().squeeze(1) for m in self.mods if self.ok[m].any()}
+        n_own = data.n_own_groups if split == "train" else len(groups)   # extra groups come after the own ones
+        self.own_rows = {m: int(self.start[m][n_own]) for m in self.mods}
         self.n_groups = len(groups)
 
     def batch(self, group_idx: List[int]) -> Dict:
@@ -118,9 +120,16 @@ class LatentCache:
         """Real hub codes of image-paired utterances (any language): the empirical hub distribution."""
         return self._all_hubs[torch.randint(len(self._all_hubs), (n,))]
 
-    def sample_views(self, mod: str, n: int) -> Optional[Dict[str, torch.Tensor]]:
-        """n random image-paired views of one modality: latents, their hub codes and languages."""
+    def sample_views(self, mod: str, n: int, own_only: bool = False) -> Optional[Dict[str, torch.Tensor]]:
+        """n random image-paired views of one modality: latents, their hub codes and languages.
+
+        ``own_only``: draw from the benchmark's own captions, not from the extra hub-language ones.  A uniform
+        draw over everything would be almost all hub language, and the text writer of another written language
+        would hardly ever be relayed to."""
         if mod not in self._rows:
             return None
-        r = self._rows[mod][torch.randint(len(self._rows[mod]), (n,))]
+        rows = self._rows[mod]
+        if own_only:
+            rows = rows[rows < self.own_rows[mod]]
+        r = rows[torch.randint(len(rows), (n,))]
         return {"z": self.z[mod][r], "hub": self.hub[mod][r], "lang": self.lang[mod][r]}

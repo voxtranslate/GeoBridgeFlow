@@ -336,6 +336,80 @@ step 9,000; the last state is step 22,000.
   everything a sentence says does not survive noise in the latent it has to explain. The representation phase's
   overfitting on Flickr8k therefore has no remedy in this repository beyond selecting an early state.
 
+**Third round: more data, and the remaining problems of the analysis** (nothing of this has run on a GPU yet).
+
+- *More data for the hub language.* The full real presets now add the Flickr30k photos with their English
+  captions to the training split, as text (`docs/METHOD.md`, section 1). Flickr30k contains the Flickr8k photos
+  with the same captions: in the first of its nine files 1,045 of 3,532 photos are Flickr8k photos. All of them
+  are removed by Flickr photo id, whatever their split; a test fails if one gets through. About 23,700 photos
+  with 118,000 captions remain, against 6,847 training images before. Checked on real files with a 1,200-image
+  subset and 300 extra photos (131 Flickr8k photos dropped, none kept, features on the same scale as the
+  benchmark's own), and trained end to end on a 60-image subset.
+- *The same thing on SynthWorld, where it can be measured before a GPU is spent:* 2,400 extra scenes with 9,600
+  hub-language captions as text (the benchmark's own training split has 1,080 scenes), same settings and number
+  of steps as the run with the real-preset options, test split, one run each
+  (`docs/results/synth_extra_hub_data_eval_test.json`). The island language received nothing new and improves
+  with the rest:
+
+  | | benchmark data only | + extra hub-language image–text pairs |
+  |---|---|---|
+  | Island speech → hub text, exact content (one-object / two-object sentences) | 60.8 % (80.4 / 29.3) | **73.8 %** (93.9 / 41.3) |
+  | Island speech → text of the third language | 65.0 % | 73.8 % |
+  | Hub-language speech → text, WER / exact content | 10.1 % / 81.3 % | **2.1 % / 93.3 %** |
+  | Text read and written again (two-object sentences) | 96.3 % (90.2) | 100 % (100) |
+  | Text translation, both directions | 89.6 % / 94.2 % | 98.8 % / 98.8 % |
+  | Island speech → hub-language speech, read back | 32.9 % | 55.0 % |
+  | Both objects covered: text / hub speech / island speech | 97 % / 62 % / 57 % | 100 % / 90 % / 63 % |
+  | Retrieval of the image, R@1: text / hub speech / island speech | 55.4 / 54.6 / 45.0 % | 57.9 / 53.3 / 42.1 % |
+
+  Two runs of the same settings differ by about five points on these columns, so every row but the last is a
+  real difference. Retrieval does not move: the hub was already as discriminative as the grounder could make
+  it; what the extra captions buy is a text side that is exact, and with it the codes that speech is taught to
+  agree with. Batches are also twice as large with the extra groups, which this run does not separate from the
+  data itself.
+- *A recogniser listens to the written speech* (`infer`; Whisper). Three rungs: the real utterance's log-mel
+  through the vocoder, the speech codec's reconstruction, and speech written from text or from Yorùbá speech.
+  On the 60-image check model, which is untrained, the first rung is transcribed almost word for word (six
+  utterances: word error rate 5 %, content F1 94 against 6 by chance; "Lady was straw hat covering face and head
+  standing on a rock in front of the ocean" for "Lady with straw hat …"), so the mel features and the vocoder
+  are right; the other rungs are noise there, as they must be. What a trained model scores is not known.
+- *The reader is trained on the speech the writer writes, in the hub language too* (`w_reread`, on by default).
+  On Flickr8k written Yorùbá speech could be read back and written English speech could not, because
+  back-translation shows the reader written island speech and nothing showed it written hub-language speech.
+  Now real hub codes are written as hub-language speech and read back at every transport step. SynthWorld,
+  same settings as the run with the real-preset options, test split, one run each
+  (`docs/results/synth_reader_exposure_eval_test.json`): island speech → hub-language speech, read back, 43.8 %
+  exact content against 32.9 %; text → island speech 48.3 % against 43.3 %; text → hub-language speech
+  unchanged (51.3 % against 51.7 %: it was readable there already). Nothing else moves by more than two runs of
+  the same settings differ (island speech → text 65.8 % against 60.8 %, recognition WER 6.2 % against 10.1 %,
+  read-and-rewrite of text 95.4 % against 96.3 %). Whether it repairs the round trip on Flickr8k is not known.
+- *The text codec alone is scored at every validation.* On SynthWorld it is exact (character error rate 0.0 %),
+  so the 28.5 % measured on Flickr8k is what the codec had learned from 30,000 captions, or what the decoder
+  lost while it was trained on written latents; the validation log will now separate the two, and the extra
+  captions are also text for the codec.
+- *Back-translation's relay draws from the benchmark's own captions,* so the extra English text does not crowd
+  the Hindi writer out of it.
+- *The tonality gates are logged at the selected state and at the end of the representation phase,* with a
+  warning when they are still moving. This fixes the reporting, not the result: on real data the claim has no
+  support.
+- *Preparation:* the mel pass runs in worker processes; the cache it writes is identical to the old one, bit for
+  bit (checked on a 60-image subset). A GPU that runs out of memory now says which setting to lower.
+
+**What is not fixed, and why.**
+
+- *Wording is not carried across.* A hub of image barycentres passes what can be pointed at. Between two
+  languages that share no sentence nothing else *can* be aligned; within one language a shared code for wording
+  could be learned from paired speech and text, but that would make English speech recognition better and
+  leave every claim of this work where it is. More data should raise how much of a caption the hub explains
+  (47 % on held-out captions so far); it will not make this a transcription system.
+- *Speech is the weak side* (English speech finds its image three times less often than English text; the speech
+  codec has generalised in one representation phase of four). The extra data is text and images. Nothing here
+  addresses speech, and the regularisers that would be tried first destroy the coverage the credit loss buys.
+- *Tonality gate, counterfactual credit, back-translation on real data:* these are measurements that have not
+  been made, not defects that code can remove. The notebook's defaults run the back-translation and decoder
+  variants after the main run; credit and the gate need a representation phase each.
+- *One seed, no baseline on the real split.*
+
 **Not verified.**
 
 - *Seeds.* Everything is one seed, on both benchmarks. Two runs of the same representation phase have differed
@@ -343,5 +417,8 @@ step 9,000; the last state is step 22,000.
 - *Back-translation, decoder exposure, credit, minimality on real data.* No ablation variant has finished on
   Flickr8k; the comparisons above are validation curves of one unfinished variant.
 - *Baselines on real data.* No cascade, no supervised topline, no published system has been run on this split.
-- *Speech output.* Scored only by the model's own reader; no recogniser, no listener.
-- *The changes listed above* have run on SynthWorld and in the tests, not on a GPU.
+- *Speech output.* A recogniser now transcribes it in `infer`, but only an untrained check model has been
+  through it; no listener.
+- *Everything listed under the third round* has run on SynthWorld, on small real subsets on a CPU and in the
+  tests, not on a GPU and not at full size: in particular the memory and time of a batch with 64 extra caption
+  groups per GPU are estimates.

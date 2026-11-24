@@ -11,6 +11,12 @@ So the Yoruba utterance for an image is a spoken translation of English caption 
 gives an exact parallel reference for zero-pair Yoruba-speech -> English-text scoring.  The Yoruba transcript
 is carried in the manifest but, with the default config, never shown to the model: Yoruba is treated as an
 unwritten language and its orthography is used for analysis only.
+
+Extra hub-language data (``cfg.extra_images``): Flickr30k photos with their English captions, as text, for
+training only.  Flickr30k CONTAINS the Flickr8k photos (file name = the Flickr photo id that Flickr8k ids start
+with) together with the very same captions, so every Flickr30k photo whose id is a Flickr8k photo id is dropped:
+whatever its Flickr8k split (test images must not come back as training data) and also when the Flickr8k image
+is not part of the current subset (its captions 0 and 4 belong to Yoruba and Hindi in the strict protocol).
 """
 from __future__ import annotations
 
@@ -23,7 +29,7 @@ from typing import Dict, Iterator, List, Tuple
 
 import numpy as np
 
-from .download import download_sources
+from .download import FLICKR30K, FLICKR30K_SHARDS, download_flickr30k, download_sources, local_dir
 
 FLICKR_LANGS = {
     "en": {"tonal": False, "script": "Latin", "written": True, "spoken": True},
@@ -100,6 +106,90 @@ class Flickr8kTri:
         langs = {l: FLICKR_LANGS[l] for l in cfg.all_langs if l in FLICKR_LANGS}
         return {"name": "flickr8k_yo", "langs": langs, "images": images, "utts": utts,
                 "meta": {"n_images_total": len(self.img_file)}}
+
+    # ------------------------------------------------------------------ extra hub-language image-text pairs
+    def flickr8k_photo_ids(self) -> set:
+        """Flickr photo id of EVERY Flickr8k image (the part of the image id before the underscore), read from the
+        caption file itself so that it does not depend on the subset in use."""
+        ids = set()
+        with open(os.path.join(self.dirs["captions"], "captions.txt"), encoding="utf8") as f:
+            next(f)
+            for line in f:
+                ids.add(line.split(",", 1)[0].rsplit(".", 1)[0].split("_")[0])
+        return ids
+
+    def extra_manifest(self, n: int) -> Dict:
+        """The first ``n`` (all if n < 0) Flickr30k photos that are not Flickr8k photos, with their captions."""
+        import pyarrow.parquet as pq
+
+        cfg, H = self.cfg, self.cfg.hub_langs[0]
+        if H != "en":
+            raise ValueError("the extra image-text pairs are English: they need 'en' as the hub language")
+        own = self.flickr8k_photo_ids()
+        images, utts, dropped, too_long = [], [], 0, 0
+        for shard in range(FLICKR30K_SHARDS):
+            fp = download_flickr30k(cfg.data_root, shard, self.logger)
+            t = pq.read_table(fp, columns=["filename", "caption"]).to_pydict()
+            for row, (fn, caps) in enumerate(zip(t["filename"], t["caption"])):
+                pid = fn.rsplit(".", 1)[0]
+                if pid in own:
+                    dropped += 1
+                    continue
+                caps = [(k, " ".join(c.split())) for k, c in enumerate(caps[:5])]
+                keep = [(k, c) for k, c in caps if c and len(c.encode("utf8")) <= cfg.max_text_bytes]
+                too_long += len(caps) - len(keep)
+                if not keep:
+                    continue
+                images.append({"id": f"f30k_{pid}", "official_split": "train", "extra": True,
+                               "src": [os.path.basename(fp), row]})
+                utts += [{"uid": f"{H}/f30k_{pid}/{k}", "img": len(images) - 1, "cap": k, "lang": H, "text": c,
+                          "has_audio": False, "spk": "", "src": ""} for k, c in keep]
+                if 0 < n <= len(images):
+                    break
+            if 0 < n <= len(images):
+                break
+        assert not {im["id"][5:] for im in images} & own
+        return {"name": "flickr30k_extra", "images": images, "utts": utts,
+                "meta": {"source": f"{FLICKR30K.repo}@{FLICKR30K.revision[:12]}", "shards_read": shard + 1,
+                         "dropped_flickr8k_photos": dropped, "dropped_captions_over_max_text_bytes": too_long}}
+
+    def extra_image_groups(self, images: List[Dict]) -> List[Dict]:
+        """Loader groups of the extra photos: a few parquet row groups each (about 800 images), so that memory
+        stays bounded and an interrupted feature extraction resumes from the last finished group."""
+        import pyarrow.parquet as pq
+
+        root = os.path.join(local_dir(self.cfg.data_root, FLICKR30K.repo), "data")
+        by_file: Dict[str, List[Tuple[int, int]]] = {}
+        for n, im in enumerate(images):
+            by_file.setdefault(im["src"][0], []).append((n, int(im["src"][1])))
+        groups = []
+        for name, rows in sorted(by_file.items()):
+            fp = os.path.join(root, name)
+            if not os.path.exists(fp):
+                fp = download_flickr30k(self.cfg.data_root, int(name.split("-")[1]), self.logger)
+            meta = pq.ParquetFile(fp).metadata
+            starts = np.cumsum([0] + [meta.row_group(i).num_rows for i in range(meta.num_row_groups)])
+            want: Dict[int, List[Tuple[int, int]]] = {}
+            for n, r in rows:
+                g = int(np.searchsorted(starts, r, side="right") - 1)
+                want.setdefault(g, []).append((n, r - int(starts[g])))
+            keys = sorted(want)
+            for a in range(0, len(keys), 8):
+                part = keys[a: a + 8]
+
+                def loader(fp=fp, part=part, want=want) -> Iterator[Tuple[int, object]]:
+                    import pyarrow.parquet as pq
+                    from PIL import Image
+
+                    pf = pq.ParquetFile(fp)
+                    for g in part:
+                        col = pf.read_row_group(g, columns=["image"]).column("image")
+                        for n, r in want[g]:
+                            yield n, Image.open(io.BytesIO(col[r].as_py()["bytes"])).convert("RGB")
+
+                groups.append({"key": f"{name}_rg{part[0]:04d}", "idx": [n for g in part for n, _ in want[g]],
+                               "loader": loader})
+        return groups
 
     # ------------------------------------------------------------------ media access
     def image_groups(self, images: List[Dict]) -> List[Dict]:

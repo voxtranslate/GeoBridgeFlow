@@ -40,7 +40,7 @@ from .losses import GeoBridgeLoss
 from .metrics import Evaluator, _to, recall_at_k
 from .models import GeoBridge, build_spec, ot
 from .text_units import TextUnitizer
-from .utils import get_logger, legend_if_any, resolve_device, save_json, seed_everything
+from .utils import get_logger, legend_if_any, quiet_transformers, resolve_device, save_json, seed_everything
 
 LANG_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#8c564b"]
 
@@ -114,14 +114,9 @@ class Inferencer:
         if self.cfg.mel_spec == "speecht5":
             if not hasattr(self, "_vocoder"):
                 from transformers import SpeechT5HifiGan
-                from transformers.utils import logging as hf_logging
 
-                level = hf_logging.get_verbosity()
-                hf_logging.set_verbosity_error()   # the hub config says "hifigan", the class "speecht5_hifigan"
-                try:
+                with quiet_transformers():   # the hub config says "hifigan", the class "speecht5_hifigan"
                     self._vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").eval()
-                finally:
-                    hf_logging.set_verbosity(level)
             return self._vocoder(mel.float()).cpu().numpy()
         return dsp.griffin_lim(mel, self.cfg.sample_rate, 1024, self.cfg.mel_hop).numpy()
 
@@ -145,7 +140,7 @@ class Inferencer:
         self.split = split
         self.groups = self.data.eval_groups(split, 400, favour=self.cfg.island_langs)
         self.store = self.evaluator.collect(self.model, split, 400)
-        steps = [self.save_outputs, self.fig_slot_attention, self.fig_flow_trajectories, self.fig_hub_manifold,
+        steps = [self.save_outputs, self.speech_asr, self.fig_slot_attention, self.fig_flow_trajectories, self.fig_hub_manifold,
                  self.fig_hub_alignment, self.fig_tone, self.fig_speech_attribution, self.fig_text_attribution,
                  self.fig_retrieval, self.fig_ode_steps, self.fig_fertility, self.fig_hub_agreement,
                  self.fig_language_lora, self.fig_hub_vs_private, self.fig_codec_reconstruction,
@@ -279,6 +274,59 @@ class Inferencer:
                 plt.close(fig)
                 synth.append({"file": name + ".wav", "lang": lang, "text": self.evaluator._ref(g, H), "seconds": len(wav) / cfg.sample_rate})
         self.report["synthesised_speech"] = synth
+
+    # ================================================================== written speech, heard by a recogniser
+    @torch.no_grad()
+    def speech_asr(self, n: int = 60) -> None:
+        """Is the speech this model writes intelligible to a recogniser that was not trained with it?
+
+        Every rung is vocoded, transcribed by an off-the-shelf English recogniser and scored against the caption:
+            vocoder   the real utterance's own log-mel                               (ceiling of mel + vocoder)
+            codec     real speech -> speech latent -> decoded streams -> log-mel     (what the speech codec keeps)
+            written   caption text -> hub -> written speech latent -> log-mel        (the model's text-to-speech)
+            island    island speech -> hub -> written hub-language speech            (speech-to-speech translation)
+        The evaluator's round-trip score reads written speech with the model's own reader, which says how well the
+        model agrees with itself.  This does not depend on the model."""
+        cfg, H = self.cfg, self.hub_lang
+        if not cfg.asr_model or cfg.mel_spec != "speecht5" or H != "en":
+            self.report["speech_asr"] = "skipped: needs asr_model, the SpeechT5 mel space and English as hub language"
+            return
+        from transformers import pipeline
+
+        from .metrics import content_f1, edit_distance, other_image, words
+
+        with quiet_transformers():
+            asr = pipeline("automatic-speech-recognition", model=cfg.asr_model, device=0 if self.device.type == "cuda" else -1)
+        hear = lambda wavs: [o["text"].strip() for o in asr([{"raw": np.asarray(w, np.float32), "sampling_rate": cfg.sample_rate}
+                                                              for w in wavs], batch_size=16)]
+        ex = self._examples(n, [("txt", H), ("aud", H)])
+        refs = [self.evaluator._ref(g, H) for g in ex]
+        utts = [self._view_utt(g, "aud", H) for g in ex]
+        wavs: Dict[str, List[np.ndarray]] = {"vocoder": [], "codec": [], "written": []}
+        for g, ref, ui in zip(ex, refs, utts):
+            sub = _to(self.data._collate_audio([ui], [0]), self.device)
+            wavs["vocoder"].append(self.vocode(sub["mel"][0, : int(sub["mel_len"][0])].float().cpu()))
+            mel, _, streams = self.model.audio.synthesize_mel(self.model.encode("aud", sub), sub["lang"], sub["spk"], sub["f0"])
+            wavs["codec"].append(self.vocode(mel[0, : int(streams["mel_len"][0])].float().cpu()))
+            wavs["written"].append(self.hub_to_wave(self.text_to_hub([ref], H), H, ui)[0])
+        rungs = {k: (hear(v), refs, [g["img"] for g in ex]) for k, v in wavs.items()}
+        for L in self.island:   # island speech -> hub-language speech, in the voice of the caption's own hub-language utterance
+            isl = [(g, self._view_utt(g, "aud", L), self._view_utt(g, "aud", H)) for g in self._examples(n, [("aud", L), ("aud", H)])]
+            if isl:
+                w = [self.hub_to_wave(self.utterances_to_hub([ul])[0], H, uh)[0] for _, ul, uh in isl]
+                rungs[f"island_{L}"] = (hear(w), [self.evaluator._ref(g, H) for g, _, _ in isl], [g["img"] for g, _, _ in isl])
+        out: Dict = {"recogniser": cfg.asr_model, "rungs": {}, "examples": {}}
+        for k, (hyp, ref, img) in rungs.items():
+            wer = 100.0 * sum(edit_distance(words(h), words(r)) for h, r in zip(hyp, ref)) / max(1, sum(len(words(r)) for r in ref))
+            wrong = [ref[j] for j in other_image(img)] if len(set(img)) > 1 else ref
+            out["rungs"][k] = {"n": len(ref), "wer": wer, "content_f1": content_f1(hyp, ref),
+                               "chance_content_f1": content_f1(hyp, wrong, pool=ref)}
+            out["examples"][k] = [{"reference": r, "heard": h} for h, r in list(zip(hyp, ref))[:8]]
+        self.report["speech_asr"] = out["rungs"]
+        save_json(out, os.path.join(self.out, "outputs", "speech_asr.json"))
+        self.log.info(f"[infer] written speech heard by {cfg.asr_model}: " + " | ".join(
+            f"{k} WER {v['wer']:.0f} %, content F1 {v['content_f1']:.1f} (chance {v['chance_content_f1']:.1f}), n={v['n']}"
+            for k, v in out["rungs"].items()))
 
     # ================================================================== 01 slot attention
     def fig_slot_attention(self) -> None:

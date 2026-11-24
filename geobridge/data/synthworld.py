@@ -69,7 +69,8 @@ class SynthWorld:
             "sa": [(float(rng.uniform(95, 240)), float(rng.uniform(0.9, 1.15))) for _ in range(n_sa)],
             "sb": [(float(rng.uniform(110, 210)), float(rng.uniform(0.92, 1.1))) for _ in range(2)],
         }
-        self.scenes, self.caps = self._make_scenes(rng)
+        self.scenes, self.caps = self._make_scenes(rng, cfg.synth_n_images)
+        self.x_scenes: List = []   # extra scenes (hub-language text only), appended after the benchmark's own
 
     # ------------------------------------------------------------------ lexicons
     def _stems(self, rng, n: int, used: set) -> List[List[Tuple[str, str]]]:
@@ -140,7 +141,7 @@ class SynthWorld:
         return out
 
     # ------------------------------------------------------------------ scenes & captions
-    def _make_scenes(self, rng):
+    def _make_scenes(self, rng, n: int):
         cfg, scenes, caps = self.cfg, [], []
         cells = self.g * self.g
         # Zipfian object types: like real captions, a few (colour, shape) combinations are very frequent and
@@ -149,7 +150,7 @@ class SynthWorld:
         rank = np.random.default_rng(4242).permutation(n_types)
         p_type = 1.0 / (1.0 + rank) ** cfg.synth_zipf
         self.type_prob = p_type / p_type.sum()
-        for i in range(cfg.synth_n_images):
+        for i in range(n):
             n_obj = int(rng.integers(2, 4))
             pos = rng.choice(cells, size=n_obj, replace=False)
             types = rng.choice(n_types, size=n_obj, p=self.type_prob)
@@ -182,13 +183,29 @@ class SynthWorld:
         return {"name": "synthworld", "langs": SYNTH_LANGS, "images": images, "utts": utts,
                 "meta": {"grid": self.g, "colors": COLOR_NAMES[: self.nc], "shapes": SHAPES[: self.ns]}}
 
+    def extra_manifest(self, n: int) -> Dict:
+        """``n`` more scenes with captions in the hub language only, as text: what a high-resource language has
+        plenty of.  Drawn from the same world with their own random stream, so the benchmark itself is untouched."""
+        n = 4 * len(self.scenes) if n < 0 else n
+        H = self.cfg.hub_langs[0]
+        self.x_scenes, caps = self._make_scenes(np.random.default_rng(20261122), n)
+        images = [{"id": f"xim{i:05d}", "scene": sc, "official_split": "train", "extra": True} for i, sc in enumerate(self.x_scenes)]
+        utts = [{"uid": f"{H}/xim{c['img']:05d}/{c['cap']}", "img": c["img"], "cap": c["cap"], "lang": H,
+                 "text": self.text([(o[1], o[2]) for o in c["objs"]], H), "has_audio": False, "spk": "",
+                 "content": [(o[1], o[2]) for o in c["objs"]], "cells": [o[0] for o in c["objs"]]} for c in caps]
+        return {"name": "synthworld_extra", "images": images, "utts": utts, "meta": {"scenes": n}}
+
+    def _scene(self, img: int) -> List:
+        """Scene of an image index: the benchmark's own images first, then the extra ones."""
+        return self.scenes[img] if img < len(self.scenes) else self.x_scenes[img - len(self.scenes)]
+
     # ------------------------------------------------------------------ vision
     def vision_tokens(self, img: int) -> np.ndarray:
         """Analytic 'frozen encoder' output: one token per grid cell + a global token (last)."""
         rng = np.random.default_rng(7919 * (img + 1))
         d, cells = self.cfg.synth_vision_dim, self.g * self.g
         tok = np.tile(self.e_bg, (cells, 1))
-        for p, c, s in self.scenes[img]:
+        for p, c, s in self._scene(img):
             tok[p] = self.e_color[c] + self.e_shape[s]
         tok = tok + self.cfg.synth_feat_noise * rng.standard_normal((cells, d)) / math.sqrt(d) * 2.0
         return np.concatenate([tok, tok.mean(0, keepdims=True)], 0).astype(np.float32)
@@ -199,7 +216,7 @@ class SynthWorld:
         im = Image.new("RGB", (size, size), (24, 24, 28))
         dr = ImageDraw.Draw(im)
         cell = size / self.g
-        for p, c, s in self.scenes[img]:
+        for p, c, s in self._scene(img):
             r, q = divmod(p, self.g)
             x0, y0, x1, y1 = q * cell + 3, r * cell + 3, (q + 1) * cell - 3, (r + 1) * cell - 3
             cx, cy, col = (x0 + x1) / 2, (y0 + y1) / 2, COLOR_RGB[c]

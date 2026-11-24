@@ -147,6 +147,22 @@ def grid_factor(n: int) -> tuple:
     return r, n // r
 
 
+class quiet_transformers:
+    """Context manager: load a pretrained model without the library's informational notices (a vision tower whose
+    config carries text-token ids, a vocoder whose hub config names an older class, ...)."""
+
+    def __enter__(self):
+        from transformers.utils import logging as hf_logging
+
+        self._log, self._level = hf_logging, hf_logging.get_verbosity()
+        hf_logging.set_verbosity_error()
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        self._log.set_verbosity(self._level)
+        return False
+
+
 class OutOfTime(RuntimeError):
     """The session's time budget is used up.  Raised by the trainer right after it has saved the exact step it
     reached, so that running the same command again continues from there."""

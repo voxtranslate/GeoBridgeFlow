@@ -25,7 +25,7 @@ import os
 import random
 import shutil
 import time
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -44,25 +44,34 @@ from .utils import (Averager, OutOfTime, count_named, count_params, get_logger, 
                     seed_everything, time_left, to_device, worker_kwargs)
 
 TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
-TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
+TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "reread", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
 # Settings that may differ between a checkpoint and the run that resumes from it (everything else must match).
 RESUME_FREE = {"exp_name", "out_root", "data_root", "device", "amp", "num_workers", "torch_threads", "n_gpu", "step_batches",
                "feat_batch_size", "log_every", "eval_every", "save_every", "keep_last", "milestone_every", "eval_max_items",
                "phase_b_steps", "init_from", "train_only", "ode_steps", "ode_solver", "sample_temp", "eval_temp", "read_mode",
-               "draft_t0"}
+               "draft_t0", "asr_model"}
 
 
 class ResumableBatchSampler(Sampler):
     """Batches of a per-epoch permutation that depends only on (seed, epoch); can start mid-epoch.
 
     ``extra_pool`` (indices of the bridge pairs) contributes ``n_extra`` items to every batch, drawn with a
-    generator seeded by (seed, epoch, batch), so the stream is still a pure function of its position."""
+    generator seeded by (seed, epoch, batch), so the stream is still a pure function of its position.
 
-    def __init__(self, n: int, batch_size: int, seed: int, extra_pool: Optional[List[int]] = None, n_extra: int = 0):
+    ``aux_pool`` (indices of the extra hub-language image-text groups) contributes ``n_aux`` MORE items to every
+    batch.  It is much larger than the main pool and is walked through in its own shuffled order, without
+    replacement, wrapping around on its own schedule: batch number g = epoch * len(self) + b takes positions
+    [g * n_aux, (g + 1) * n_aux) of that endless stream.  Still a pure function of (seed, epoch, batch)."""
+
+    def __init__(self, n: int, batch_size: int, seed: int, extra_pool: Optional[List[int]] = None, n_extra: int = 0,
+                 aux_pool: Optional[Sequence[int]] = None, n_aux: int = 0):
         self.n, self.seed = n, seed
         self.pool = list(extra_pool or [])
         self.k = min(n_extra, batch_size // 2) if self.pool else 0
         self.bs = batch_size - self.k
+        self.aux = np.asarray(aux_pool if aux_pool is not None else [], dtype=np.int64)
+        self.n_aux = min(int(n_aux), len(self.aux)) if len(self.aux) else 0
+        self._aux_perm: Tuple[int, Optional[np.ndarray]] = (-1, None)
         self.epoch, self.offset = 0, 0
 
     def set_state(self, epoch: int, offset: int) -> None:
@@ -71,6 +80,18 @@ class ResumableBatchSampler(Sampler):
     def __len__(self) -> int:
         return self.n // self.bs
 
+    def _aux_items(self, g: int) -> List[int]:
+        out: List[int] = []
+        pos, need, m = g * self.n_aux, self.n_aux, len(self.aux)
+        while need:
+            lap, at = divmod(pos, m)
+            if self._aux_perm[0] != lap:   # one permutation per lap of the pool, kept until the lap is over
+                self._aux_perm = (lap, np.random.default_rng([self.seed, 104729, lap]).permutation(m))
+            take = min(need, m - at)
+            out += self.aux[self._aux_perm[1][at: at + take]].tolist()
+            pos, need = pos + take, need - take
+        return out
+
     def __iter__(self) -> Iterator[List[int]]:
         perm = np.random.default_rng(self.seed * 100003 + self.epoch).permutation(self.n)
         for b in range(self.offset, len(self)):
@@ -78,6 +99,8 @@ class ResumableBatchSampler(Sampler):
             if self.k:
                 rng = np.random.default_rng([self.seed, self.epoch, b])
                 batch += [self.pool[i] for i in rng.integers(len(self.pool), size=self.k)]
+            if self.n_aux:
+                batch += self._aux_items(self.epoch * len(self) + b)
             yield batch
 
 
@@ -198,7 +221,11 @@ class Trainer:
         self.train_ds = _GroupDataset(self.data, self.data.groups["train"], train=True)
         bridge_idx = [i for i, g in enumerate(self.data.groups["train"])
                       if any(l in cfg.island_langs for _, l, _ in g["train_views"])]
-        self.sampler = ResumableBatchSampler(len(self.train_ds), cfg.batch_size, cfg.seed, bridge_idx, cfg.bridge_per_batch)
+        # the benchmark's own caption groups make the epoch; extra image-text groups are added to every batch
+        n_own = self.data.n_own_groups
+        self.sampler = ResumableBatchSampler(n_own, cfg.batch_size, cfg.seed, bridge_idx, cfg.bridge_per_batch,
+                                             aux_pool=range(n_own, len(self.train_ds)),
+                                             n_aux=cfg.extra_per_batch or cfg.batch_size)
         self.isl_sampler = None
         if len(self.data.island_ids) >= 2:
             bs = min(cfg.island_batch_size, len(self.data.island_ids))
@@ -238,6 +265,10 @@ class Trainer:
                       f"unpaired island {d['island_unpaired_train']} | device {self.device}"
                       + (f" x{len(self.gpus)} (DataParallel)" if len(self.gpus) > 1 else "")
                       + f" | {self.step_batches} batch(es) of {cfg.batch_size} per step | amp {self.amp}")
+        if d["extra"].get("images"):
+            self.log.info(f"[data] extra: {d['extra']['images']} images, {d['extra']['caption_groups']} {cfg.hub_langs[0]} "
+                          f"captions (text only, training only); {cfg.extra_per_batch or cfg.batch_size} of them join "
+                          f"every batch")
         save_json(self.param_report, os.path.join(self.run_dir, "params.json"))
 
     @property
@@ -538,7 +569,16 @@ class Trainer:
             for batches in pbar:
                 phase_before = self.phase
                 got = time.time()
-                logs = self.train_step(batches, [next(island) if island is not None else None for _ in batches])
+                try:
+                    logs = self.train_step(batches, [next(island) if island is not None else None for _ in batches])
+                except RuntimeError as e:   # out of GPU memory: say what to change instead of a bare CUDA error
+                    if "out of memory" not in str(e).lower():
+                        raise
+                    raise RuntimeError(
+                        f"out of GPU memory at step {self.step} (phase {self.phase}): a batch is {cfg.batch_size} caption "
+                        f"groups" + (f" + {cfg.extra_per_batch or cfg.batch_size} extra image-text groups" if self.sampler.n_aux else "")
+                        + " per GPU.  Lower 'extra_per_batch' (e.g. half) or 'batch_size', and use a new exp_name: "
+                        "the feature caches are kept, only training restarts.") from e
                 logs.update(t_data=got - waited, t_step=time.time() - got)   # seconds waiting for batches / computing
                 self.step += 1
                 self.offset += len(batches)
@@ -621,15 +661,24 @@ class Trainer:
         """At the end of phase A: continue from the best validated state rather than from the last one."""
         if not self.cfg.phase_a_select or self.best_a["step"] in (-1, self.step) or not os.path.exists(self._phase_a_best_path()):
             return
+        spoken = [l for l in self.cfg.all_langs if l not in self.cfg.text_only_langs]
+        gates = lambda: {l: float(self.model.audio.gate()[self.model.lang2id[l]]) for l in spoken}
+        at_end = gates()
         ck = torch.load(self._phase_a_best_path(), map_location=self.device, weights_only=False)
         self.model.load_state_dict(ck["model"])
         self.log.info(f"[phase] the transport phase starts from the phase-A state of step {ck['step']} "
                       f"(validation grounding + sufficiency + read = {ck['value']:.3f}, the best after the release); "
                       f"later states fit the training set better and the validation set worse")
+        now = gates()
+        moving = [l for l in spoken if abs(now[l] - at_end[l]) > 0.05]
+        self.log.info("[phase] tonality gates at that state: " + ", ".join(f"{l} {now[l]:.2f}" for l in spoken)
+                      + "; at the end of the phase: " + ", ".join(f"{l} {at_end[l]:.2f}" for l in spoken)
+                      + (f".  Still moving ({', '.join(moving)}): the gate values of this run are a snapshot, not a result"
+                         if moving else ""))
 
     def _log_validation(self, val: Dict[str, float], phase: str) -> None:
         keys = [k for k in val if k in TQDM_KEYS_A + TQDM_KEYS_B or k.endswith(("/r1", "content_acc"))
-                or k.startswith("tone/") or k == "score"]
+                or k.startswith(("tone/", "codec_")) or k == "score"]
         msg = " | ".join(f"{k} {val[k]:.3f}" for k in keys[:40])
         self.log.info(f"[valid] step {self.step} phase {phase} | {msg}")
         for k in [k for k in val if k.endswith("/cf1") and "/flat_" not in k and "/rt_" not in k]:

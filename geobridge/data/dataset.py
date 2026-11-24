@@ -10,6 +10,10 @@ Streams
 Splits are created once and stored in ``splits.json``; later runs load the file, they never re-draw it.
 Bridge membership is a stored per-utterance rank in [0, 1): an utterance is a bridge pair iff
 rank < bridge_frac, so the 1 % / 5 % / 20 % / 100 % budgets are nested subsets of one another.
+
+Extra image-text pairs (``cfg.extra_images``) are images with captions in the hub language only, as text.  They
+are appended after the benchmark's own images, belong to the training split by construction, never enter
+``splits.json`` or any evaluation, and have their own feature caches.
 """
 from __future__ import annotations
 
@@ -37,6 +41,22 @@ class _GroupDataset(Dataset):
         g = self.groups[i]
         return {"img": g["img"], "cap": g["cap"], "views": g["train_views"] if self.train else g["valid_views"],
                 "train": self.train}
+
+
+class _Stacked:
+    """Several row-indexed arrays read as one: the benchmark's own images first, then the extra ones."""
+
+    def __init__(self, parts: Sequence) -> None:
+        self.parts = list(parts)
+        self.offsets = np.cumsum([0] + [len(p) for p in self.parts])
+        self.shape = (int(self.offsets[-1]), *self.parts[0].shape[1:])
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    def __getitem__(self, i: int):
+        k = int(np.searchsorted(self.offsets, int(i), side="right") - 1)
+        return self.parts[k][int(i) - int(self.offsets[k])]
 
 
 class _IslandDataset(Dataset):
@@ -101,6 +121,9 @@ class GeoBridgeData:
         self.anchor = feats.fit_anchor(self.vision, train_imgs, cfg.latent_dim,
                                        os.path.join(vdir, f"anchor_d{cfg.latent_dim}.pt"))
         self.max_frames = int(cfg.max_audio_sec * 25)
+        self.n_base_images, self.extra_meta = len(self.images), {}
+        if cfg.extra_images:
+            self._add_extras(device)
 
         # ---- text units
         bpe_path = None
@@ -113,6 +136,35 @@ class GeoBridgeData:
         self.unitizer = TextUnitizer(cfg.text_unit, cfg.max_graphemes, cfg.max_bytes_per_grapheme,
                                      cfg.max_text_bytes, bpe_path)
         self._build_groups()
+
+    # ------------------------------------------------------------------ extra hub-language image-text pairs
+    def _add_extras(self, device: torch.device) -> None:
+        """Append the extra images and their hub-language captions (training split, text only)."""
+        cfg = self.cfg
+        if not hasattr(self.builder, "extra_manifest"):
+            raise ValueError(f"dataset '{cfg.dataset}' has no extra image-text pairs")
+        os.makedirs(cfg.extra_cache_dir, exist_ok=True)
+        mp = os.path.join(cfg.extra_cache_dir, "manifest.json")
+        if os.path.exists(mp) and cfg.dataset != "synthworld":
+            xm = load_json(mp)
+        else:  # (the procedural benchmark rebuilds its scenes: they are also what its images are drawn from)
+            xm = self.builder.extra_manifest(cfg.extra_images)
+            save_json(xm, mp)
+        own = {im["id"] for im in self.images}
+        assert not any(im["id"] in own for im in xm["images"]), "an extra image is one of the benchmark's own"
+        n0 = len(self.images)
+        vdir = feats.cache_vision(cfg, self.builder, xm, device, self.log, extra_from=n0)
+        self.vision = _Stacked([self.vision, np.load(os.path.join(vdir, "tokens.npy"), mmap_mode="r")])
+        if self.thumbs is not None:
+            tp = feats.cache_thumbs(cfg, self.builder, xm, vdir, self.log, extra_from=n0)
+            self.thumbs = _Stacked([self.thumbs, np.load(tp, mmap_mode="r")])
+        self.images = self.images + xm["images"]
+        self.utts = self.utts + [dict(u, img=u["img"] + n0) for u in xm["utts"]]
+        self.img_split = self.img_split + ["train"] * len(xm["images"])
+        self.extra_meta = dict(xm.get("meta", {}), images=len(xm["images"]), captions=len(xm["utts"]))
+        self.log.info(f"[extra] {len(xm['images'])} extra images with {len(xm['utts'])} {cfg.hub_langs[0]} captions (text only, "
+                      f"training only)" + (f"; {self.extra_meta['dropped_flickr8k_photos']} Flickr8k photos left out"
+                                           if "dropped_flickr8k_photos" in self.extra_meta else ""))
 
     # ------------------------------------------------------------------ splits
     def _load_or_make_splits(self) -> Dict:
@@ -162,7 +214,8 @@ class GeoBridgeData:
             if u["lang"] not in self.lang2id:
                 continue
             g = by_key.setdefault((u["img"], u["cap"]), {"img": u["img"], "cap": u["cap"], "utts": {},
-                                                         "train_views": [], "all_views": []})
+                                                         "train_views": [], "all_views": [],
+                                                         "extra": u["img"] >= self.n_base_images})
             g["utts"][u["lang"]] = ui
             if u.get("text"):
                 g["all_views"].append(("txt", u["lang"], ui))
@@ -214,6 +267,10 @@ class GeoBridgeData:
                 if not g["train_views"]:
                     continue
             self.groups[split].append(g)
+        # extra groups sort after the benchmark's own (their image indices are larger): train = [own ..., extra ...]
+        self.n_own_groups = sum(not g["extra"] for g in self.groups["train"])
+        assert all(g["extra"] for g in self.groups["train"][self.n_own_groups:])
+        assert not any(g["extra"] for s in ("valid", "test") for g in self.groups[s])
         self.replay_pool = sorted({ui for g in self.groups["train"] for m, _, ui in g["train_views"] if m == "txt"})
         self.caps_of_img: Dict[int, List[Dict]] = {}
         for g in by_key.values():
@@ -221,8 +278,10 @@ class GeoBridgeData:
         self._rng = np.random.default_rng(0)
 
     def describe(self) -> Dict:
-        out = {"images": {s: self.img_split.count(s) for s in ("train", "valid", "test")},
-               "caption_groups": {s: len(g) for s, g in self.groups.items()},
+        own_split = self.img_split[: self.n_base_images]
+        out = {"images": {s: own_split.count(s) for s in ("train", "valid", "test")},
+               "caption_groups": {"train": self.n_own_groups, "valid": len(self.groups["valid"]), "test": len(self.groups["test"])},
+               "extra": dict(self.extra_meta, caption_groups=len(self.groups["train"]) - self.n_own_groups),
                "bridge_pairs_train": self.n_bridge, "island_unpaired_train": len(self.island_ids),
                "vision_tokens": [self.n_vis_tokens, self.vision_dim], "speech_dim": self.sem_dim,
                "anchor_explained_var": float(self.anchor["explained"])}

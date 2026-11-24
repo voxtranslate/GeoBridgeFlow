@@ -32,6 +32,10 @@ class Config:
     dataset: str = "flickr8k_yo"         # flickr8k_yo | synthworld
     data_root: str = "data"
     max_images: int = 0                  # >0: deterministic subset of images (quick runs)
+    extra_images: int = 0                # extra image + hub-language TEXT pairs, training only (no speech, no other
+                                         # language): -1 = all there are, N = the first N, 0 = none.  flickr8k_yo: the
+                                         # Flickr30k photos that are not Flickr8k photos; synthworld: N more scenes
+    extra_per_batch: int = 0             # extra caption groups added to every batch (0 = as many as batch_size)
     # Role of every language.  A language can appear in several roles.
     hub_langs: Tuple[str, ...] = ("en",)        # (image, text, audio) triplets
     island_langs: Tuple[str, ...] = ("yo",)     # speech only; text is never seen in training
@@ -136,6 +140,8 @@ class Config:
     ode_solver: str = "midpoint"         # euler | midpoint | heun
     sample_temp: float = 0.6             # std of the private noise at generation time
     eval_temp: float = 0.5               # same, for the scored (deterministic-seeded) evaluation
+    asr_model: str = "openai/whisper-base.en"   # recogniser that listens to the written speech in `infer`
+                                         # (English hub language and SpeechT5 mel space only; "" = skip)
     draft_t0: float = 0.0                # start writing from the explainer's draft at time t0 (0 = from the source)
     t_sampling: str = "uniform"          # uniform | logit_normal
     exposure: str = "reader"             # read hubs the writers are also trained on: reader | ode | none
@@ -145,6 +151,9 @@ class Config:
     w_dec: float = 1.0                   # write-latent exposure: the byte decoder is trained on latents written by the
                                          # text writer (0 = decoder frozen after phase A)
     p_dec_written: float = 0.75          # ... share of those latents that are written (the rest are encoder latents)
+    w_reread: float = 1.0                # write-latent exposure of the READER: real hub codes are written as speech in
+                                         # the spoken hub language(s) and read back (back-translation does this for
+                                         # the island language only).  0 = off
     image_spoke: bool = True
     thumb_size: int = 64                 # preview pixel decoder (image latent -> RGB)
     pix_width: int = 96
@@ -244,6 +253,14 @@ class Config:
         return os.path.join(self.data_root, "cache", self.dataset_tag)
 
     @property
+    def extra_cache_dir(self) -> str:
+        """Caches of the extra image-text pairs.  Separate from the benchmark's own cache, which they never touch."""
+        n = "all" if self.extra_images < 0 else f"n{self.extra_images}"
+        if self.dataset == "synthworld":
+            return os.path.join(self.cache_dir, f"extra_{n}")
+        return os.path.join(self.data_root, "cache", f"flickr30k_extra_{n}_b{self.max_text_bytes}")
+
+    @property
     def dataset_tag(self) -> str:
         if self.dataset == "synthworld":
             key = (self.synth_n_images, self.synth_caps_per_image, self.synth_n_colors, self.synth_n_shapes,
@@ -329,7 +346,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "dataset", "max_images", "extra_images", "extra_per_batch", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -360,16 +377,21 @@ _SYNTH = dict(
 # within 9,000 of its steps (text read+write at 8,000-9,000, image -> text at 2,000) and declined afterwards.
 # Deliberately NOT here: dropout, anywhere upstream of the hub.  Measured on SynthWorld it destroys the two-object
 # coverage that the credit loss buys: 13 % against 93 % in the codecs, grounder and explainer; 15 % against 97 %
-# confined to the encoders.  The overfitting of the representation phase on Flickr8k has no remedy here yet.
+# confined to the encoders.
 _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence")
+# More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training
+# images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
+# are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;
+# as many of their caption groups as of the benchmark's own join every batch.
+_MORE = dict(extra_images=-1)
 
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)
-    "flickr8k_yo": dict(_REAL, text_replay=128, phase_a_steps=8000, phase_b_steps=10000, eval_every=1000),
+    "flickr8k_yo": dict(_REAL, **_MORE, text_replay=128, phase_a_steps=8000, phase_b_steps=10000, eval_every=1000),
     # same benchmark on two 16 GB GPUs (Kaggle "GPU T4 x2"); also runs on a single T4 (Colab), one batch per step.
     # Every step consumes one batch per GPU, so the schedule is counted in optimiser steps, not batches.
     "flickr8k_yo_t4": dict(
-        _REAL, text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
+        _REAL, **_MORE, text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
         phase_a_steps=8000, phase_b_steps=10000, eval_every=1000, save_every=1000, milestone_every=8000,
         num_workers=3, eval_max_items=600,
     ),

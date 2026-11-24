@@ -53,6 +53,17 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   vocoder (`mel_spec = speecht5`: the pretrained SpeechT5 HiFi-GAN; `internal`: Griffin-Lim).
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
+- **Extra image–text pairs for the hub language** (`extra_images`; `data/flickr8k.py`, `data/dataset.py`). The
+  premise of the setting is that one language is rich: it can bring image–caption pairs the other languages do
+  not have. They are captions as text, in the hub language only, appended to the training split; they add
+  nothing to validation or test and no sentence to any other language, so the zero-pair protocol is unchanged.
+  On the real benchmark they are the Flickr30k photos. Flickr30k contains the Flickr8k photos with the same
+  captions, so all of them are removed by Flickr photo id, whatever their split: otherwise test images would
+  be trained on and the captions that the strict protocol gives to Yorùbá and Hindi would come back as English.
+  Every batch is the benchmark's own caption groups (an epoch is still an epoch of the benchmark, and speech
+  and bridge pairs get the same number of updates as before) plus `extra_per_batch` extra groups from a stream
+  that walks the extra pool without replacement; the stream is a function of (seed, epoch, batch), so resuming
+  is exact. The extra images are also negatives of every grounding score and targets of the image writer.
 
 ## 2. Barycentric visual interlingua with mutual sufficiency (`models/hub.py`, `losses.py:phase_a`)
 
@@ -196,6 +207,13 @@ test mismatch of cross-modal conversion and is not satisfied by construction. In
 reader's codes are close enough to the grounded ones that neither exposure nor jitter changes the scores
 measurably (`RESULTS.md`); they are kept because they cost one reader pass that is computed anyway.
 
+**Write-latent exposure of the reader** (`w_reread`). The same gap exists on the reading side. Back-translation
+shows the reader speech of the island language that the speech writer wrote; nothing showed it written speech of
+a hub language, and on Flickr8k written English speech, read back, carried no content while written Yorùbá
+speech did. At every transport step real hub codes `h` are written as speech in a spoken hub language (no
+gradient through the write) and the reader is trained to read them back, `‖R(W_aud(h)) − h‖²`. Chains such as
+island speech → hub-language speech → anything then stay on what the reader has seen.
+
 ## 5. Hub-space back-translation of unpaired island speech (`losses.py:back_translate`)
 
 The island language has speech only, a few image-paired utterances (bridge pairs) and many unpaired ones. With the
@@ -255,7 +273,7 @@ between the pooled latent and the bypass code.
 ```
 Phase A   L_A = L_text + L_audio(segmental, prosody†, duration, mel, w_orth·L_orth, w_gate·γ)
                 + L_ground + w_expl·L_expl + w_seek·L_seek + w_read·L_read + w_min·L_min + w_agree·L_agree + w_pix·L_pix
-Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + bt_weight·(L_bt_write + L_bt_read + bt_relay·L_bt_relay)
+Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + w_reread·L_reread + bt_weight·(L_bt_write + L_bt_read + bt_relay·L_bt_relay)
                                                                                   († stop-gradient on the latent)
 ```
 
@@ -304,8 +322,16 @@ All conversions go through the hub and use no image at test time.
 - Hub space: R@k of utterance → image (how well gallery patches explain the hub code), island speech → text.
 - Image out: R@k of the *written* image latent against the gallery, and the preview thumbnail.
 - Speech out: feature-level round trip (hub → speech latent → decoded frame features and predicted contour →
-  re-encoded → hub → text). It passes through the lossy codec, so it is not trivially satisfied; it is an
-  intrinsic proxy and should be complemented by an external ASR for a camera-ready.
+  re-encoded → hub → text). It passes through the lossy codec, so it is not trivially satisfied, but it is read
+  by the model's own reader and so measures agreement of the model with itself.
+- Speech out, heard from outside (`inferencer.py:speech_asr`; English hub language, SpeechT5 mel space): an
+  off-the-shelf recogniser (Whisper) transcribes three rungs, each scored against the caption by word error rate
+  and by content F1 with its chance level. *Vocoder*: the real utterance's own log-mel through the vocoder, the
+  ceiling of the path. *Codec*: real speech → speech latent → decoded streams → log-mel, what the codec keeps.
+  *Written*: caption text → hub → written speech latent → log-mel, the model's text-to-speech; and island
+  speech → hub → written hub-language speech. The gap between two rungs says where intelligibility is lost.
+- Text codec alone (encode, decode, no hub) is scored at every validation: it bounds everything that passes
+  through the hub, and the decoder keeps training in the transport phase.
 - Tone: gates, tone-reliance, score with the contour removed, twin-confusion rate on SynthWorld.
 - Protocol: `strict_nonparallel` on by default; `bridge_frac` budgets are nested subsets stored in `splits.json`.
 

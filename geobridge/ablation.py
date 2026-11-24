@@ -58,6 +58,7 @@ GROUPS: Dict[str, Dict] = {
             ("reader, writers never trained on read hubs", {"exposure": "none", "hub_jitter": 0.0}),
             ("reader, writers trained without hub jitter", {"hub_jitter": 0.0}),
             ("reader, speech keeps its own code (no canonical text code)", {"canonical_text": False}),
+            ("reader never shown written hub-language speech", {"w_reread": 0.0}),
         ]},
     "decoder": {
         "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
@@ -89,6 +90,12 @@ GROUPS: Dict[str, Dict] = {
             ("no tone stream (single stream)", {"tone_mode": "off"}),
             ("gate without the sparsity price", {"w_gate": 0.0}),
             ("no paralinguistic bypass", {"use_bypass": False, "w_orth": 0.0}),
+        ]},
+    "data": {
+        "question": "What do extra image-text pairs in the hub language buy the other languages?",
+        "variants": [
+            ("extra hub-language image-text pairs", {"extra_images": -1}),
+            ("the benchmark's own data only", {"extra_images": 0}),
         ]},
     "regularise": {
         "question": "Can the encoders be regularised without losing what the credit loss buys?",

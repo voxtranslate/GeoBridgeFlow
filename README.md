@@ -23,6 +23,8 @@ around a hub that contains no text at all.
 * A language with **speech only** is attached through a few image-prompted utterances (bridge pairs); its
   unpaired speech is used by **hub-space back-translation** with a relay to the text writers.
 * No loss ever pairs two languages, and a caption is visible in one language only during training.
+* The hub language may bring **extra image–text pairs** of its own (Flickr30k captions for English): text only,
+  training only, in no other language.
 
 | Document | Content |
 |---|---|
@@ -65,6 +67,11 @@ with no parallel data in 79 %, Yorùbá speech → English text, from 985 image 
 rates are near 80 %: this is not transcription. The tonality gate has no support on real data, the effect of the
 counterfactual credit is mixed on validation data, and the effect of back-translation on real data is not known.
 
+That run trained on 6,847 images and memorised them within 15 epochs. The presets now add about 23,700 Flickr30k
+photos with English captions (text only, training only, no Flickr8k photo among them). On the controlled
+benchmark the same kind of extra data lifts the language that received none: island speech → hub text from
+60.8 % to 73.8 % exact content. On real data this has not been run yet.
+
 The notebook is generated from the package and tested by executing the cell end to end on the tiny benchmark:
 
 ```bash
@@ -89,8 +96,9 @@ The controlled benchmark needs no downloads and trains on a CPU:
 python run.py all --preset synth_fast
 ```
 
-The real benchmark (Flickr8k images, English text + speech, Yorùbá speech, Hindi text; about 7.5 GB, downloaded
-automatically, no account needed):
+The real benchmark (Flickr8k images, English text + speech, Yorùbá speech, Hindi text; about 7.5 GB, plus 4.4 GB
+of Flickr30k photos and English captions as extra training data for the hub language; downloaded automatically,
+no account needed):
 
 ```bash
 python run.py prepare --preset flickr8k_yo
@@ -117,9 +125,9 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 
 | Preset | Data | Meant for |
 |---|---|---|
-| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images | one large GPU |
+| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images, + about 23,700 Flickr30k photos with English captions | one large GPU |
 | `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 10,000 steps |
-| `flickr8k_yo_cpu` | 1,200-image subset, small model | pipeline check on a laptop |
+| `flickr8k_yo_cpu` | 1,200-image subset, small model, no extra data | pipeline check on a laptop |
 | `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
 | `synth_fast` | SynthWorld, 1,200 scenes, small model | ablations on a CPU |
 | `synth_tiny` | 240 scenes | unit tests (seconds) |
@@ -145,7 +153,9 @@ chance levels and sample outputs. The evaluated state is `best.pt`: the validati
 above chance, averaged over the text directions.
 
 **`infer`** writes translations, synthesised speech (`.wav`), generated image previews and sixteen figures to
-`runs/<exp>/inference/`: slot attention on the image, ODE trajectories, the hub manifold, alignment of unpaired
+`runs/<exp>/inference/`. On the real benchmark it also lets a recogniser the model has never met (Whisper)
+transcribe the speech the model writes, next to the same recogniser on vocoded real speech and on the speech
+codec's reconstruction (`outputs/speech_asr.json`). The figures: slot attention on the image, ODE trajectories, the hub manifold, alignment of unpaired
 island speech, tonality gates and pitch-scaling response, frame- and grapheme-level attribution, retrieval
 galleries, quality against ODE steps, script fertility, hub agreement, per-language LoRA magnitudes, probes of
 hub versus private tokens, codec reconstructions, generated images, and read / write modes (see the docstring of
@@ -164,8 +174,8 @@ its own validation selected. `--list` prints the groups, `--only` selects varian
 | Path | Content |
 |---|---|
 | `geobridge/config.py` | `Config` dataclass, presets |
-| `geobridge/data/download.py` | pinned Hugging Face sources of the real benchmark |
-| `geobridge/data/flickr8k.py`, `synthworld.py` | benchmark builders (manifest, media access) |
+| `geobridge/data/download.py` | pinned Hugging Face sources of the real benchmark and of the extra data |
+| `geobridge/data/flickr8k.py`, `synthworld.py` | benchmark builders (manifest, media access, extra image–text pairs) |
 | `geobridge/data/features.py` | frozen front-ends (on all GPUs), one-time feature cache, anchor projection |
 | `geobridge/data/dataset.py` | persistent splits, view visibility rules, collation, loaders |
 | `geobridge/text_units.py`, `audio_dsp.py` | grapheme / byte / BPE units; YIN pitch, tone features, mel, Griffin-Lim |
@@ -204,6 +214,11 @@ wav, mel, f0 = inf.hub_to_wave(hub, "yo", ref_utt=yo[0])  # English text -> Yor�
 ## Data protocol
 
 * Yorùbá is treated as unwritten: its transcripts are in the manifest but are only used for analysis.
+* **Extra hub-language data** (`extra_images`, on in the full real presets): Flickr30k photos with their five
+  English captions, as text, in the training split only. Flickr30k *contains* the Flickr8k photos with the same
+  captions; all 8,091 are removed by Flickr photo id, whatever their split, so no test image and no caption that
+  the strict protocol gives to Yorùbá or Hindi comes back as English training text. About 23,700 photos remain.
+  As many extra caption groups as own ones join every batch; validation and test are untouched.
 * **Strict non-parallel training** (default): a caption is visible in one language only, so no sentence of a
   non-hub language has its translation in the training set, and no loss pairs two languages.
 * `bridge_frac` sets the share of island utterances that keep their image; the rest are fed as unpaired speech.

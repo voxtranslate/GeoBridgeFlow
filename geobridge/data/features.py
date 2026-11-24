@@ -16,6 +16,7 @@ Cache layout (``<data_root>/cache/<dataset_tag>/``)
 """
 from __future__ import annotations
 
+import multiprocessing
 import os
 import re
 from typing import Dict, List, Optional, Tuple
@@ -27,7 +28,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from .. import audio_dsp as dsp
-from ..utils import gpu_ids, load_json, save_json
+from ..utils import gpu_ids, load_json, quiet_transformers, save_json
 
 
 def _tag(name: str) -> str:
@@ -71,8 +72,9 @@ class VisionFrontend:
         from transformers import AutoImageProcessor, AutoModel
 
         self.device, self.amp = device, bool(cfg.amp and device.type == "cuda")
-        self.proc = AutoImageProcessor.from_pretrained(cfg.vision_encoder)
-        model = AutoModel.from_pretrained(cfg.vision_encoder)
+        with quiet_transformers():
+            self.proc = AutoImageProcessor.from_pretrained(cfg.vision_encoder)
+            model = AutoModel.from_pretrained(cfg.vision_encoder)
         tower = getattr(model, "vision_model", model)  # SigLIP / CLIP: keep the vision tower only
         self.net = on_all_gpus(_VisionTokens(tower, cfg.vision_grid), cfg, device)
 
@@ -83,20 +85,24 @@ class VisionFrontend:
             return self.net(px).float().cpu().numpy()
 
 
-def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger) -> str:
-    out = os.path.join(cfg.cache_dir, f"vision_{_tag(cfg.vision_encoder)}_g{cfg.vision_grid}")
+def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger, extra_from: Optional[int] = None) -> str:
+    """Frozen vision tokens of every image of ``manifest``.  ``extra_from``: the manifest is that of the extra
+    image-text pairs, whose images follow the benchmark's own ``extra_from`` images in the builder's numbering."""
+    extra = extra_from is not None
+    out = os.path.join(cfg.extra_cache_dir if extra else cfg.cache_dir, f"vision_{_tag(cfg.vision_encoder)}_g{cfg.vision_grid}")
     meta_p = os.path.join(out, "meta.json")
     if os.path.exists(meta_p):
         return out
     os.makedirs(out, exist_ok=True)
     n = len(manifest["images"])
     if cfg.vision_encoder == "synthetic":
-        toks = np.stack([builder.vision_tokens(i) for i in range(n)]).astype(np.float16)
+        toks = np.stack([builder.vision_tokens((extra_from or 0) + i) for i in range(n)]).astype(np.float16)
         np.save(os.path.join(out, "tokens.npy"), toks)
     else:
         fe = VisionFrontend(cfg, device)
         arr = None
-        for grp in tqdm(builder.image_groups(manifest["images"]), desc="vision features", dynamic_ncols=True):
+        groups = builder.extra_image_groups(manifest["images"]) if extra else builder.image_groups(manifest["images"])
+        for grp in tqdm(groups, desc="vision features" + (" (extra images)" if extra else ""), dynamic_ncols=True):
             part_p = os.path.join(out, f"part_{_tag(grp['key'])}.npz")
             if os.path.exists(part_p):
                 continue
@@ -123,7 +129,7 @@ def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger) -> 
     return out
 
 
-def cache_thumbs(cfg, builder, manifest: Dict, vdir: str, logger) -> str:
+def cache_thumbs(cfg, builder, manifest: Dict, vdir: str, logger, extra_from: Optional[int] = None) -> str:
     """Small RGB thumbnails of every image (uint8 [n, S, S, 3]): targets of the preview pixel decoder."""
     path = os.path.join(vdir, f"thumbs_{cfg.thumb_size}.npy")
     if os.path.exists(path):
@@ -132,9 +138,10 @@ def cache_thumbs(cfg, builder, manifest: Dict, vdir: str, logger) -> str:
     out = np.zeros((n, S, S, 3), dtype=np.uint8)
     if hasattr(builder, "render"):
         for i in range(n):
-            out[i] = np.asarray(builder.render(i, S))
+            out[i] = np.asarray(builder.render((extra_from or 0) + i, S))
     else:
-        for grp in tqdm(builder.image_groups(manifest["images"]), desc="thumbnails", dynamic_ncols=True):
+        groups = builder.extra_image_groups(manifest["images"]) if extra_from is not None else builder.image_groups(manifest["images"])
+        for grp in tqdm(groups, desc="thumbnails" + (" (extra images)" if extra_from is not None else ""), dynamic_ncols=True):
             for i, img in grp["loader"]():
                 out[i] = np.asarray(img.resize((S, S)))
     np.save(path + ".tmp.npy", out)
@@ -276,6 +283,14 @@ def compute_mel(cfg, wav: np.ndarray, n_frames: int) -> np.ndarray:
     return dsp._pool_frames(mel, max(1, int(round(n_frames * cfg.mel_fps / 25.0)))).astype(np.float16)
 
 
+_MEL_JOB: Dict = {}   # what the worker processes of cache_mel inherit when they are forked
+
+
+def _mel_of_group(i: int) -> List[Tuple[str, np.ndarray]]:
+    cfg, frames = _MEL_JOB["cfg"], _MEL_JOB["frames"]
+    return [(uid, compute_mel(cfg, prep_wave(cfg, wav, sr), frames[uid])) for uid, wav, sr in _MEL_JOB["groups"][i]["loader"]()]
+
+
 def cache_mel(cfg, builder, manifest: Dict, splits: Dict, adir: str, logger) -> str:
     """Mel targets of the renderer, in the feature space of the configured vocoder.  A separate, cheap pass
     (no speech encoder), so switching vocoder never re-extracts the expensive streams."""
@@ -286,12 +301,27 @@ def cache_mel(cfg, builder, manifest: Dict, splits: Dict, adir: str, logger) -> 
     frames = {k: v[2] for k, v in load_json(os.path.join(adir, "index.json")).items()}
     utts = [u for u in manifest["utts"] if u["has_audio"] and u["uid"] in frames]
     mels, index, off = [], {}, 0
-    for grp in tqdm(builder.audio_groups(utts), desc=f"mel ({cfg.mel_spec})", dynamic_ncols=True):
-        for uid, wav, sr in grp["loader"]():
-            m = compute_mel(cfg, prep_wave(cfg, wav, sr), frames[uid])
+    groups = builder.audio_groups(utts)
+    # Pure CPU work, one source file per task: spread over worker processes where the platform can fork (the tasks
+    # are closures over open corpora).  Results come back in order, so the cache is the same as from one process.
+    n_proc = min(len(groups), max(1, cfg.num_workers))
+    pool = None
+    if n_proc > 1 and "fork" in multiprocessing.get_all_start_methods():
+        _MEL_JOB.update(cfg=cfg, groups=groups, frames=frames)
+        pool = multiprocessing.get_context("fork").Pool(n_proc, initializer=torch.set_num_threads, initargs=(1,))
+        parts = pool.imap(_mel_of_group, range(len(groups)))
+    else:
+        _MEL_JOB.update(cfg=cfg, groups=groups, frames=frames)
+        parts = map(_mel_of_group, range(len(groups)))
+    for part in tqdm(parts, total=len(groups), desc=f"mel ({cfg.mel_spec})", dynamic_ncols=True):
+        for uid, m in part:
             index[uid] = [off, int(m.shape[0])]
             mels.append(m)
             off += m.shape[0]
+    if pool is not None:
+        pool.close()
+        pool.join()
+    _MEL_JOB.clear()
     arr = np.concatenate(mels)
     np.save(os.path.join(out, "mel.npy"), arr)
     img_split = splits["images"]

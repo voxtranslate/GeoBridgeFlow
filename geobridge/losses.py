@@ -380,6 +380,21 @@ class GeoBridgeLoss:
             total = total + cfg.w_dec * l_dec
             logs.update(dec_ce=l_dec.item(), dec_acc=acc.item())
 
+        # ---- write-latent exposure of the reader.  Back-translation teaches the reader to read island speech that
+        #      the speech writer wrote; nothing taught it to read written speech of a hub language, and on Flickr8k
+        #      it could not (written English speech, read back, carried no content while written Yoruba did).
+        #      Real hub codes are written as speech in a spoken hub language and read back.
+        if cfg.w_reread > 0 and "aud" in sp and views:
+            h_real = torch.cat([hubs[m][views[m]["ok"]] for m in views]).detach()
+            h_real = h_real[torch.randperm(len(h_real), device=dev)[: cfg.batch_size]]
+            spoken = torch.tensor([model.lang2id[l] for l in cfg.hub_langs], device=dev)
+            lang_s = spoken[torch.randint(len(spoken), (len(h_real),), device=dev)]
+            with torch.no_grad():
+                synth = sp["aud"].write(h_real, lang_s, temp=1.0, steps=cfg.train_ode_steps)
+            l_rr = F.mse_loss(reader(synth, "aud", lang_s).float(), h_real.float())
+            total = total + cfg.w_reread * l_rr
+            logs["reread"] = l_rr.item()
+
         # ---- unpaired island speech
         if island is not None and bank is not None:
             if cfg.bt_weight > 0 and progress >= cfg.bt_warmup_frac:
@@ -420,7 +435,7 @@ class GeoBridgeLoss:
         z_u, lang_u = island["z"], island["lang"]
         n, dev = z_u.shape[0], z_u.device
         logs: Dict[str, float] = {}
-        text = bank.sample_views("txt", n) if cfg.bt_relay > 0 else None
+        text = bank.sample_views("txt", n, own_only=True) if cfg.bt_relay > 0 else None
         real = (text["hub"] if text is not None else bank.sample_hubs(n)).to(dev, z_u.dtype)
         with torch.no_grad():
             h = reader(z_u, "aud", lang_u)

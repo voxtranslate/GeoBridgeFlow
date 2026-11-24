@@ -1,0 +1,4179 @@
+{
+  "meta": {
+    "step": null,
+    "split": "test",
+    "items": 0,
+    "quick": false,
+    "ode_steps": 4,
+    "ode_solver": "midpoint",
+    "eval_temp": 0.5,
+    "read_mode": "amortized",
+    "draft_t0": 0.0
+  },
+  "metrics": {
+    "aud_sb>txt_sa/bleu": 71.96033662579345,
+    "aud_sb>txt_sa/chrf": 85.09725894232437,
+    "aud_sb>txt_sa/cf1": 88.34583780615277,
+    "aud_sb>txt_sa/bleu_multi": 72.23821176179666,
+    "aud_sb>txt_sa/chance_bleu": 2.201094241887479,
+    "aud_sb>txt_sa/chance_chrf": 16.33571684024045,
+    "aud_sb>txt_sa/chance_cf1": 18.228240168106687,
+    "aud_sb>txt_sa/content_acc": 73.75,
+    "aud_sb>txt_sa/color_acc": 92.5,
+    "aud_sb>txt_sa/shape_acc": 98.33333333333333,
+    "aud_sb>txt_sa/twin_confusion": 58.8235294117647,
+    "aud_sb>txt_sa/content1_acc": 93.91891891891892,
+    "aud_sb>txt_sa/content2_acc": 41.30434782608695,
+    "aud_sb>txt_sa/flat_bleu": 44.80876213365143,
+    "aud_sb>txt_sa/flat_cf1": 70.54918114786754,
+    "aud_sb>txt_sa/flat_content_acc": 39.166666666666664,
+    "aud_sb>txt_sa/flat_color_acc": 57.083333333333336,
+    "aud_sa>txt_sa/bleu": 90.49050739168605,
+    "aud_sa>txt_sa/chrf": 95.6467008306486,
+    "aud_sa>txt_sa/cf1": 97.6061702436583,
+    "aud_sa>txt_sa/bleu_multi": 90.98580570039263,
+    "aud_sa>txt_sa/chance_bleu": 2.403580160764776,
+    "aud_sa>txt_sa/chance_chrf": 16.059414875797124,
+    "aud_sa>txt_sa/chance_cf1": 17.913865182041107,
+    "aud_sa>txt_sa/wer": 2.1164021164021163,
+    "aud_sa>txt_sa/cer": 1.3706793802145412,
+    "aud_sa>txt_sa/content_acc": 93.33333333333333,
+    "aud_sa>txt_sa/color_acc": 100.0,
+    "aud_sa>txt_sa/shape_acc": 100.0,
+    "aud_sa>txt_sa/twin_confusion": 0.0,
+    "aud_sa>txt_sa/content1_acc": 100.0,
+    "aud_sa>txt_sa/content2_acc": 82.6086956521739,
+    "aud_sa>txt_sa/flat_bleu": 90.49050739168605,
+    "aud_sa>txt_sa/flat_cf1": 97.6061702436583,
+    "aud_sa>txt_sa/flat_content_acc": 93.33333333333333,
+    "aud_sa>txt_sa/flat_color_acc": 100.0,
+    "img>txt_sa/bleu": 20.169625009162175,
+    "img>txt_sa/chrf": 41.58538246318691,
+    "img>txt_sa/cf1": 50.422707188680675,
+    "img>txt_sa/bleu_multi": 43.470417267447246,
+    "img>txt_sa/chance_bleu": 3.2093984595145164,
+    "img>txt_sa/chance_chrf": 13.560545845888688,
+    "img>txt_sa/chance_cf1": 13.124649289156569,
+    "img>txt_sa/content_acc": 13.333333333333334,
+    "img>txt_sa/color_acc": 45.0,
+    "img>txt_sa/shape_acc": 45.416666666666664,
+    "img>txt_sa/twin_confusion": 12.121212121212121,
+    "img>txt_sa/content1_acc": 17.56756756756757,
+    "img>txt_sa/content2_acc": 6.521739130434782,
+    "txt_sa>txt_sa/bleu": 100.00000000000004,
+    "txt_sa>txt_sa/chrf": 100.0,
+    "txt_sa>txt_sa/cf1": 100.0,
+    "txt_sa>txt_sa/bleu_multi": 100.00000000000004,
+    "txt_sa>txt_sa/chance_bleu": 2.1133899284756086,
+    "txt_sa>txt_sa/chance_chrf": 15.74199347698475,
+    "txt_sa>txt_sa/chance_cf1": 17.930468031797655,
+    "txt_sa>txt_sa/wer": 0.0,
+    "txt_sa>txt_sa/cer": 0.0,
+    "txt_sa>txt_sa/content_acc": 100.0,
+    "txt_sa>txt_sa/color_acc": 100.0,
+    "txt_sa>txt_sa/shape_acc": 100.0,
+    "txt_sa>txt_sa/twin_confusion": 0.0,
+    "txt_sa>txt_sa/content1_acc": 100.0,
+    "txt_sa>txt_sa/content2_acc": 100.0,
+    "txt_sa>txt_sc/bleu": 98.52239235769073,
+    "txt_sa>txt_sc/chrf": 99.24646312390396,
+    "txt_sa>txt_sc/cf1": 99.54620434494338,
+    "txt_sa>txt_sc/bleu_multi": 98.5705578046643,
+    "txt_sa>txt_sc/chance_bleu": 2.1133899284756086,
+    "txt_sa>txt_sc/chance_chrf": 16.933519268208197,
+    "txt_sa>txt_sc/chance_cf1": 17.932677160087025,
+    "txt_sa>txt_sc/content_acc": 98.75,
+    "txt_sa>txt_sc/color_acc": 100.0,
+    "txt_sa>txt_sc/shape_acc": 100.0,
+    "txt_sa>txt_sc/twin_confusion": 0.0,
+    "txt_sa>txt_sc/content1_acc": 100.0,
+    "txt_sa>txt_sc/content2_acc": 96.73913043478261,
+    "txt_sc>txt_sa/bleu": 98.52239235769073,
+    "txt_sc>txt_sa/chrf": 99.2899387655381,
+    "txt_sc>txt_sa/cf1": 99.53273355370307,
+    "txt_sc>txt_sa/bleu_multi": 98.52239235769073,
+    "txt_sc>txt_sa/chance_bleu": 2.1099053495536646,
+    "txt_sc>txt_sa/chance_chrf": 15.722410003000373,
+    "txt_sc>txt_sa/chance_cf1": 17.771146387493353,
+    "txt_sc>txt_sa/content_acc": 98.75,
+    "txt_sc>txt_sa/color_acc": 100.0,
+    "txt_sc>txt_sa/shape_acc": 100.0,
+    "txt_sc>txt_sa/twin_confusion": 0.0,
+    "txt_sc>txt_sa/content1_acc": 100.0,
+    "txt_sc>txt_sa/content2_acc": 96.73913043478261,
+    "aud_sb>txt_sc/bleu": 70.25281392747512,
+    "aud_sb>txt_sc/chrf": 84.1080378826789,
+    "aud_sb>txt_sc/cf1": 87.61792087539838,
+    "aud_sb>txt_sc/bleu_multi": 70.5542442704623,
+    "aud_sb>txt_sc/chance_bleu": 2.9014639330927503,
+    "aud_sb>txt_sc/chance_chrf": 17.56533598804711,
+    "aud_sb>txt_sc/chance_cf1": 18.532849725680144,
+    "aud_sb>txt_sc/content_acc": 73.75,
+    "aud_sb>txt_sc/color_acc": 90.83333333333333,
+    "aud_sb>txt_sc/shape_acc": 95.83333333333333,
+    "aud_sb>txt_sc/twin_confusion": 43.75,
+    "aud_sb>txt_sc/content1_acc": 95.94594594594595,
+    "aud_sb>txt_sc/content2_acc": 38.04347826086956,
+    "aud_sb>txt_sc/flat_bleu": 43.01608984442087,
+    "aud_sb>txt_sc/flat_cf1": 68.23813495989488,
+    "aud_sb>txt_sc/flat_content_acc": 40.0,
+    "aud_sb>txt_sc/flat_color_acc": 55.833333333333336,
+    "txt_sa>img/r1": 57.91666507720947,
+    "txt_sa>img/r5": 89.16666507720947,
+    "txt_sa>img/r10": 98.7500011920929,
+    "txt_sc>img/r1": 55.000001192092896,
+    "txt_sc>img/r5": 91.25000238418579,
+    "txt_sc>img/r10": 99.16666746139526,
+    "aud_sa>img/r1": 53.33333611488342,
+    "aud_sa>img/r5": 89.99999761581421,
+    "aud_sa>img/r10": 98.33333492279053,
+    "aud_sb>img/r1": 42.08333194255829,
+    "aud_sb>img/r5": 87.91666626930237,
+    "aud_sb>img/r10": 97.91666865348816,
+    "txt_sa>img_gen/r1": 11.666666716337204,
+    "txt_sa>img_gen/r5": 27.08333432674408,
+    "txt_sa>img_gen/r10": 34.166666865348816,
+    "txt_sc>img_gen/r1": 10.833333432674408,
+    "txt_sc>img_gen/r5": 21.250000596046448,
+    "txt_sc>img_gen/r10": 29.16666567325592,
+    "aud_sa>img_gen/r1": 13.333334028720856,
+    "aud_sa>img_gen/r5": 23.333333432674408,
+    "aud_sa>img_gen/r10": 30.833333730697632,
+    "aud_sb>img_gen/r1": 12.083332985639572,
+    "aud_sb>img_gen/r5": 25.833332538604736,
+    "aud_sb>img_gen/r10": 31.666666269302368,
+    "aud_sb>txt_sa/hub_r1": 89.99999761581421,
+    "aud_sb>txt_sa/hub_r5": 94.58333253860474,
+    "txt_sa>aud_sa/rt_bleu": 49.67134096000346,
+    "txt_sa>aud_sa/rt_chrf": 74.37569466715819,
+    "txt_sa>aud_sa/rt_cf1": 82.2081967238484,
+    "txt_sa>aud_sa/rt_chance_cf1": 18.529559466256305,
+    "txt_sa>aud_sa/rt_content_acc": 62.5,
+    "txt_sa>aud_sa/rt_color_acc": 89.16666666666667,
+    "aud_sb>aud_sa/rt_bleu": 38.22472822432364,
+    "aud_sb>aud_sa/rt_chrf": 66.41313968558026,
+    "aud_sb>aud_sa/rt_cf1": 75.04301998322644,
+    "aud_sb>aud_sa/rt_chance_cf1": 17.90740571981573,
+    "aud_sb>aud_sa/rt_content_acc": 55.0,
+    "aud_sb>aud_sa/rt_color_acc": 82.5,
+    "txt_sa>aud_sb/rt_bleu": 38.14461062319896,
+    "txt_sa>aud_sb/rt_chrf": 64.5494179731679,
+    "txt_sa>aud_sb/rt_cf1": 71.6878677425919,
+    "txt_sa>aud_sb/rt_chance_cf1": 18.596203155711045,
+    "txt_sa>aud_sb/rt_content_acc": 48.75,
+    "txt_sa>aud_sb/rt_color_acc": 67.5,
+    "aud_sa>aud_sb/rt_bleu": 33.45950710276522,
+    "aud_sa>aud_sb/rt_chrf": 59.86176618037241,
+    "aud_sa>aud_sb/rt_cf1": 68.36587507479557,
+    "aud_sa>aud_sb/rt_chance_cf1": 19.83956361517903,
+    "aud_sa>aud_sb/rt_content_acc": 42.5,
+    "aud_sa>aud_sb/rt_color_acc": 63.75,
+    "codec_txt_sa/cer": 0.0,
+    "codec_txt_sc/cer": 0.25584795321637427,
+    "ground/txt_sa/slots_mentioned": 70.52083333333333,
+    "ground/txt_sa/slots_unmentioned": 8.854166666666666,
+    "ground/txt_sa/slots_null": 0.3125,
+    "ground/txt_sa/both_covered": 100.0,
+    "ground/txt_sc/slots_mentioned": 72.1875,
+    "ground/txt_sc/slots_unmentioned": 8.75,
+    "ground/txt_sc/slots_null": 0.10416666666666667,
+    "ground/txt_sc/both_covered": 97.82608695652173,
+    "ground/aud_sa/slots_mentioned": 67.60416666666667,
+    "ground/aud_sa/slots_unmentioned": 9.166666666666666,
+    "ground/aud_sa/slots_null": 0.0,
+    "ground/aud_sa/both_covered": 90.21739130434783,
+    "ground/aud_sb/slots_mentioned": 73.95833333333333,
+    "ground/aud_sb/slots_unmentioned": 7.708333333333333,
+    "ground/aud_sb/slots_null": 0.0,
+    "ground/aud_sb/both_covered": 63.04347826086956,
+    "tone/gate_sa": 0.0007783700712025166,
+    "tone/reliance_sa": 1.3181611357993006e-08,
+    "tone/gate_sb": 0.9373500347137451,
+    "tone/reliance_sb": 0.23987551033496857,
+    "score": 71.66252543831058
+  },
+  "samples": {
+    "aud_sb>txt_sa": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa mipo ge kufi kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge sipa mipo",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "vofu pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge sipa nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge tasa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "sipa febu ge vofu mipo",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu ge febi febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi luma",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "bisi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi kope ge viba besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge viba kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi nubu ge kufi febu",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge tasa kope",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge sipa luma",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu luma",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu mipo",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge tasa kope",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge dolu febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge sipa nubu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "aud_sa>txt_sa": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa pise ge vofu kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge tasa pise",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge sipa febu",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge sipa febu",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "vofu pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge bisi nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge tasa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "vofu febu ge vofu mipo",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge viba nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi kope ge bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge viba kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi nubu ge kufi febu",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge dolu febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge sipa nubu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "img>txt_sa": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba pise",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "viba pise",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "viba pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "viba pise",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "viba febu ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "viba febu ge viba febu",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "viba febu ge viba febu",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "viba febu ge viba febu",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu kope",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu kope",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "vofu kope",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu kope",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "bisi besa",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "bisi besa",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu matu ge dolu matu",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu matu ge dolu matu",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "dolu matu ge dolu matu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu matu ge dolu matu",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "viba kope",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "viba kope",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "bisi febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "bisi febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "bisi febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa febu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa febu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa febu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "txt_sa>txt_sa": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa pise ge kufi kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge sipa pise",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "vofu pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge bisi nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge sipa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "vofu febu ge vofu mipo",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi kope ge bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge tebi kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi nubu ge kufi febu",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge dolu febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge sipa nubu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "txt_sa>txt_sc": [
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे फिकु बो दोवो गेपा",
+        "hyp": "तिदे फिकु बो दोवो गेपा",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो गेपा",
+        "hyp": "दोवो गेपा",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "लादे मावि बो तिदे फिकु",
+        "hyp": "लादे मावि बो तिदे फिकु",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे फिकु बो लादे मावि",
+        "hyp": "तिदे फिकु बो लादे मावि",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे फिकु बो लादे मावि",
+        "hyp": "तिदे फिकु बो लादे मावि",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "विला फिकु बो लादे मावि",
+        "hyp": "विला फिकु बो लादे मावि",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "दोसि गेपा बो नादो तुको",
+        "hyp": "दोसि गेपा बो नादो तुको",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "नादो तुको",
+        "hyp": "नादो तुको",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे गेपा",
+        "hyp": "तिदे गेपा",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "दोसि गेपा बो तिदे गेपा",
+        "hyp": "दोसि गेपा बो तिदे गेपा",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे गेपा",
+        "hyp": "तिदे गेपा",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "विला मावि बो विला ताफे",
+        "hyp": "विला मावि बो विला ताफे",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो फोवि",
+        "hyp": "दोवो फोवि",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो फोवि बो दोवो मावि",
+        "hyp": "दोवो फोवि बो दोवो मावि",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो तुको बो नादो तुको",
+        "hyp": "दोवो तुको बो नादो तुको",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "दोवो तुको",
+        "hyp": "दोवो तुको",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो तुको",
+        "hyp": "दोवो तुको",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो तुको बो नादो तुको",
+        "hyp": "दोवो तुको बो नादो तुको",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "फितु गेपा",
+        "hyp": "फितु गेपा",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "फितु गेपा बो नादो विसो",
+        "hyp": "फितु गेपा बो नादो विसो",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "नादो विसो बो फितु गेपा",
+        "hyp": "नादो विसो बो फितु गेपा",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "फितु गेपा",
+        "hyp": "फितु गेपा",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "दोसि फोवि",
+        "hyp": "दोसि फोवि",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "दोसि फोवि",
+        "hyp": "दोसि फोवि",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो तुको बो दोवो मावि",
+        "hyp": "दोवो तुको बो दोवो मावि",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो मावि बो तिदे फिकु",
+        "hyp": "दोवो मावि बो तिदे फिकु",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो मावि बो तिदे फिकु",
+        "hyp": "दोवो मावि बो तिदे फिकु",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो गिवो नादि",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो गिवो नादि",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो गिवो नादि",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "लादे गेपा बो गिवो फिकु",
+        "hyp": "लादे गेपा बो गिवो फिकु",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "लादे गेपा बो गिवो फिकु",
+        "hyp": "लादे गेपा बो गिवो फिकु",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "गिवो फिकु",
+        "hyp": "गिवो फिकु",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "गिवो फिकु",
+        "hyp": "गिवो फिकु",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "नादो मावि बो गिवो मावि",
+        "hyp": "नादो मावि बो गिवो मावि",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे मावि बो तिदे तुको",
+        "hyp": "तिदे मावि बो तिदे तुको",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "txt_sc>txt_sa": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa pise ge kufi kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge sipa pise",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba febu",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "vofu pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge bisi nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge sipa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "vofu febu ge vofu mipo",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi kope ge bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge tebi kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi nubu ge kufi febu",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge sipa pise",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu matu",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu pise",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge dolu febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge sipa nubu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "aud_sb>txt_sc": [
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे फिकु बो दोवो गेपा",
+        "hyp": "तिदे गेपा बो दोवो गेपा",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो गेपा",
+        "hyp": "दोवो गेपा",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "लादे मावि बो तिदे फिकु",
+        "hyp": "लादे मावि बो तिदे ताफे",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे फिकु बो लादे मावि",
+        "hyp": "तिदे फिकु बो लादे मावि",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे फिकु",
+        "hyp": "तिदे फिकु",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे फिकु बो लादे मावि",
+        "hyp": "तिदे फिकु बो लादे मावि",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "विला फिकु बो लादे मावि",
+        "hyp": "फितु फिकु बो लादे मावि",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "विला फिकु",
+        "hyp": "विला फिकु",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "दोसि गेपा बो नादो तुको",
+        "hyp": "दोसि गेपा बो तिदे तुको",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "नादो तुको",
+        "hyp": "नादो तुको",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "दोसि गेपा",
+        "hyp": "दोसि गेपा",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे गेपा",
+        "hyp": "तिदे गेपा",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "दोसि गेपा बो तिदे गेपा",
+        "hyp": "दोसि गेपा बो दोसि गेपा",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे गेपा",
+        "hyp": "तिदे गेपा",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "विला मावि बो विला ताफे",
+        "hyp": "दोसि मावि बो विला ताफे",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि बो मावि मावि",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "विला मावि",
+        "hyp": "विला मावि",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो फोवि",
+        "hyp": "दोवो फोवि",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो फोवि बो दोवो मावि",
+        "hyp": "दोवो फोवि बो दोवो मावि",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो तुको बो नादो तुको",
+        "hyp": "दोवो तुको बो नादो तोको",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "दोवो तुको",
+        "hyp": "दोवो तुको",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो तुको",
+        "hyp": "दोवो तुको",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो तुको बो नादो तुको",
+        "hyp": "नादो तुको बो नादो तुको",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "फितु गेपा",
+        "hyp": "लादे गेपा",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "फितु गेपा बो नादो विसो",
+        "hyp": "फितु गेपा बो तिदे विसो",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "नादो विसो बो फितु गेपा",
+        "hyp": "नादो विसो बो लादे गेपा",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "फितु गेपा",
+        "hyp": "लादे गेपा",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "दोसि फोवि",
+        "hyp": "दोसि फोवि",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "दोसि फोवि",
+        "hyp": "दोवो फोवि",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो तुको बो दोवो मावि",
+        "hyp": "दोवो तुको बो दोवो मावि",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "दोवो मावि बो तिदे फिकु",
+        "hyp": "दोवो मावि बो तिदे फिकु",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "दोवो मावि",
+        "hyp": "दोवो मावि",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "दोवो मावि बो तिदे फिकु",
+        "hyp": "दोवो मावि बो दोसि गेपा",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो तिदे फोवि",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो तिदे गेपा",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे तुको बो गिवो नादि",
+        "hyp": "तिदे तुको बो गिवो नादि",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "लादे गेपा बो गिवो फिकु",
+        "hyp": "गिवो गेपा बो गिवो गेपा",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "लादे गेपा बो गिवो फिकु",
+        "hyp": "लादे गेपा बो दोसि गेपा",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "गिवो फिकु",
+        "hyp": "गिवो फिकु",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "गिवो फिकु",
+        "hyp": "गिवो फिकु",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "नादो मावि बो गिवो मावि",
+        "hyp": "नादो मावि बो गिवो मावि",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "गिवो मावि",
+        "hyp": "गिवो मावि",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "तिदे तुको",
+        "hyp": "तिदे तुको",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "तिदे मावि बो तिदे तुको",
+        "hyp": "तिदे मावि बो तिदे तुको",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "txt_sa>aud_sa (round trip)": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa pise ge vofu kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge sipa febu",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba kope",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "viba pise ge viba kope",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "vofu kope ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "dolu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge bisi febu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge viba kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "dolu febu ge dolu mipo",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge dolu mipo",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi mipo",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "bisi nubu ge vofu matu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi luma ge tebi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge tebi pise",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "tebi kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi febu ge bisi mipo",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge tebi pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge tebi pise",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge viba kope",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge viba matu",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge viba kope",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge viba kope",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge viba kope",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge sipa febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge viba nubu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "aud_sb>aud_sa (round trip)": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa kope ge dolu kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "kufi kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge tebi febu",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa mipo ge viba febu",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa kope",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge viba kope",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "viba pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge viba nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "bisi nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "tasa kope ge dolu besa",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "vofu febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "bisi febu ge tebi febu",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "dolu febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge dolu kope",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi mipo ge bisi mipo",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi febu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "bisi nubu ge tebi nubu",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi kope ge viba besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge tebi kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "vofu luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi nubu ge bisi mipo",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge bisi pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge viba matu",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa kope ge vofu kope",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa kope ge dolu kope",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge vofu kope",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge dolu kope",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge kufi kope",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu mipo",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "bisi febu ge sipa febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge viba kope",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "txt_sa>aud_sb (round trip)": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa kope ge kufi kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "viba kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge dolu pise",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa febu ge dolu kope",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa mipo",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa febu ge dolu febu",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "tebi febu ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge sipa nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "sipa nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "sipa kope ge tasa kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "sipa febu ge viba kope",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi luma ge kufi febu",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "bisi mipo ge kufi mipo",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi nubu ge bisi mipo",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope ge tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "tebi mipo ge bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge viba kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba nubu ge tebi nubu",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "kufi luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "tasa luma",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi febu ge kufi pise",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge bisi besa",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge bisi besa",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu nubu ge dolu mipo",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu nubu ge dolu mipo",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu nubu ge dolu mipo",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge tebi besa",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge tebi besa",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu matu",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu matu",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "sipa febu ge sipa febu",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge bisi febu",
+        "img": 307,
+        "cap": 3
+      }
+    ],
+    "aud_sa>aud_sb (round trip)": [
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge kufi kope",
+        "hyp": "sipa mipo ge dolu kope",
+        "img": 3,
+        "cap": 1
+      },
+      {
+        "ref": "kufi kope",
+        "hyp": "viba kope",
+        "img": 3,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 3,
+        "cap": 3
+      },
+      {
+        "ref": "viba febu ge sipa pise",
+        "hyp": "viba febu ge viba febu",
+        "img": 7,
+        "cap": 0
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge bisi besa",
+        "img": 7,
+        "cap": 1
+      },
+      {
+        "ref": "sipa pise",
+        "hyp": "sipa pise",
+        "img": 7,
+        "cap": 2
+      },
+      {
+        "ref": "sipa pise ge viba febu",
+        "hyp": "sipa pise ge sipa pise",
+        "img": 7,
+        "cap": 3
+      },
+      {
+        "ref": "vofu pise ge viba febu",
+        "hyp": "dolu pise ge viba febu",
+        "img": 29,
+        "cap": 0
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 1
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "viba pise",
+        "img": 29,
+        "cap": 2
+      },
+      {
+        "ref": "vofu pise",
+        "hyp": "vofu pise",
+        "img": 29,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 0
+      },
+      {
+        "ref": "tasa kope ge bisi nubu",
+        "hyp": "tasa kope ge tasa nubu",
+        "img": 76,
+        "cap": 1
+      },
+      {
+        "ref": "bisi nubu",
+        "hyp": "sipa nubu",
+        "img": 76,
+        "cap": 2
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 76,
+        "cap": 3
+      },
+      {
+        "ref": "tasa kope",
+        "hyp": "tasa kope",
+        "img": 104,
+        "cap": 0
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 1
+      },
+      {
+        "ref": "tasa kope ge sipa kope",
+        "hyp": "sipa kope ge tebi kope",
+        "img": 104,
+        "cap": 2
+      },
+      {
+        "ref": "sipa kope",
+        "hyp": "sipa kope",
+        "img": 104,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 1
+      },
+      {
+        "ref": "vofu febu ge vofu mipo",
+        "hyp": "sipa febu ge viba febu",
+        "img": 115,
+        "cap": 2
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 115,
+        "cap": 3
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 0
+      },
+      {
+        "ref": "vofu febu",
+        "hyp": "kufi febu",
+        "img": 156,
+        "cap": 1
+      },
+      {
+        "ref": "kufi luma",
+        "hyp": "kufi luma",
+        "img": 156,
+        "cap": 2
+      },
+      {
+        "ref": "kufi luma ge kufi febu",
+        "hyp": "kufi febu ge kufi luma",
+        "img": 156,
+        "cap": 3
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi mipo ge kufi mipo",
+        "img": 176,
+        "cap": 0
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "kufi matu",
+        "img": 176,
+        "cap": 1
+      },
+      {
+        "ref": "kufi nubu",
+        "hyp": "tebi nubu",
+        "img": 176,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge bisi nubu",
+        "hyp": "kufi mipo ge bisi mipo",
+        "img": 176,
+        "cap": 3
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba nubu ge tebi kope",
+        "img": 184,
+        "cap": 0
+      },
+      {
+        "ref": "tebi kope ge bisi besa",
+        "hyp": "dolu mipo ge bisi besa",
+        "img": 184,
+        "cap": 1
+      },
+      {
+        "ref": "bisi besa ge tebi kope",
+        "hyp": "bisi besa ge bisi kope",
+        "img": 184,
+        "cap": 2
+      },
+      {
+        "ref": "tebi kope",
+        "hyp": "viba kope ge tebi nubu",
+        "img": 184,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 191,
+        "cap": 0
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "kufi luma",
+        "img": 191,
+        "cap": 1
+      },
+      {
+        "ref": "tasa luma",
+        "hyp": "kufi luma ge sipa nubu",
+        "img": 191,
+        "cap": 2
+      },
+      {
+        "ref": "kufi nubu ge kufi febu",
+        "hyp": "kufi febu ge tasa besa",
+        "img": 191,
+        "cap": 3
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "sipa febu ge kufi pise",
+        "img": 217,
+        "cap": 0
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 1
+      },
+      {
+        "ref": "kufi febu",
+        "hyp": "kufi febu",
+        "img": 217,
+        "cap": 2
+      },
+      {
+        "ref": "kufi febu ge sipa pise",
+        "hyp": "kufi febu ge vofu besa",
+        "img": 217,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu mipo",
+        "img": 240,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "dolu nubu ge dolu mipo",
+        "img": 240,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 240,
+        "cap": 2
+      },
+      {
+        "ref": "sipa nubu ge dolu matu",
+        "hyp": "sipa nubu ge dolu mipo",
+        "img": 240,
+        "cap": 3
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge viba febu",
+        "img": 301,
+        "cap": 0
+      },
+      {
+        "ref": "viba kope ge dolu pise",
+        "hyp": "viba kope ge tebi mipo",
+        "img": 301,
+        "cap": 1
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu pise",
+        "img": 301,
+        "cap": 2
+      },
+      {
+        "ref": "dolu pise",
+        "hyp": "dolu matu",
+        "img": 301,
+        "cap": 3
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 0
+      },
+      {
+        "ref": "bisi febu ge dolu febu",
+        "hyp": "sipa febu ge vofu besa",
+        "img": 302,
+        "cap": 1
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 2
+      },
+      {
+        "ref": "dolu febu",
+        "hyp": "dolu febu",
+        "img": 302,
+        "cap": 3
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 0
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 1
+      },
+      {
+        "ref": "sipa nubu",
+        "hyp": "sipa nubu",
+        "img": 307,
+        "cap": 2
+      },
+      {
+        "ref": "sipa febu ge sipa nubu",
+        "hyp": "sipa febu ge sipa pise",
+        "img": 307,
+        "cap": 3
+      }
+    ]
+  }
+}
