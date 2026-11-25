@@ -97,8 +97,8 @@ GROUPS: Dict[str, Dict] = {
         "question": "What does extra data in the hub language (text, speech) buy the other languages?",
         "variants": [
             ("extra hub-language text and speech", {"extra_images": -1, "extra_speech": -1}),
-            ("... the extra speech is grounded like the benchmark's own (not listening only)",
-             {"extra_images": -1, "extra_speech": -1, "listen_only": False}),
+            ("... the extra speech only listens (read into the hub, shaping none of it)",
+             {"extra_images": -1, "extra_speech": -1, "listen_only": True}),
             ("extra hub-language text only", {"extra_images": -1, "extra_speech": 0}),
             ("extra hub-language speech only", {"extra_images": 0, "extra_speech": -1}),
             ("the benchmark's own data only", {"extra_images": 0, "extra_speech": 0}),

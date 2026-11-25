@@ -41,6 +41,13 @@ Negative result worth a paragraph: entropic Gromov–Wasserstein docking, the ro
 dock an unpaired speech island (pure GW drives it to chance; semi-relaxed collapses; balanced fused GW ties with
 no docking). It stays in the `island` ablation.
 
+A second one, SynthWorld only so far: more speech in the high-resource language is not free for the low-resource
+one. Extra hub-language text raises island speech → text from 61 % to 74 %; the same captions with their speech,
+filling the batch, lower it to 33 %; at a fifth of the extra places the speech costs nothing (77 %). Keeping the
+extra speech out of the terms that shape the hub (`listen_only`) undoes most of the damage of the flooded batch,
+which says where the damage is done, and is worse than plain grounding at a fifth. One run each; the real-data
+version of this is the `data` ablation group.
+
 System-level claim: an any-to-any (text ↔ speech ↔ image) model for an unwritten language that uses no text of
 that language and no parallel sentences, including speech *into* that language. "First" needs a final literature
 check on the submission date.

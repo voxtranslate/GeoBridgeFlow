@@ -69,7 +69,17 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   and as a recording, from 1,766 speakers; the text is joined from the COCO annotations by the caption id in the
   clip name. They are full triplets of the hub language (grounding, text–speech agreement, codec, reader,
   writers) and enter like the extra text: training split only, own feature caches, normalised with the
-  benchmark's statistics, a fixed share (`extra_speech_share`) of the extra places of every batch.
+  benchmark's statistics, a fixed share (`extra_speech_share`, a fifth) of the extra places of every batch.
+  The share matters. On the controlled benchmark a fifth costs the island language nothing and a batch flooded
+  with hub-language speech costs it half of its translation: the hub then makes room for the language that
+  fills the batch (`docs/RESULTS.md`, fourth round).
+- **Extra speech that only listens** (`listen_only`, off). The speech views of extra spoken captions go through
+  the codec and are then only read: the reader regresses them onto the hub code that the text of the same
+  caption and the image define (one view, one vote, in the same batch as the benchmark's own speech). They are
+  left out of grounding, sufficiency, credit, minimality and text–speech agreement, and pay for no tone gate,
+  so nothing they say can move the hub. This undoes most of the damage of a flooded batch, which locates that
+  damage in the terms that shape the hub; at a fifth of the places it is worse than grounding the same speech,
+  so it is an option for large shares and an ablation variant, not the default.
 
 ## 2. Barycentric visual interlingua with mutual sufficiency (`models/hub.py`, `losses.py:phase_a`)
 

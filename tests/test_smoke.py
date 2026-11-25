@@ -547,7 +547,7 @@ def test_extra_spoken_data_and_reader_augmentation(tmp_path):
 
     base = Config.preset("synth_tiny").update({"data_root": str(tmp_path / "data"), "out_root": str(tmp_path / "runs")})
     plain = GeoBridgeData(base)
-    cfg = base.clone(exp_name="xs", extra_images=20, extra_speech=30, extra_per_batch=6, read_aug=2,
+    cfg = base.clone(exp_name="xs", extra_images=20, extra_speech=30, extra_per_batch=6, read_aug=2, listen_only=True,
                      phase_a_steps=6, phase_b_steps=6, eval_every=6, save_every=6)
     data = GeoBridgeData(cfg)
     n0, H = len(plain.images), cfg.hub_langs[0]
@@ -603,7 +603,8 @@ def test_extra_spoken_data_and_reader_augmentation(tmp_path):
     shape1, read1, _ = hub_grads(garbled)
     assert "heard" in logs and float(shape0.abs().max()) > 0
     assert torch.allclose(shape0, shape1, atol=1e-7) and not torch.allclose(read0, read1, atol=1e-7)
-    grounded = data.collate_groups([dict(tr.train_ds[i], listen=False) for i in first])       # listen_only off
+    assert not Config().listen_only                                                           # an option, not the default
+    grounded = data.collate_groups([dict(tr.train_ds[i], listen=False) for i in first])       # what the default gives
     shape2, _, logs2 = hub_grads(grounded)
     assert "listen" not in grounded["aud"] and "heard" not in logs2 and not torch.allclose(shape0, shape2, atol=1e-7)
     tr.fit()

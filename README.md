@@ -224,7 +224,11 @@ wav, mel, f0 = inf.hub_to_wave(hub, "yo", ref_utt=yo[0])  # English text -> Yor√
   COCO photos whose 25,031 captions were read aloud by 1,766 speakers (Flickr8k's speech has 183). The text of
   every clip comes from the COCO annotations by the caption id in the clip's name (checked with a recogniser:
   6.5 % word error against the joined caption on a sample). Training split only; the Flickr8k photo-id rule
-  applies (none of the 5,000 is a Flickr8k photo); a fifth of the extra places of a batch go to spoken captions.
+  applies (none of the 5,000 is a Flickr8k photo); a fifth of the extra places of a batch go to spoken captions
+  (`extra_speech_share`). On the controlled benchmark that share costs the island language nothing, a third
+  already did, and speech in every extra place halves its translation; `listen_only` (off) keeps extra speech
+  out of everything that shapes the hub, which repairs most of that damage but is worse than plain grounding
+  at a fifth (`docs/RESULTS.md`, fourth round).
 * **Strict non-parallel training** (default): a caption is visible in one language only, so no sentence of a
   non-hub language has its translation in the training set, and no loss pairs two languages.
 * `bridge_frac` sets the share of island utterances that keep their image; the rest are fed as unpaired speech.

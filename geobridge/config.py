@@ -45,12 +45,15 @@ class Config:
     extra_per_batch: int = 0             # extra caption groups added to every batch (0 = as many as batch_size)
     extra_speech_share: float = 0.2      # ... share of them that are spoken ones, when both kinds exist.  A fifth is
                                          # about what the real pools hold (25k spoken of 143k extra captions).  Measured
-                                         # on SynthWorld: a third is harmless, all of them harms the island language
-    listen_only: bool = True             # extra speech LISTENS: its views are read into the hub code that the text of
-                                         # the same caption and the image define, and take no part in the terms that
-                                         # shape the hub (grounding, sufficiency, credit, minimality, agreement).
-                                         # False: extra speech is grounded like the benchmark's own (measured on
-                                         # SynthWorld: it then costs the island language its translation)
+                                         # on SynthWorld (island speech -> text; 74 % with extra text alone): a fifth
+                                         # 77 %, a third 63 % (without the reader's exposure and augmentation), all 33 %
+    listen_only: bool = False            # True: extra speech only LISTENS - its views are read into the hub code that
+                                         # the text of the same caption and the image define, and take no part in the
+                                         # terms that shape the hub (grounding, sufficiency, credit, minimality,
+                                         # agreement).  Measured on SynthWorld: it undoes most of the damage of extra
+                                         # speech that fills every extra place (island speech -> text 33 % -> 58 %),
+                                         # but at a fifth of the places grounded speech does no damage and listening
+                                         # is the worse of the two (68 % against 77 %).  For large shares; an ablation
     # Role of every language.  A language can appear in several roles.
     hub_langs: Tuple[str, ...] = ("en",)        # (image, text, audio) triplets
     island_langs: Tuple[str, ...] = ("yo",)     # speech only; text is never seen in training

@@ -405,42 +405,70 @@ step 9,000; the last state is step 22,000.
   (by Flickr address; the rule that drops them is in place and tested). Prepared on real files with a 40-image
   subset (200 clips, 130 speakers) and trained end to end on a small subset.
 - *What extra hub-language speech does, measured on SynthWorld before a GPU is spent.* 1,200 more scenes whose
-  4,800 hub-language captions are written *and* spoken, alone and together with the 2,400 text-only scenes of the
-  third round; 48 extra caption groups in every batch in all three, same settings and steps as the reference,
-  no reader exposure or augmentation in any of them, test split, one run each
-  (`docs/results/synth_extra_hub_{data,speech,text_and_speech}_eval_test.json`). The cached speech of the extra
-  scenes was recomputed for a sample and is identical; every extra caption matches its image.
+  4,800 hub-language captions are written *and* spoken, with and without the 2,400 text-only scenes of the
+  third round; 48 extra caption groups in every batch, same settings and steps as the reference, test split,
+  one run each. The cached speech of the extra scenes was recomputed for a sample and is identical, and every
+  extra caption matches its image. SynthWorld's extra speech comes from the benchmark's own six speakers, so
+  these runs measure what more hub-language speech in a batch costs or buys, not the benefit of more voices,
+  which only real data can show.
 
-  | | benchmark only | + text | + speech (every extra place) | + text + speech (a third of the places) |
+  *The recipe as shipped* (reader exposure and augmentation on; `docs/results/synth_shipped_recipe_*`):
+
+  | | benchmark only¹ | + text | + text + speech (a fifth of the places) | … and that speech only listens |
   |---|---|---|---|---|
-  | Island speech → hub text, exact content | 60.8 % | **73.8 %** | 33.3 % | 62.5 % |
-  | Hub-language speech → text, WER / exact content | 10.1 % / 81.3 % | 2.1 % / 93.3 % | 16.7 % / 74.2 % | 4.5 % / 92.1 % |
-  | Text read and written again | 96.3 % | 100 % | 85.0 % | 99.6 % |
-  | Island speech → hub-language speech, read back | 32.9 % | 55.0 % | 27.5 % | 43.8 % |
-  | Both objects covered: text / hub speech / island speech | 97 / 62 / 57 % | 100 / 90 / 63 % | 77 / 78 / 14 % | 99 / 99 / 80 % |
-  | Retrieval of the image, R@1: hub speech / island speech | 54.6 / 45.0 % | 53.3 / 42.1 % | 45.4 / 26.7 % | 56.7 / 45.4 % |
+  | Island speech → hub text, exact content (two-object sentences) | 60.8 % (29.3) | 73.8 % (40.2) | **77.1 %** (50.0) | 68.3 % (26.1) |
+  | Island speech → text of the third language | 65.0 % | 73.3 % | 77.9 % | 68.3 % |
+  | Hub-language speech → text, WER / exact content | 10.1 % / 81.3 % | 2.6 % / 91.7 % | 2.0 % / 93.8 % | 4.9 % / 85.0 % |
+  | Text → island speech, read back / island speech → hub speech, read back | 43.3 % / 32.9 % | 47.9 % / 56.7 % | 53.8 % / 56.3 % | 46.7 % / 45.0 % |
+  | Both objects covered: text / hub speech / island speech | 97 / 62 / 57 % | 99 / 97 / 62 % | 98 / 95 / 77 % | 98 / 90 / 67 % |
+  | Retrieval of the image, R@1: text / hub speech / island speech | 55.4 / 54.6 / 45.0 % | 57.1 / 54.6 / 45.8 % | 58.8 / 57.1 / 49.2 % | 58.3 / 49.6 / 47.9 % |
 
-  This is not what was hoped for. Extra speech that takes every extra place *harms*: the island language loses
-  half of its translation, text gets worse although the same captions are there as text, and even recognition
-  of the hub language's own speech gets worse with four times as much of it. Mixed with text at a third of the
-  places it does no harm against the benchmark alone and gives the best coverage of spoken captions, but the
-  island translates worse than with the extra text alone (62.5 % against 73.8 %; two runs of the same settings
-  differ by about five points). SynthWorld's extra speech comes from the benchmark's own six speakers, so what
-  these runs measure is the cost of more hub-language speech in a batch, not the benefit of more voices, which
-  only real data can show.
-- *Giving every language the same say in the losses does not repair it* (`lang_balance`, off; an ablation
+  ¹ the earlier reference, without the reader's exposure and augmentation.
+
+  At a fifth of the extra places the extra speech costs nothing that can be measured: no row is worse than
+  with the extra text alone by more than two runs of the same settings differ (about five points), and the rows
+  that are better by more than that are the island's (two-object sentences 50.0 % against 40.2 %, both objects
+  covered 77 % against 62 %, text → island speech 53.8 % against 47.9 %). This is the default of the full real
+  presets: 13 of the 64 extra caption groups of a batch are spoken ones.
+
+  *More of it is worse* (no reader exposure or augmentation in these four; `docs/results/synth_extra_hub_*`):
+
+  | | + text | + text + speech (a third of the places) | + speech (every extra place) | … and that speech only listens |
+  |---|---|---|---|---|
+  | Island speech → hub text, exact content | 73.8 % | 62.5 % | 33.3 % | 57.9 % |
+  | Hub-language speech → text, WER / exact content | 2.1 % / 93.3 % | 4.5 % / 92.1 % | 16.7 % / 74.2 % | 5.2 % / 90.4 % |
+  | Text read and written again | 100 % | 99.6 % | 85.0 % | 98.8 % |
+  | Island speech → hub-language speech, read back | 55.0 % | 43.8 % | 27.5 % | 42.1 % |
+  | Both objects covered: text / hub speech / island speech | 100 / 90 / 63 % | 99 / 99 / 80 % | 77 / 78 / 14 % | 100 / 96 / 60 % |
+  | Retrieval of the image, R@1: hub speech / island speech | 53.3 / 42.1 % | 56.7 / 45.4 % | 45.4 / 26.7 % | 57.9 / 34.6 % |
+
+  Extra speech that takes every extra place is destructive: the island language loses half of its translation,
+  text gets worse although the same captions are there as text, and even recognition of the hub language's own
+  speech gets worse with four times as much of it. At a third of the places the island translated worse than
+  with the extra text alone (62.5 % against 73.8 %). That run differs from the one at a fifth in the share *and*
+  in the reader's exposure and augmentation, and the two were not separated; with the extra text alone the
+  reader's two changes make no difference (73.8 % with and without them), so the share is the likelier cause.
+- *Extra speech that only listens* (`listen_only`, off; an ablation variant). The speech views of extra spoken
+  captions go through the codec like all speech and are then only *read*: the reader must turn them into the hub
+  code that the text of the same caption and the image define. They are left out of every term that shapes the
+  hub (grounding, sufficiency, credit, minimality, text–speech agreement) and pay for no tone gate; a test
+  checks this on gradients (whatever the listening speech says, the gradient of everything in the hub but the
+  reader is the same). The last column of each table is what it does. Where speech floods the batch it undoes
+  most of the damage: text and hub-language speech come out better than on the benchmark alone and the island
+  is back at the reference (57.9 % against 60.8 %), so the damage was done through the terms that shape the
+  hub. But the island gets none of what the same captions give as text (73.8 %) and finds its image less often
+  than on the benchmark alone (34.6 % against 45.0 %). At a fifth of the places, where grounded speech does no
+  damage, listening is the worse of the two (68.3 % against 77.1 %, hub-language speech 85.0 % against 93.8 %)
+  and below the extra text alone by about what two runs differ by. A likely reason, not tested: listening
+  speech still trains the speech codec, by reconstruction only, so from it the encoder learns to rebuild
+  hub-language speech and not to be read. It stays as an option for shares well above a fifth.
+- *Giving every language the same say in the losses does not help either* (`lang_balance`, off; an ablation
   variant). Alone: island speech → text 55.8 % against 60.8 %, both objects of an island caption covered in 33 %
-  of cases against 57 %. With both kinds of extra data: 67.5 % against 62.5 % for the island, inside the noise,
-  at the price of hub-language speech (83.8 % exact content against 92.1 %) and of island coverage (64 % against
-  80 %) (`docs/results/synth_language_balance_eval_test.json`,
+  of cases against 57 %. With both kinds of extra data at a third: 67.5 % against 62.5 % for the island, inside
+  the noise, at the price of hub-language speech (83.8 % exact content against 92.1 %) and of island coverage
+  (64 % against 80 %) (`docs/results/synth_language_balance_eval_test.json`,
   `docs/results/synth_extra_hub_text_and_speech_language_balance_eval_test.json`). The few island views of a
   batch become a few very heavy, noisy ones.
-- *Extra speech listens only* (`listen_only`, on by default). The speech views of extra spoken captions go
-  through the codec like all speech and are then only *read*: the reader must turn them into the hub code that
-  the text of the same caption and the image define. They are left out of every term that shapes the hub
-  (grounding, sufficiency, credit, minimality, text–speech agreement) and pay for no tone gate. A test checks
-  it on gradients: whatever the listening speech says, the gradient of everything in the hub but the reader is
-  the same. Whether this removes the cost measured above: being measured (two SynthWorld runs were in progress when this was written).
 - *The reader is trained on time-masked encodings of speech* (`read_aug`, on by default). The reader's error on
   held-out speech rose all through the transport phase of the Flickr8k run while its training error fell; the
   latents it reads are cached and never change. Now two more encodings of every spoken training utterance are
@@ -462,6 +490,9 @@ step 9,000; the last state is step 22,000.
   the same settings differ by.
   The reader's error on held-out speech does not fall; what changes is that training and held-out error meet,
   and the island, which has the fewest image pairs to read from, gains. Hub-language speech is unchanged.
+  With the extra text in place neither this nor the reader's exposure to written speech moves the island's
+  translation (73.8 % with both, 73.8 % with neither). Both stay on: they cost nothing there, and each answers
+  something seen on Flickr8k that SynthWorld does not reproduce.
 
 **What is not fixed, and why.**
 
@@ -474,6 +505,9 @@ step 9,000; the last state is step 22,000.
   codec has generalised in one representation phase of four). The fourth round gives it more real speech from
   ten times as many speakers and an augmentation for the reader; whether that is enough is for the next GPU run
   to say. The Yorùbá side has no new data: its 5,500 recordings are all there is with images.
+- *How much extra speech is right on real data.* The share (a fifth) was chosen on SynthWorld, where a third
+  already cost the island language and where the extra speech has no new voices to offer. On Flickr8k the
+  right share may be another; `extra_speech_share` and the `data` ablation group are there to find out.
 - *Tonality gate, counterfactual credit, back-translation on real data:* these are measurements that have not
   been made, not defects that code can remove. The notebook's defaults run the back-translation and decoder
   variants after the main run; credit and the gate need a representation phase each.
