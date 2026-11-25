@@ -556,7 +556,65 @@ steps, 2.4 h + 1.7 h; test scores at the selected state, step 17,000; files in `
   On the same 30 + 30 utterances: Yorùbá mean length 7.3 s → 4.0 s, voiced frames 9 % → 35 %, utterances with
   almost no pitch 63 % → 10 %; English 3.4 s → 3.2 s and 38 % → 39 %. The features have a new cache name, so
   they are extracted again.
-- *A speech latent that keeps the order of time* (`audio_anchor`): being measured on real speech features (codec-only runs were in progress when this was written).
+  In the pipeline's own feature cache of a 60-image subset: Yorùbá 7.7 s → 4.5 s per utterance, voiced frames
+  6 % → 38 %, utterances with almost no pitch 85 % → 0 %; English 3.5 s and 43 % before and after.
+- *The speech codec gets a speaking path: tokens laid out in time, and a decoder of their own*
+  (`audio_anchor = extra`, `audio_private_slots`; real presets). Speech is reconstructed by regression, and a
+  regression has a resting place: every latent token the utterance mean, every frame decoded to it. A set of
+  free queries stays there on real speech. A token that is laid out in time starts from the mean of its own
+  span of the utterance, and every frame of the decoder starts from the ordered tokens around its own
+  position; attention only adds detail. Codec alone, trained on the real features of a 1,200-image subset
+  (5,778 utterances, mHuBERT, the T4 preset's codec; a CPU, so few steps), scored on 192 held-out utterances as
+  the share of the frame variance that the reconstruction explains *beyond the utterance mean*, English /
+  Yorùbá:
+
+  | speech latent | step 300 | 600 | 900 | 1,500 |
+  |---|---|---|---|---|
+  | 16 free tokens (as in the three runs) | 0.00 / 0.08 | 0.03 / 0.12 | – | – |
+  | 16 tokens, all laid out in time | 0.23 / 0.24 | 0.38 / 0.32 | 0.44 / 0.34 | 0.48 / 0.36 |
+  | 32 tokens, all laid out in time | 0.37 / 0.30 | 0.49 / 0.39 | 0.51 / 0.41 | – |
+  | **16 free content tokens + a speaking path with 16 ordered ones (the presets)** | 0.21 / 0.22 | 0.29 / 0.28 | – | – |
+
+  The free latent reproduces what the run showed, on a CPU, in 300 steps: exactly the utterance mean. A
+  recogniser that hears the vocoder at 5 % word error rate and the renderer of these short runs at 20 to 24 %
+  hears content in the reconstructions of 24 held-out English utterances: content F1 30 with 16 ordered tokens
+  after 1,500 steps ("a little boy singing in the middle of hers and on the sidewalk" for "The little boy stands
+  in the middle of birds who have gathered on the sidewalk"), and 17 with 32 after 900. The
+  speaking path of the presets, slower to start, had reached 29 % explained when its 600 steps ended, and there
+  the recogniser finds nothing yet (content F1 0.0): the reconstructions that were understood explained 48 %
+  and more. Whether 8,000 steps on ten times the data take it there is what the next run's ladder will say.
+  The third run's codec, after 8,000 steps on 55,000 utterances, scored 0.1 and explained nothing.
+- *It is added beside the codec, not put into it, and that was not the first idea.* Three layouts were run end
+  to end on SynthWorld (same recipe and data as the reference with extra text and speech, whose island speech
+  → text is 77.1 % exact content and whose validation grounding loss is 0.93 at step 1,000):
+  - *every speech token laid out in time, read by the hub:* the codec reconstructs better (held-out error 0.10
+    against 0.24) and the island is lost. Island speech → text 4.6 %, hub-language speech 73.8 % against 93.8 %,
+    text read and written again 82.5 % against 100 %, grounding 1.70
+    (`docs/results/synth_speech_latent_all_tokens_time_ordered_eval_test.json`). Free queries had been putting
+    each thing an utterance is about into the same token wherever it is said, and the hub was reading it there.
+  - *ordered tokens added to the free ones in the same codec, hidden from the hub:* grounding 1.86 at step 1,000
+    (stopped there). The ordered tokens then do the reconstruction and nothing puts the content into the free
+    ones.
+  - *a speaking path beside the codec* (what the presets use): the free content tokens, their decoder and their
+    losses are exactly what they were, and they are all the hub reads, grounds and explains. Time-ordered
+    tokens come from a small encoder of their own and are decoded, together with the content tokens
+    (stop-gradient), by a second decoder; the flow writes both kinds of token. A test checks that the speaking
+    objective sends no gradient into the codec and that changing the ordered tokens changes nothing the hub
+    computes. On SynthWorld the listening side is where it was (island speech → text
+    76.7 % against 77.1 %, hub-language speech 89.6 % against 93.8 %, retrieval 60 / 55 / 45 % against
+    59 / 57 / 49 %; grounding 0.97 against 0.93 at step 1,000; `docs/results/synth_speaking_path_eval_test.json`).
+    **The speaking side is not solved by it.** Speech that the flow *writes* and the speaking decoder renders is
+    read back far worse than speech rendered by the content decoder (text → hub-language speech → text 12.5 %
+    against 65.8 %): the realisation tokens are easy to reconstruct from and hard to write, and the speaking
+    decoder has never seen written ones. On SynthWorld, where the content decoder is enough, the speaking path
+    therefore stays off. On real speech the content decoder renders a hum, so there is nothing to lose; the
+    next step is the one that made written text readable, exposure of the decoder to written latents, which
+    for speech needs the frames in the transport phase.
+- *Checked end to end:* the test suite's shared run uses the speaking path (training, resuming, the latent
+  cache, back-translation, evaluation, every figure), and a 60-image real-data run through the cleaned
+  recordings completes.
+- *The transport phase of the two-T4 preset is 8,000 steps* (10,000 before): the validation scores of the third
+  run were flat after 5,000, and both ablation variants now fit in the session after the main run.
 - *The recogniser's ladder has a rung for the renderer alone* (the real streams rendered and vocoded), so the
   next run says whether what is lost is lost in the latent or in the renderer.
 
@@ -567,30 +625,38 @@ steps, 2.4 h + 1.7 h; test scores at the selected state, step 17,000; files in `
   could be learned from paired speech and text, but that would make English speech recognition better and
   leave every claim of this work where it is. More data should raise how much of a caption the hub explains
   (47 % on held-out captions so far); it will not make this a transcription system.
-- *Speech is the weak side* (English speech finds its image three times less often than English text; the speech
-  codec has generalised in one representation phase of four). The fourth round gives it more real speech from
-  ten times as many speakers and an augmentation for the reader; whether that is enough is for the next GPU run
-  to say. The Yorùbá side has no new data: its 5,500 recordings are all there is with images.
+- *The listening side of speech is where it was.* What the hub reads from an utterance is still a latent that
+  holds its gist (the content tokens are the old codec, left alone on purpose, because every way of putting
+  the order of time into them cost the hub its content on SynthWorld). English speech → text will stay near
+  80 % word error rate; what the cleaned recordings and the pitch they now carry do for Yorùbá is for the next
+  run to say. The Yorùbá side has no new data: its 5,500 recordings are all there is with images.
+- *Speech that is written, as opposed to reconstructed.* The speaking path reconstructs real speech with its
+  order; whether the flow can write its realisation tokens well enough to be understood is not known on real
+  data and is poor on SynthWorld (text → speech → text 12.5 % through the speaking decoder against 65.8 %
+  through the content decoder). The decoder has never seen written realisation tokens. The fix that worked
+  for text, training the decoder on written latents, needs the speech frames in the transport phase, which
+  runs on a latent cache; not built yet.
 - *How much extra speech is right on real data.* The share (a fifth) was chosen on SynthWorld, where a third
   already cost the island language and where the extra speech has no new voices to offer. On Flickr8k the
   right share may be another; `extra_speech_share` and the `data` ablation group are there to find out.
-- *Tonality gate, counterfactual credit, back-translation on real data:* these are measurements that have not
-  been made, not defects that code can remove. The notebook's defaults run the back-translation and decoder
-  variants after the main run; credit and the gate need a representation phase each.
+- *Tonality gate and counterfactual credit on real data:* measurements that have not been made (the gate's
+  three runs were made without the pitch). Back-translation has been measured once and showed nothing; the
+  notebook's defaults measure it again, and the decoder variant, after the main run. Credit and the gate need
+  a representation phase each.
 - *One seed, no baseline on the real split.*
 
 **Not verified.**
 
 - *Seeds.* Everything is one seed, on both benchmarks. Two runs of the same representation phase have differed
   visibly on real data.
-- *Back-translation, decoder exposure, credit, minimality on real data.* No ablation variant has finished on
-  Flickr8k; the comparisons above are validation curves of one unfinished variant.
+- *Credit, minimality, the tonality gate on real data.* One ablation variant has finished on Flickr8k (without
+  back-translation: no difference); the decoder variant has validation curves only.
 - *Baselines on real data.* No cascade, no supervised topline, no published system has been run on this split.
-- *Speech output.* A recogniser now transcribes it in `infer`, but only an untrained check model has been
-  through it; no listener.
-- *Everything listed under the third round* has run on SynthWorld, on small real subsets on a CPU and in the
-  tests, not on a GPU and not at full size: in particular the memory and time of a batch with 64 extra caption
-  groups per GPU are estimates.
+- *Speech output.* A recogniser found no content in it in the third run. The speaking path has been heard
+  only as a codec on a CPU; no trained model with it, no listener.
+- *Everything changed after the third run* (recordings high-passed, the speaking path, the shorter transport
+  phase) has run on SynthWorld, on small real subsets on a CPU and in the tests, not on a GPU and not at full
+  size: the time and memory of the larger speech model are estimates.
 
 ## 1. SynthWorld reference run
 

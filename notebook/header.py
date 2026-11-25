@@ -25,6 +25,9 @@
 #             BLEU and chrF++, each next to its chance level (the same outputs scored against the caption of another
 #             image) - and "[sample]" lines (reference | output).  A score is evidence only by its distance from
 #             chance: on Flickr8k a caption that ignores its source still gets about 1 BLEU and 15 chrF++.
+#             Whether the model speaks is one line of "infer": "[infer] written speech heard by ..." gives what an
+#             independent recogniser understands of the vocoder alone, the renderer alone, the speech codec's
+#             reconstruction, speech written from text, and Yoruba speech translated into English speech.
 #
 #  CONTENTS
 #   00. SETTINGS AND ENVIRONMENT   (the only part meant to be edited)
@@ -42,21 +45,23 @@ PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k
                                  # (OVERRIDES = {"extra_images": 0, "extra_speech": 0} trains on Flickr8k alone).
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = "flickr8k_yo_t4_v5"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+EXP_NAME = "flickr8k_yo_t4_v6"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
                                  # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
 ABLATION_PRESET = PRESET         # benchmark of the ablation study, run after the stages above ("" = none).
                                  # PRESET ablates the run above: that run is the full model and provides the
                                  # representation, so only variants are trained, cheapest first.  On 2 x T4 a
-                                 # variant that keeps the representation costs 1.5-2 h (groups read, decoder, island,
-                                 # private, lora), one that changes it about 4 h (hub, tone, text_unit, bridge).
+                                 # variant that keeps the representation costs about 2 h (groups read, decoder, island,
+                                 # private, lora), one that changes it about 4.5 h (hub, tone, speech, data,
+                                 # text_unit, bridge).
                                  # "synth_fast" / "synth": the controlled benchmark, minutes per variant.
 ABLATION_GROUPS = ("island", "decoder")   # () = all groups
 ABLATION_ONLY = ("bridge pairs only", "decoder frozen")   # () = every variant of those groups; else parts of names.
-                                 # These two fit in the session after the main run and answer what the last run
-                                 # left open: does back-translation help on real data, and what is decoder
-                                 # exposure worth.
+                                 # These two fit in the session after the main run.  In the last run the first
+                                 # showed no effect of back-translation and the second was cut by the session
+                                 # limit before it had test scores; both are worth measuring again now that the
+                                 # Yoruba recordings are cleaned and the speech latent keeps the order of time.
 ABLATION_SEEDS = (0,)            # e.g. (0, 1, 2) for mean +- std in the tables
 ABLATION_OVERRIDES = {}          # Config fields of the ablation runs (on top of OVERRIDES when the preset is PRESET)
 

@@ -54,7 +54,17 @@ class Config:
                                          # speech that fills every extra place (island speech -> text 33 % -> 58 %),
                                          # but at a fifth of the places grounded speech does no damage and listening
                                          # is the worse of the two (68 % against 77 %).  For large shares; an ablation
-    audio_anchor: bool = False           # speech latent that keeps the order of time (see AudioCodec.span_means)
+    audio_anchor: str = "off"            # tokens of the speech latent that are laid out in time (AudioCodec.span_means):
+                                         # "off"   none: free queries, as for text
+                                         # "extra" a speaking path beside the codec: the tokens beyond the n_tokens
+                                         #         every latent has are laid out in time and read by a decoder of
+                                         #         their own; codec, content tokens and everything the hub reads are
+                                         #         untouched (no gradient comes back from the speaking path)
+                                         # "all"   every token, and the hub reads them all (measured: the hub cannot
+                                         #         find content in a latent ordered by time; an ablation only)
+    audio_private_slots: int = 0         # private tokens of the SPEECH latent (0 = private_slots).  An utterance has
+                                         # more that no picture determines than a caption has - how every sound is
+                                         # timed and said - and has to carry it to be said again
     highpass_hz: float = 0.0             # high-pass every recording before trimming, pitch tracking and feature
                                          # extraction (0 = off; 70 in the real presets: below the lowest voice pitch)
     # Role of every language.  A language can appear in several roles.
@@ -253,6 +263,22 @@ class Config:
     def n_tokens(self) -> int:
         return self.hub_slots + self.private_slots
 
+    def private_of(self, mod: str) -> int:
+        """Private tokens of a modality's latent (speech may have more than the others)."""
+        return (self.audio_private_slots or self.private_slots) if mod == "aud" else self.private_slots
+
+    def tokens_of(self, mod: str) -> int:
+        """Tokens of a modality's latent: the hub slots and its private ones."""
+        return self.hub_slots + self.private_of(mod)
+
+    @property
+    def max_tokens(self) -> int:
+        return max(self.n_tokens, self.tokens_of("aud"))
+
+    def hub_tokens_of(self, mod: str) -> int:
+        """Tokens of a modality's latent that the hub reads, grounds and explains (the rest is for its decoder)."""
+        return self.n_tokens if mod == "aud" and self.audio_anchor == "extra" else self.tokens_of(mod)
+
     @property
     def mel_fps(self) -> float:
         return 62.5 if self.mel_spec == "speecht5" else self.sample_rate / self.mel_hop
@@ -338,6 +364,10 @@ class Config:
         for k, v in overrides.items():
             if k not in known:
                 raise KeyError(f"unknown config field '{k}'")
+            if k == "audio_anchor" and str(v).lower() in ("true", "false"):   # (it was a switch at first)
+                v = "all" if str(v).lower() == "true" else "off"
+            if k == "audio_anchor" and v not in ("off", "extra", "all"):
+                raise ValueError(f"audio_anchor must be off, extra or all, not {v!r}")
             setattr(self, k, _coerce(v, getattr(self, k)))
         return self
 
@@ -379,7 +409,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "audio_anchor", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "audio_anchor", "audio_private_slots", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -411,7 +441,8 @@ _SYNTH = dict(
 # Deliberately NOT here: dropout, anywhere upstream of the hub.  Measured on SynthWorld it destroys the two-object
 # coverage that the credit loss buys: 13 % against 93 % in the codecs, grounder and explainer; 15 % against 97 %
 # confined to the encoders.
-_REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0)
+_REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0,
+             audio_anchor="extra", audio_private_slots=24)
 # More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training
 # images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
 # are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;
@@ -430,7 +461,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     # Every step consumes one batch per GPU, so the schedule is counted in optimiser steps, not batches.
     "flickr8k_yo_t4": dict(
         _REAL, **_MORE, text_replay=128, batch_size=64, island_batch_size=64, feat_batch_size=32,
-        phase_a_steps=8000, phase_b_steps=10000, eval_every=1000, save_every=1000, milestone_every=8000,
+        phase_a_steps=8000, phase_b_steps=8000, eval_every=1000, save_every=1000, milestone_every=8000,
         num_workers=3, eval_max_items=600,
     ),
     # same benchmark, sized for a laptop / CPU sanity run

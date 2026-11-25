@@ -43,7 +43,7 @@ from .models import GeoBridge, build_spec, spec_for_checkpoint
 from .utils import (Averager, OutOfTime, count_named, count_params, get_logger, gpu_ids, resolve_device, save_json,
                     seed_everything, time_left, to_device, worker_kwargs)
 
-TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
+TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "speak_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
 TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "reread", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
 # Settings that may differ between a checkpoint and the run that resumes from it (everything else must match).
 RESUME_FREE = {"exp_name", "out_root", "data_root", "device", "amp", "num_workers", "torch_threads", "n_gpu", "step_batches",
@@ -741,6 +741,14 @@ class Trainer:
                 ax.plot(xs, ys, color="#1f77b4", lw=1.4, label="train")
             if xv:
                 ax.plot(xv, yv, color="#d62728", lw=1.6, marker="o", ms=3.5, label="valid")
+            if key == "sem_mse":   # the speaking path, when there is one: what the decoder that speaks reconstructs
+                xs2, ys2 = series(tr, "speak_mse", ph)
+                xv2, yv2 = series(va, "speak_mse", ph)
+                if xs2:
+                    ax.plot(xs2, ys2, color="#1f77b4", lw=1.2, ls="--", label="train, speaking path")
+                    title = "speech codec MSE (solid: content tokens alone)"
+                if xv2:
+                    ax.plot(xv2, yv2, color="#d62728", lw=1.4, ls="--", marker="s", ms=3, label="valid, speaking path")
             ax.set_title(title, fontsize=10)
             ax.set_xlabel("step")
             ax.grid(alpha=0.25)

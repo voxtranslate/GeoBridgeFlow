@@ -31,7 +31,7 @@ Anchors available for the ablation (``cfg.hub_mode``):
 """
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -52,7 +52,8 @@ class VisualInterlingua(nn.Module):
         self.register_buffer("a_basis", anchor["basis"].clone())
         self.register_buffer("a_scale", anchor["scale"].clone())
         self.lat_in = nn.Linear(d, W)
-        self.lat_pos = nn.Parameter(torch.randn(cfg.n_tokens, W) * 0.02)
+        self.lat_pos = nn.Parameter(torch.randn(cfg.max_tokens, W) * 0.02)   # (latents can differ in length)
+        self.visible = {m: cfg.hub_tokens_of(m) for m in self.MODS}   # tokens of each latent that the hub reads
         self.mod_emb = nn.Embedding(2, W)
         self.lang_emb = nn.Embedding(n_lang, W)
         self.slots = nn.Parameter(torch.randn(self.K, W))  # unit scale: slots must start out *different*
@@ -92,7 +93,8 @@ class VisualInterlingua(nn.Module):
 
     # ------------------------------------------------------------------ utterance -> slot queries
     def slot_features(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:
-        ctx = self.lat_in(z) + self.lat_pos + self.mod_emb.weight[self.MODS[mod]] + self.lang_emb(lang).unsqueeze(1)
+        z = z[:, : self.visible[mod]]
+        ctx = self.lat_in(z) + self.lat_pos[: z.shape[1]] + self.mod_emb.weight[self.MODS[mod]] + self.lang_emb(lang).unsqueeze(1)
         h = self.slots.unsqueeze(0).expand(z.shape[0], -1, -1)
         for blk in self.blocks:
             h = blk(h, ctx=ctx)
@@ -185,9 +187,10 @@ class _SlotTransformer(nn.Module):
         self.norm = nn.LayerNorm(W)
         self.out = nn.Linear(W, d)
 
-    def forward(self, x: torch.Tensor, mod: int, lang: torch.Tensor) -> torch.Tensor:
-        ctx = self.inp(x) + self.in_pos + self.mod_emb.weight[mod] + self.lang_emb(lang).unsqueeze(1)
-        q = self.queries.unsqueeze(0).expand(x.shape[0], -1, -1)
+    def forward(self, x: torch.Tensor, mod: int, lang: torch.Tensor, n_out: Optional[int] = None) -> torch.Tensor:
+        """``n_out``: how many of the output queries to use (the latents of the modalities can differ in length)."""
+        ctx = self.inp(x) + self.in_pos[: x.shape[1]] + self.mod_emb.weight[mod] + self.lang_emb(lang).unsqueeze(1)
+        q = self.queries[: n_out].unsqueeze(0).expand(x.shape[0], -1, -1)
         for blk in self.blocks:
             q = blk(q, ctx=ctx)
         return self.out(self.norm(q))
@@ -201,7 +204,12 @@ class Explainer(_SlotTransformer):
     *draft*: generation may start from the interpolation between the source and this prediction."""
 
     def __init__(self, cfg, n_lang: int):
-        super().__init__(cfg, n_lang, cfg.hub_slots, cfg.n_tokens, 2)
+        super().__init__(cfg, n_lang, cfg.hub_slots, cfg.max_tokens, 2)
+        # (it explains the tokens the hub reads; what a decoder alone reads is not the hub's to explain)
+        self.n_out = {m: cfg.hub_tokens_of(name) for name, m in VisualInterlingua.MODS.items()}
+
+    def forward(self, code: torch.Tensor, mod: int, lang: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
+        return super().forward(code, mod, lang, self.n_out[mod])
 
 
 class HubReader(_SlotTransformer):
@@ -213,7 +221,8 @@ class HubReader(_SlotTransformer):
     that do not depend on the speaker, so the hub it returns carries no speaker identity."""
 
     def __init__(self, cfg, n_lang: int):
-        super().__init__(cfg, n_lang, cfg.n_tokens, cfg.hub_slots, cfg.hub_layers)
+        super().__init__(cfg, n_lang, cfg.max_tokens, cfg.hub_slots, cfg.hub_layers)
+        self.visible = {m: cfg.hub_tokens_of(m) for m in VisualInterlingua.MODS}
 
     def forward(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
-        return super().forward(z, VisualInterlingua.MODS[mod], lang)
+        return super().forward(z[:, : self.visible[mod]], VisualInterlingua.MODS[mod], lang)

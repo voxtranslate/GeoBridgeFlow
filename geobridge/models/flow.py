@@ -23,14 +23,15 @@ from .layers import Block, sincos
 
 
 class VelocityNet(nn.Module):
-    def __init__(self, cfg, n_lang: int):
+    def __init__(self, cfg, n_lang: int, n_private: Optional[int] = None):
         super().__init__()
-        W, d, N = cfg.flow_width, cfg.latent_dim, cfg.n_tokens
+        n_private = cfg.private_slots if n_private is None else n_private
+        W, d, N = cfg.flow_width, cfg.latent_dim, cfg.hub_slots + n_private
         self.W = W
         self.inp = nn.Linear(d, W)
         self.pos = nn.Parameter(torch.randn(N, W) * 0.02)
         self.kind = nn.Parameter(torch.randn(2, W) * 0.02)  # hub slot vs private slot
-        self.register_buffer("kind_idx", torch.cat([torch.zeros(cfg.hub_slots), torch.ones(cfg.private_slots)]).long())
+        self.register_buffer("kind_idx", torch.cat([torch.zeros(cfg.hub_slots), torch.ones(n_private)]).long())
         self.time = nn.Sequential(nn.Linear(W, W), nn.SiLU(), nn.Linear(W, W))
         self.lang_emb = nn.Embedding(max(1, n_lang), W)
         rank = cfg.lora_rank if n_lang > 0 else 0
@@ -50,17 +51,19 @@ class VelocityNet(nn.Module):
 
 
 class Spoke(nn.Module):
-    def __init__(self, cfg, n_lang: int):
+    def __init__(self, cfg, n_lang: int, n_private: Optional[int] = None):
+        """``n_private``: private tokens of this spoke's latent (default cfg.private_slots)."""
         super().__init__()
         self.cfg, self.K = cfg, cfg.hub_slots
-        self.vel = VelocityNet(cfg, n_lang)
+        self.n_private = cfg.private_slots if n_private is None else n_private
+        self.vel = VelocityNet(cfg, n_lang, self.n_private)
 
     # ------------------------------------------------------------------ source construction
     def source(self, hub: torch.Tensor, temp: float = 1.0, private: Optional[torch.Tensor] = None) -> torch.Tensor:
         """[hub ; private].  ``private`` given -> reuse it; otherwise draw N(0, temp^2) (zeros if disabled)."""
         B, _, d = hub.shape
         if private is None:
-            private = torch.randn(B, self.cfg.private_slots, d, device=hub.device, dtype=hub.dtype) * temp
+            private = torch.randn(B, self.n_private, d, device=hub.device, dtype=hub.dtype) * temp
             if not self.cfg.private_noise:
                 private = torch.zeros_like(private)
         return torch.cat([hub, private], 1)
@@ -122,6 +125,8 @@ class Spoke(nn.Module):
         only has to finish what the draft began (t0 = 1 returns the draft itself, with no ODE step)."""
         temp = self.cfg.sample_temp if temp is None else temp
         x = self.source(hub, temp, private)
+        if draft is not None and draft.shape[1] < x.shape[1]:   # tokens the draft does not cover start from the source
+            draft = torch.cat([draft, x[:, draft.shape[1]:]], 1)
         if draft is None or t0 <= 0.0:
             return self.solve(x, lang, +1, steps=steps, grad=grad)
         if t0 >= 1.0:

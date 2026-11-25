@@ -18,20 +18,36 @@ Measured and **not** supported at this scale, so not to be claimed: the optimal-
 codes, read-hub exposure and hub jitter (no effect within noise), and "the reader keeps the speaker out of the
 hub" (it leaks less than the ODE read-out, not nothing).
 
-**Where the claims stand after two full Flickr8k runs** (one seed; `RESULTS.md`, section 0):
+**Where the claims stand after three full Flickr8k runs** (one seed; `RESULTS.md`, section 0):
 
 - C1, the hub: works at the level of "what is in the picture" (right kind of subject in 91 % of text → text
   outputs, 79 % for Hindi → English without parallel data; chance 22 %) and not at the level of wording (word
   error rate 78 %). The paper has to be written about meaning-level conversion and scored with content measures
   next to their chance levels. Counterfactual credit, the specific novelty, is mixed on validation data: the hub
   explains more with it and is harder to read; there is no test number yet.
-- C2, the tonality gate: **no support on real data** in either run. Unless a longer representation phase with
-  converged gates shows otherwise, it is a SynthWorld-only result and cannot carry a third of the paper.
-- C3, attaching the island: Yorùbá speech → English text is right about the subject in 63 % of outputs from 985
-  image pairs and no Yorùbá text (chance 18 %; BLEU 3.6 against about 1.1). Whether back-translation contributes
-  on real data is unknown, and Yorùbá's validation scores fall while it runs. This is the next thing to measure.
-- Missing for any submission: seeds and the baselines of section 3 on real data. (A recogniser now listens to
-  the written speech in `infer`; it has not yet run on a trained model.)
+- C2, the tonality gate: **not tested on real data so far.** In all three runs the pitch tracker found pitch in
+  9 % of the Yorùbá frames, because the recordings carry rumble that hides it; the gate closed for a language
+  whose pitch it never saw. With the recordings high-passed the next run is the first test. Until then it is
+  a SynthWorld-only result.
+- C3, attaching the island: Yorùbá speech → English text has content F1 11.5 against 6.7 by chance (BLEU 4.2)
+  from 985 image pairs and no Yorùbá text. **Back-translation contributes nothing measurable** (11.2 without
+  it), and the island sits apart in the hub. The claim as written has no support; what the island gets, it gets
+  from the bridge pairs and the shared speech backbone. To be measured again once the island's audio is clean
+  and the speech latent carries more than the utterance's mean.
+- The system-level claim "including speech into that language" **fails as measured**: a recogniser finds no
+  content in any speech the model writes, nor in the speech codec's reconstruction of a real utterance. The
+  cause is located (a latent of free queries that rests at the utterance mean) and addressed on real features
+  (content tokens for the hub plus a speaking path with time-ordered realisation tokens, `audio_anchor = extra`):
+  reconstruction with the order of time, yes; speech written by the flow, not yet (on SynthWorld it is read
+  back worse through the speaking decoder, which has never seen written tokens). Whether either becomes
+  intelligible at full scale is for the next run's recogniser ladder. If it does, "what is
+  said in free slots, how it is said in ordered ones, two objectives" is a component worth its own ablation
+  row: the obvious alternatives fail, each on one side (free only: no speech out; ordered only, or both in one
+  codec: no content in).
+- Supported on real data, one seed each: the decoder's exposure to written latents (text content F1 about 26
+  with it, 10 without, validation), and reading in one pass over inverting the flow (English speech 19.8
+  against 14.4).
+- Missing for any submission: seeds and the baselines of section 3 on real data.
 - The benchmark as trained from now on is **Flickr8k-Tri plus hub-language data**: about 23,700 Flickr30k photos
   with English captions (text) and the 5,000 SpokenCOCO test photos with 25,031 spoken captions (text and
   speech) join the training split (no other language, no Flickr8k photo; validation and test unchanged). This has to be stated wherever a number is compared with work trained on Flickr8k alone

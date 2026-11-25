@@ -284,6 +284,7 @@ class Inferencer:
             vocoder   the real utterance's own log-mel                               (ceiling of mel + vocoder)
             renderer  the real utterance's own streams -> rendered log-mel           (the renderer, no latent)
             codec     real speech -> speech latent -> decoded streams -> log-mel     (what the speech codec keeps)
+            content   the same, decoded from the content tokens alone                (only with a speaking path)
             written   caption text -> hub -> written speech latent -> log-mel        (the model's text-to-speech)
             island    island speech -> hub -> written hub-language speech            (speech-to-speech translation)
         The evaluator's round-trip score reads written speech with the model's own reader, which says how well the
@@ -308,8 +309,12 @@ class Inferencer:
             sub = _to(self.data._collate_audio([ui], [0]), self.device)
             wavs["vocoder"].append(self.vocode(sub["mel"][0, : int(sub["mel_len"][0])].float().cpu()))
             wavs["renderer"].append(self.vocode(self.model.audio.render_real(sub)[0, : int(sub["mel_len"][0])].float().cpu()))
-            mel, _, streams = self.model.audio.synthesize_mel(self.model.encode("aud", sub), sub["lang"], sub["spk"], sub["f0"])
+            z = self.model.encode("aud", sub)
+            mel, _, streams = self.model.audio.synthesize_mel(z, sub["lang"], sub["spk"], sub["f0"])
             wavs["codec"].append(self.vocode(mel[0, : int(streams["mel_len"][0])].float().cpu()))
+            if self.model.audio.mode == "extra":
+                mel, _, streams = self.model.audio.synthesize_mel(z, sub["lang"], sub["spk"], sub["f0"], content_only=True)
+                wavs.setdefault("content", []).append(self.vocode(mel[0, : int(streams["mel_len"][0])].float().cpu()))
             wavs["written"].append(self.hub_to_wave(self.text_to_hub([ref], H), H, ui)[0])
         rungs = {k: (hear(v), refs, [g["img"] for g in ex]) for k, v in wavs.items()}
         for L in self.island:   # island speech -> hub-language speech, in the voice of the caption's own hub-language utterance
@@ -981,7 +986,7 @@ class Inferencer:
             axes[0, c].imshow(sem[:, :k].T, aspect="auto", origin="lower", cmap="viridis")
             axes[0, c].set_title(f"{lang}: segmental stream (first {k} dims)  |  {(data.utts[ui].get('text') or '')[:50]}", fontsize=8)
             axes[1, c].imshow(rec[:, :k].T, aspect="auto", origin="lower", cmap="viridis")
-            axes[1, c].set_title(f"reconstructed from the {self.cfg.n_tokens}-token latent (frame cosine {cos:.3f})", fontsize=8)
+            axes[1, c].set_title(f"reconstructed from the {self.cfg.tokens_of('aud')}-token latent (frame cosine {cos:.3f})", fontsize=8)
             if "mel" in sub:
                 tone = sub["tone"]
                 tone3 = torch.stack([tone[..., 0], tone[..., 1], tone[..., 3]], -1)

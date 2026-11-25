@@ -31,6 +31,11 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   token. They are mapped once by a frozen **anchor projection**: PCA to `d` dimensions with a single global scale,
   `v_p = s · Wᵀ(x_p − μ)`. It is an isometry up to scale on the top-`d` subspace, fitted in float64 from the
   covariance and never updated.
+- **Recordings** (`data/features.py:prep_wave`): resampled, **high-passed at 70 Hz** (`highpass_hz`, real
+  presets), trimmed of leading and trailing silence, truncated. The high-pass is not cosmetic. Half of the
+  energy of the YFACC Yorùbá recordings is rumble below 80 Hz; with it the trimmer found no pauses (an utterance
+  was 7.3 s long where 4.0 s is speech) and the pitch tracker found pitch in 9 % of the frames (35 % without
+  it; English: 38 % and 39 %). Everything below is computed from the cleaned waveform.
 - **Speech** (`SSLFrontend`): deep hidden states of a multilingual SSL model at 25 Hz are the *segmental* stream
   `S`. The *tone* stream `F` has four values per frame: z-scored log-F0, voicing, Δlog-F0, z-scored log-energy.
   F0 is tracked with YIN and **standardised per utterance over voiced frames**, which removes the speaker's
@@ -51,6 +56,28 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   reconstruction term asks for pitch. A prosody head predicts the contour from `stopgrad(z_aud)`; a
   frame-synchronous renderer maps (segmental, contour, `p`) to a mel-spectrogram in the feature space of the
   vocoder (`mel_spec = speecht5`: the pretrained SpeechT5 HiFi-GAN; `internal`: Griffin-Lim).
+- **What is said and how it is said: a speaking path beside the codec** (`audio_anchor = extra`,
+  `audio_private_slots`; real presets). A caption's bytes are reconstructed by classification; speech features
+  are reconstructed by regression, and regression has a resting place in which every latent token is the
+  utterance mean and every frame is decoded to it. On real speech a resampler of free queries stays there: in
+  three Flickr8k runs the codec's reconstruction was constant in time and everything the model said was a hum.
+  The speech latent therefore has two kinds of token, trained by two objectives that do not touch each other.
+  The first `N` (as many as every latent has) are the **content tokens**: the codec above, unchanged. They are
+  free queries, each of which can settle on one thing the utterance is about wherever it is said, and they are
+  all the hub ever reads: slot queries, the reader and the sufficiency target see nothing else. The remaining
+  ones are **realisation tokens**, laid out in time. A small encoder of their own reads the segmental stream
+  and the tone stream (ungated: the hub never sees these tokens); token `k` starts from the mean of its states
+  over the `k`-th of `n` equal spans of the utterance's own length (plus its learned query, then
+  cross-attention to all frames). A second, **speaking decoder** reads content and realisation tokens
+  (stop-gradient on the content): every frame starts from the linear interpolation of the realisation tokens
+  around its own relative position, then attends to all tokens, and predicts the segmental stream; the prosody
+  has a head of its own on a stop-gradient, as in the codec. The spans are relative, so the layout does not
+  depend on the speaking rate; a duration head gives the length when speech is written. (Reading the content
+  encoder's states instead, with a stop-gradient, is not enough: trained for the gist, they keep too little
+  of the frames.) The flow writes both kinds of token from the hub
+  slots and private noise, like any latent. Laying out *every* token in time, or training ordered and free
+  tokens with one decoder, gives the codec the same help and takes the content away from the hub
+  (`RESULTS.md`): what is said and how it is said have to be two objectives.
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
 - **Extra image–text pairs for the hub language** (`extra_images`; `data/flickr8k.py`, `data/dataset.py`). The
@@ -307,7 +334,8 @@ Phase B   L_B = Σ_m L_cfm^m + w_read·L_read + w_dec·L_dec + w_reread·L_rerea
   presets use a shorter schedule, `phase_a_select` (the transport phase starts from the phase-A state with the
   best validation grounding + sufficiency + read losses after the release, not from the last one), noise on the
   cached latents the reader is trained on, and the evidence-proportional gate price. The transport phase is
-  10,000 steps: in the second run every validation curve had peaked within 9,000.
+  8,000 steps on the two-T4 preset: in the third run the validation scores were flat after 5,000, and the
+  shorter phase lets two ablation variants finish in the same 12-hour session.
   Residual dropout in the grounder and explainer, speech time masking and stronger weight decay exist as options
   and are *not* in the presets: on SynthWorld dropout 0.1 there destroys the two-object coverage that the credit
   loss buys (13 % against 93 %), and so does dropout confined to the text and speech encoders (`enc_dropout`: 15 %
@@ -358,8 +386,14 @@ All conversions go through the hub and use no image at test time.
   Flickr8k: the hub explains 47 % of the variance of a held-out caption's latent; text read into the hub and
   written again names the right kind of subject in 91 % of cases and has a word error rate of 78 %. The model
   converts meaning at the level of "what is in the picture"; it is not a recogniser or a translator of wording.
-- On real data the tonality gate is not a result: the gates are still closing when the representation phase
-  ends, the tonal language's closes faster, and removing the pitch contour does not change its scores.
+- On real data the tonality gate has not been tested: in the three runs so far the pitch tracker found pitch
+  in 9 % of the Yorùbá frames (rumble in the recordings, removed since by the high-pass), so the gate of the
+  tonal language closed over an empty input.
+- Speech output was unintelligible in the three runs so far (a recogniser found no content in it), because the
+  speech latent held no order of time. With the time-ordered latent a recogniser finds content in the codec's
+  reconstructions in a short CPU run on real features; written speech has not been heard yet.
+- Back-translation of unpaired island speech shows no effect on Flickr8k (one seed, with the old speech latent
+  and the uncleaned recordings).
 - The counterfactual credit is a first-order estimate through the explainer as it currently is; it also sends
   some slots to objects the sentence does not mention, which the minimality term then has to remove.
 - Image output is a latent of the frozen vision space plus a low-resolution preview; photo-realistic pixels need

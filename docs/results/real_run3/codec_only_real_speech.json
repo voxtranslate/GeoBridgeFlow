@@ -1,0 +1,185 @@
+{
+ "what": "speech codec alone, trained on real features (Flickr8k English + YFACC Yoruba, 1,200-image subset, 5,778 training utterances, mHuBERT layers 8-9, codec of the flickr8k_yo_t4 preset, batch 32, CPU); 192 held-out utterances; r2 = share of the frame variance explained beyond the utterance mean",
+ "runs": {
+  "16 free tokens (as in the three Flickr8k runs)": [
+   {
+    "step": 300,
+    "en_mse": 0.98,
+    "en_r2": 0.0,
+    "en_cos": 0.187,
+    "yo_mse": 0.676,
+    "yo_r2": 0.08,
+    "yo_cos": 0.442
+   },
+   {
+    "step": 600,
+    "en_mse": 0.952,
+    "en_r2": 0.029,
+    "en_cos": 0.231,
+    "yo_mse": 0.644,
+    "yo_r2": 0.124,
+    "yo_cos": 0.478
+   }
+  ],
+  "16 tokens, all laid out in time": [
+   {
+    "step": 300,
+    "en_mse": 0.751,
+    "en_r2": 0.234,
+    "en_cos": 0.503,
+    "yo_mse": 0.56,
+    "yo_r2": 0.237,
+    "yo_cos": 0.576
+   },
+   {
+    "step": 600,
+    "en_mse": 0.606,
+    "en_r2": 0.382,
+    "en_cos": 0.621,
+    "yo_mse": 0.5,
+    "yo_r2": 0.319,
+    "yo_cos": 0.635
+   },
+   {
+    "step": 900,
+    "en_mse": 0.545,
+    "en_r2": 0.444,
+    "en_cos": 0.667,
+    "yo_mse": 0.484,
+    "yo_r2": 0.342,
+    "yo_cos": 0.65
+   },
+   {
+    "step": 1200,
+    "en_mse": 0.518,
+    "en_r2": 0.472,
+    "en_cos": 0.686,
+    "yo_mse": 0.476,
+    "yo_r2": 0.352,
+    "yo_cos": 0.657
+   },
+   {
+    "step": 1500,
+    "en_mse": 0.507,
+    "en_r2": 0.483,
+    "en_cos": 0.694,
+    "yo_mse": 0.473,
+    "yo_r2": 0.356,
+    "yo_cos": 0.66
+   }
+  ],
+  "32 tokens, all laid out in time": [
+   {
+    "step": 300,
+    "en_mse": 0.621,
+    "en_r2": 0.367,
+    "en_cos": 0.62,
+    "yo_mse": 0.517,
+    "yo_r2": 0.296,
+    "yo_cos": 0.624
+   },
+   {
+    "step": 600,
+    "en_mse": 0.504,
+    "en_r2": 0.486,
+    "en_cos": 0.703,
+    "yo_mse": 0.451,
+    "yo_r2": 0.386,
+    "yo_cos": 0.683
+   },
+   {
+    "step": 900,
+    "en_mse": 0.477,
+    "en_r2": 0.513,
+    "en_cos": 0.721,
+    "yo_mse": 0.437,
+    "yo_r2": 0.405,
+    "yo_cos": 0.694
+   }
+  ],
+  "8 free + 24 laid out in time, one codec (stopped early)": [
+   {
+    "step": 300,
+    "en_mse": 0.672,
+    "en_r2": 0.315,
+    "en_cos": 0.576,
+    "yo_mse": 0.538,
+    "yo_r2": 0.268,
+    "yo_cos": 0.602
+   },
+   {
+    "step": 600,
+    "en_mse": 0.552,
+    "en_r2": 0.437,
+    "en_cos": 0.666,
+    "yo_mse": 0.478,
+    "yo_r2": 0.349,
+    "yo_cos": 0.657
+   }
+  ],
+  "16 free + 16 laid out in time, one codec, hidden from the hub (stopped early)": [
+   {
+    "step": 300,
+    "en_mse": 0.752,
+    "en_r2": 0.233,
+    "en_cos": 0.501,
+    "yo_mse": 0.56,
+    "yo_r2": 0.237,
+    "yo_cos": 0.577
+   }
+  ],
+  "speaking path on the content encoder's states, stop-gradient (stopped early)": [
+   {
+    "step": 300,
+    "en_mse": 0.963,
+    "en_r2": 0.017,
+    "en_cos": 0.231,
+    "yo_mse": 0.659,
+    "yo_r2": 0.103,
+    "yo_cos": 0.462
+   }
+  ],
+  "speaking path with its own encoder, prosody objective on the decoder's states (stopped early)": [
+   {
+    "step": 300,
+    "en_mse": 0.927,
+    "en_r2": 0.055,
+    "en_cos": 0.299,
+    "yo_mse": 0.651,
+    "yo_r2": 0.114,
+    "yo_cos": 0.474
+   }
+  ],
+  "speaking path with its own encoder, prosody on a stop-gradient linear head (A/B, 300 steps)": [
+   {
+    "step": 300,
+    "en_mse": 0.841,
+    "en_r2": 0.142,
+    "en_cos": 0.413,
+    "yo_mse": 0.608,
+    "yo_r2": 0.173,
+    "yo_cos": 0.528
+   }
+  ],
+  "16 free content tokens + speaking path with 16 ordered tokens (the presets)": [
+   {
+    "step": 300,
+    "en_mse": 0.776,
+    "en_r2": 0.209,
+    "en_cos": 0.48,
+    "yo_mse": 0.571,
+    "yo_r2": 0.223,
+    "yo_cos": 0.566
+   },
+   {
+    "step": 600,
+    "en_mse": 0.698,
+    "en_r2": 0.289,
+    "en_cos": 0.549,
+    "yo_mse": 0.527,
+    "yo_r2": 0.282,
+    "yo_cos": 0.609
+   }
+  ]
+ }
+}

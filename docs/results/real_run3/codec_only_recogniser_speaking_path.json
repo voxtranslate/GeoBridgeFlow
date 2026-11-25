@@ -1,0 +1,73 @@
+{
+ "speak": {
+  "vocoder": {
+   "n": 24,
+   "wer": 4.615384615384615,
+   "content_f1": 94.48947366330047,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boy stands in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "A man looks straight ahead at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a feathered headdress, dancing with another performer in the streets."
+    ]
+   ]
+  },
+  "renderer": {
+   "n": 24,
+   "wer": 22.692307692307693,
+   "content_f1": 75.18905325982301,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boys dance in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "Hey man, jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "a man looks straight ahead at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a brother had dressed dancing was another performer in the streets."
+    ]
+   ]
+  },
+  "codec": {
+   "n": 24,
+   "wer": 822.6923076923077,
+   "content_f1": 0.04513609096125753,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "Oh, I see you all very, very soon."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh. Shh"
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "I'll see."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "I... see... I... see... I... see..."
+    ]
+   ]
+  }
+ }
+}

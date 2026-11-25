@@ -432,7 +432,7 @@ class Evaluator:
             lid = torch.full((b,), model.lang2id[S], dtype=torch.long, device=dev)
             pick = torch.randint(len(tgt_ref["spk"]), (b,), generator=gen)  # a real voice of language S
             spk, f0 = tgt_ref["spk"][pick].to(dev), tgt_ref["f0"][pick].to(dev)
-            priv = torch.randn(b, cfg.private_slots, cfg.latent_dim, generator=gen).to(dev) * cfg.eval_temp
+            priv = torch.randn(b, cfg.private_of("aud"), cfg.latent_dim, generator=gen).to(dev) * cfg.eval_temp
             z = model.write("aud", hub, lid, private=priv if cfg.private_noise else torch.zeros_like(priv))
             n_frames = model.audio.predict_frames(z)
             p = model.audio.bypass_code(spk, f0)

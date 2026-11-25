@@ -112,8 +112,12 @@ def tiny_run(tmp_path_factory):
     from geobridge.trainer import Trainer
 
     root = tmp_path_factory.mktemp("gb")
+    # (with the speech options of the real presets: a speech latent that keeps the order of time and is longer
+    #  than the text latent, so that every end-to-end test below also runs through them)
     cfg = Config.preset("synth_tiny").update({"data_root": str(root / "data"), "out_root": str(root / "runs"),
-                                              "exp_name": "t"})
+                                              "exp_name": "t", "audio_anchor": "extra", "audio_private_slots": 5})
+    assert cfg.tokens_of("aud") == 8 and cfg.tokens_of("txt") == cfg.n_tokens == 6 and cfg.max_tokens == 8
+    assert cfg.hub_tokens_of("aud") == cfg.hub_tokens_of("txt") == 6          # the hub never reads the two time-ordered tokens
     tr = Trainer(cfg)
     tr.fit()
     return cfg, tr
@@ -193,6 +197,48 @@ def test_ode_is_invertible_so_the_plain_cycle_is_vacuous(tiny_run):
     assert fine < 1e-4 and fine <= coarse
 
 
+def test_hub_never_reads_the_time_ordered_tokens_and_the_decoder_does(tiny_run):
+    """audio_anchor = extra: the speech latent is the free content tokens every latent has, which are all the hub
+    reads, grounds and explains, plus time-ordered tokens for the speech decoder alone; the flow writes both."""
+    cfg, tr = tiny_run
+    m = tr.model.eval()
+    vis, n = cfg.hub_tokens_of("aud"), cfg.tokens_of("aud")
+    assert m.audio.n_ordered == n - vis == 2
+    z = torch.randn(4, n, cfg.latent_dim)
+    other = z.clone()
+    other[:, vis:] = torch.randn(4, n - vis, cfg.latent_dim)             # the same content tokens, said differently
+    lang = torch.zeros(4, dtype=torch.long)
+    with torch.no_grad():
+        assert torch.equal(m.hub.reader(z, "aud", lang), m.hub.reader(other, "aud", lang))
+        assert torch.equal(m.hub.queries(z, "aud", lang), m.hub.queries(other, "aud", lang))
+        frames, byp = torch.full((4,), 20), torch.zeros(4, cfg.bypass_dim)
+        assert not torch.allclose(m.audio.decode(z, lang, frames, byp)["sem"], m.audio.decode(other, lang, frames, byp)["sem"])
+        code = torch.randn(4, cfg.hub_slots, cfg.latent_dim)
+        assert m.hub.explainer(code, m.hub.MODS["aud"], lang).shape[1] == vis      # sufficiency is asked of what the hub reads
+        assert m.write("aud", code, lang).shape[1] == n and m.write("txt", code, lang).shape[1] == cfg.n_tokens
+        assert m.write("aud", code, lang, t0=0.5).shape[1] == n                    # the draft covers the content tokens only
+        assert m.audio.decode(z, lang, frames, byp, content_only=True)["sem"].shape == (4, 20, tr.data.sem_dim)
+        same = m.audio.decode(other, lang, frames, byp, content_only=True)["sem"]   # the content decoder reads content only
+        assert torch.equal(m.audio.decode(z, lang, frames, byp, content_only=True)["sem"], same)
+    # the speaking path is an add-on: its objective sends no gradient into the codec the hub reads
+    g = tr.data.groups["train"][:6]
+    batch = tr.data.collate_groups([{"img": x["img"], "cap": x["cap"], "views": x["train_views"]} for x in g])["aud"]
+    frozen = [v for v in m.audio.parameters() if not v.requires_grad]       # (the codecs are frozen after phase A)
+    for v in frozen:
+        v.requires_grad_(True)
+    m.zero_grad()
+    zz = m.audio.encode(batch["sem"], batch["tone"], batch["mask"], batch["lang"])
+    spoken = m.audio.decode(zz, batch["lang"], batch["mask"].sum(1), m.audio.bypass_code(batch["spk"], batch["f0"]))
+    (spoken["sem"].pow(2).mean() + spoken["pros"].pow(2).mean()).backward()
+    grads = {k: float(v.grad.abs().sum()) for k, v in m.audio.named_parameters() if v.grad is not None}
+    new_path = ("time_resampler.", "speak_")
+    assert all(v == 0 for k, v in grads.items() if not k.startswith(new_path)), [k for k, v in grads.items() if v and not k.startswith(new_path)]
+    assert sum(v for k, v in grads.items() if k.startswith(new_path)) > 0
+    m.zero_grad()
+    for v in frozen:
+        v.requires_grad_(False)
+
+
 def test_inference_and_evaluation(tiny_run):
     from geobridge.inferencer import Inferencer
 
@@ -224,7 +270,9 @@ def test_flat_pitch_equals_closed_gate_and_hub_codes_stay_in_the_image_hull(tiny
     with torch.no_grad():
         flat = m.audio.encode(aud["sem"], dsp.flatten_tone(aud["tone"]), aud["mask"], aud["lang"], gate_override=1.0)
         closed = m.audio.encode(aud["sem"], aud["tone"], aud["mask"], aud["lang"], gate_override=0.0)
-        assert torch.allclose(flat, closed, atol=1e-5)       # the gated path is bias-free by construction
+        vis = cfg.hub_tokens_of("aud")                        # (the speaking path hears the pitch ungated; the hub
+        assert torch.allclose(flat[:, :vis], closed[:, :vis], atol=1e-5)   #  reads the content tokens, where the gated
+        assert not torch.allclose(flat[:, vis:], closed[:, vis:], atol=1e-5)   #  path is bias-free by construction)
         V = m.hub.project(batch["img"])
         q = m.hub.queries(m.encode("aud", aud), "aud", aud["lang"])
         hub, attn = m.hub.attend(q, V[aud["item"]])

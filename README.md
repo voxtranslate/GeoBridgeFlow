@@ -69,9 +69,29 @@ rates are near 80 %: this is not transcription. The tonality gate has no support
 counterfactual credit is mixed on validation data, and the effect of back-translation on real data is not known.
 
 That run trained on 6,847 images and memorised them within 15 epochs. The presets now add about 23,700 Flickr30k
-photos with English captions (text only, training only, no Flickr8k photo among them). On the controlled
-benchmark the same kind of extra data lifts the language that received none: island speech → hub text from
-60.8 % to 73.8 % exact content. On real data this has not been run yet.
+photos with English captions (text only, training only, no Flickr8k photo among them) and the SpokenCOCO test
+part as speech. On the controlled benchmark the same kind of extra data lifts the language that received none:
+island speech → hub text from 60.8 % to 73.8 % exact content.
+
+**The third run** used that data. The text side improved (the text codec is exact, a caption finds its image
+twice as often: 23 % against 12 % R@1; Hindi → English BLEU 7.4, Yorùbá speech → English text 4.2) and the island
+did not (Yorùbá speech finds its image in 1.2 % of cases). Three things it established:
+
+* Back-translation of the unpaired island speech shows **no effect** on real data (content F1 11.5 with it,
+  11.2 without, chance 6.5); the decoder's exposure to written latents is what makes written text readable.
+* **Nothing that passes through the speech codec is intelligible.** An independent recogniser hears the vocoder
+  alone word for word (4 % word error rate) and "Mmm" in the codec's reconstruction, in text-to-speech and in
+  speech-to-speech: the codec's 16 free latent tokens held the utterance's mean and no order of time.
+* **The Yorùbá recordings were half rumble.** With it the trimmer trimmed nothing (7.3 s where 4.0 s is speech)
+  and the pitch tracker found pitch in 9 % of the frames, so nothing the first three runs say about lexical
+  tone means anything.
+
+The recordings are repaired in the presets (`highpass_hz`: 4.0 s and 35 % of the frames voiced, measured on the
+recordings). The codec has a speaking path beside it (`audio_anchor = extra`), which on real features
+reconstructs speech with its order where the codec reconstructed a constant; a recogniser understood such
+reconstructions in a short CPU run once they explained about half of the frame variance, which the speaking
+path of the presets had not reached when its short run ended, and speech *written* by the flow is not solved
+(`docs/RESULTS.md`). Neither has been in a full run.
 
 The notebook is generated from the package and tested by executing the cell end to end on the tiny benchmark:
 
@@ -127,7 +147,7 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 | Preset | Data | Meant for |
 |---|---|---|
 | `flickr8k_yo` | Flickr8k-Tri, all 8,091 images, + about 23,700 Flickr30k photos with English captions + 5,000 SpokenCOCO photos with 25,031 spoken captions | one large GPU |
-| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 10,000 steps |
+| `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 8,000 steps |
 | `flickr8k_yo_cpu` | 1,200-image subset, small model, no extra data | pipeline check on a laptop |
 | `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
 | `synth_fast` | SynthWorld, 1,200 scenes, small model | ablations on a CPU |
@@ -229,6 +249,14 @@ wav, mel, f0 = inf.hub_to_wave(hub, "yo", ref_utt=yo[0])  # English text -> Yor�
   already did, and speech in every extra place halves its translation; `listen_only` (off) keeps extra speech
   out of everything that shapes the hub, which repairs most of that damage but is worse than plain grounding
   at a fifth (`docs/RESULTS.md`, fourth round).
+* **Recordings are high-passed at 70 Hz** before trimming, pitch tracking and feature extraction (`highpass_hz`):
+  half of the energy of the YFACC Yorùbá recordings is rumble below 80 Hz, which kept the silence trimmer from
+  trimming and the pitch tracker from finding pitch.
+* **A speaking path beside the speech codec** (`audio_anchor`, `audio_private_slots`): the free content tokens
+  every latent has stay exactly as they were and are all the hub reads; tokens laid out in time (token k
+  summarises the k-th span of the utterance) and a second decoder are added for saying it again, with no
+  gradient back into the codec. With free tokens alone the speech codec reconstructed a constant and the model
+  could not speak; with every token laid out in time the hub could no longer find the content.
 * **Strict non-parallel training** (default): a caption is visible in one language only, so no sentence of a
   non-hub language has its translation in the training set, and no loss pairs two languages.
 * `bridge_frac` sets the share of island utterances that keep their image; the rest are fed as unpaired speech.

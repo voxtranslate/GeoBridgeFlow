@@ -1,0 +1,144 @@
+{
+ "anchor": {
+  "vocoder": {
+   "n": 24,
+   "wer": 4.615384615384615,
+   "content_f1": 94.48947366330047,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boy stands in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "A man looks straight ahead at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a feathered headdress, dancing with another performer in the streets."
+    ]
+   ]
+  },
+  "renderer": {
+   "n": 24,
+   "wer": 19.615384615384617,
+   "content_f1": 78.52533109235176,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boys dancing in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "a male extreme ahead of night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a further hairdress dancing was another performer in the streets."
+    ]
+   ]
+  },
+  "codec": {
+   "n": 24,
+   "wer": 69.23076923076923,
+   "content_f1": 29.58671168018015,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "a little boy singing in the middle of hers and on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building off the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "A man lost real heaven, mate."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "and are wearing a mask changing within our industries."
+    ]
+   ]
+  }
+ },
+ "anchor32": {
+  "vocoder": {
+   "n": 24,
+   "wer": 4.615384615384615,
+   "content_f1": 94.48947366330047,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boy stands in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "A man looks straight ahead at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a feathered headdress, dancing with another performer in the streets."
+    ]
+   ]
+  },
+  "renderer": {
+   "n": 24,
+   "wer": 24.23076923076923,
+   "content_f1": 74.209012547388,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boys dancing in the middle of birds who have gathered on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "in there jumps off a large building onto the ground."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "Let me know where I'm straight ahead at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One performer wearing a brother had dressed dancing was another performer in the streets."
+    ]
+   ]
+  },
+  "codec": {
+   "n": 24,
+   "wer": 201.92307692307693,
+   "content_f1": 17.362942268380163,
+   "examples": [
+    [
+     "The little boy stands in the middle of birds who have gathered on the sidewalk .",
+     "The little boy is standing in the middle of the bird's hand, and you're on the sidewalk."
+    ],
+    [
+     "A man jumps off a large building onto the ground .",
+     "A man jumps off a large building, jumps around."
+    ],
+    [
+     "A man looks straight ahead at night .",
+     "A man lost her head at night."
+    ],
+    [
+     "one performer wearing a feathered headdress dancing with another performer in the streets",
+     "One horrible thing that is asking me that there are any streets."
+    ]
+   ]
+  }
+ }
+}

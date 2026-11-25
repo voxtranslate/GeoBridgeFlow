@@ -41,7 +41,7 @@ class GeoBridge(nn.Module):
         self.text = TextCodec(cfg, spec["unit_vocab"], spec["unit_pad"], spec["unit_bytes"], n_lang)
         self.audio = AudioCodec(cfg, spec["sem_dim"], spec["spk_dim"], n_lang, stats)
         self.hub = VisualInterlingua(cfg, spec["vision_dim"], spec["n_vis_tokens"], anchor, n_lang)
-        spokes = {"txt": Spoke(cfg, n_lang), "aud": Spoke(cfg, n_lang)}
+        spokes = {"txt": Spoke(cfg, n_lang), "aud": Spoke(cfg, n_lang, cfg.private_of("aud"))}
         if cfg.image_spoke:
             spokes["img"] = Spoke(cfg, 0)
             if cfg.w_pix > 0:

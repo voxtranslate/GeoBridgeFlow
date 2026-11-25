@@ -93,6 +93,13 @@ GROUPS: Dict[str, Dict] = {
             ("gate without the sparsity price", {"w_gate": 0.0}),
             ("no paralinguistic bypass", {"use_bypass": False, "w_orth": 0.0}),
         ]},
+    "speech": {
+        "question": "What does the speech latent need in order to be said again?",
+        "variants": [
+            ("content tokens + a speaking path with time-ordered tokens", {"audio_anchor": "extra", "audio_private_slots": "speak"}),
+            ("free queries only (no order of time)", {"audio_anchor": "off", "audio_private_slots": 0}),
+            ("every token laid out in time, all read by the hub", {"audio_anchor": "all", "audio_private_slots": 0}),
+        ]},
     "data": {
         "question": "What does extra data in the hub language (text, speech) buy the other languages?",
         "variants": [
@@ -203,6 +210,9 @@ class AblationRunner:
         over = dict(over)
         if over.get("lora_rank") == "x4":
             over["lora_rank"] = self.base.lora_rank * 4
+        if over.get("audio_private_slots") == "speak":   # the base's own speaking path, or one of twice the latent's length
+            b = self.base
+            over["audio_private_slots"] = b.audio_private_slots if b.audio_private_slots > b.private_slots else 3 * b.private_slots
         return over
 
     def _is_full(self, over: Dict) -> bool:

@@ -141,7 +141,7 @@ class GeoBridgeLoss:
             total = total + cfg.w_audio_rec * r["loss"]
             if aud is not None:
                 z["aud"] = r["z"][:n_paired]
-            logs.update({k: r[k].item() for k in ("sem_mse", "f0_l1", "dur_l1", "mel_l1", "orth") if k in r})
+            logs.update({k: r[k].item() for k in ("sem_mse", "speak_mse", "f0_l1", "dur_l1", "mel_l1", "orth") if k in r})
             if "gate_pen" in r:
                 logs["tone_price"] = r["gate_pen"].item()   # what the batch paid for open gates (not a gate value)
 
@@ -202,7 +202,7 @@ class GeoBridgeLoss:
                     continue
                 mid = hub.MODS[mod]
                 if cfg.w_expl > 0:  # sufficiency: the code alone reconstructs the utterance latent
-                    target, lang = z[mod].detach().float(), sub["lang"]
+                    target, lang = z[mod][:, : cfg.hub_tokens_of(mod)].detach().float(), sub["lang"]   # what the hub reads
 
                     def unexplained(code: torch.Tensor, rows: Optional[torch.Tensor] = None) -> torch.Tensor:
                         """Per-utterance unexplained variance of code [m, K, d] (for the utterances ``rows``)."""
@@ -280,7 +280,7 @@ class GeoBridgeLoss:
         cfg = self.cfg
         n, K, _ = code.shape
         rows = torch.arange(n, device=code.device)
-        scale = float(cfg.n_tokens * cfg.latent_dim)  # differentiate the sum of squares: O(1) values, safe in fp16
+        scale = float(cfg.max_tokens * cfg.latent_dim)  # differentiate the sum of squares: O(1) values, safe in fp16
         g = torch.autograd.grad(err.sum() * scale, code, retain_graph=True)[0].float() / scale   # [n, K, d]
         with torch.no_grad():
             attn = logp[..., :-1].exp()
@@ -359,7 +359,8 @@ class GeoBridgeLoss:
             logs[f"read_{mod}"] = per_view.mean().item()
             reads[mod] = r.detach()
             if cfg.draft_t0 > 0 and cfg.hub_mode == "bary":  # the explainer is refined only if writing starts from its draft
-                l_expl = F.mse_loss(model.hub.explainer(target[ok], model.hub.MODS[mod], sub["lang"][ok]).float(), sub["z"][ok].float())
+                l_expl = F.mse_loss(model.hub.explainer(target[ok], model.hub.MODS[mod], sub["lang"][ok]).float(),
+                                    sub["z"][ok][:, : cfg.hub_tokens_of(mod)].float())
                 total = total + cfg.w_expl * l_expl
                 logs[f"unexplained_{mod}"] = l_expl.item()
 
@@ -544,7 +545,10 @@ class GeoBridgeLoss:
         (cf. AlignFlow, DDIB).  Kept to demonstrate exactly that."""
         s1, s2 = model.spokes[m1], model.spokes[m2]
         x0 = s1.solve(z1, lang1, -1, steps=steps, grad=grad)
-        z2 = s2.solve(x0, lang2, +1, steps=steps, grad=grad)
+        same = s1.n_private == s2.n_private   # latents of different length share the hub slots only
+        src = x0 if same else torch.cat([x0[:, : s1.K], x0.new_zeros(x0.shape[0], s2.n_private, x0.shape[2])], 1)
+        z2 = s2.solve(src, lang2, +1, steps=steps, grad=grad)
         x0b = s2.solve(z2, lang2, -1, steps=steps, grad=grad)
-        z1b = s1.solve(x0b, lang1, +1, steps=steps, grad=grad)
-        return F.mse_loss(x0b, x0) + F.mse_loss(z1b, z1)
+        back = x0b if same else torch.cat([x0b[:, : s1.K], x0[:, s1.K:]], 1)
+        z1b = s1.solve(back, lang1, +1, steps=steps, grad=grad)
+        return F.mse_loss(x0b, src) + F.mse_loss(z1b, z1)
