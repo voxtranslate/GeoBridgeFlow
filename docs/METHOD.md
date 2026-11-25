@@ -64,6 +64,12 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   and bridge pairs get the same number of updates as before) plus `extra_per_batch` extra groups from a stream
   that walks the extra pool without replacement; the stream is a function of (seed, epoch, batch), so resuming
   is exact. The extra images are also negatives of every grounding score and targets of the image writer.
+- **Extra speech for the hub language** (`extra_speech`). Speech is the side that has the least to learn from:
+  one corpus, 183 speakers. The test part of SpokenCOCO adds 5,000 images whose 25,031 captions exist as text
+  and as a recording, from 1,766 speakers; the text is joined from the COCO annotations by the caption id in the
+  clip name. They are full triplets of the hub language (grounding, text–speech agreement, codec, reader,
+  writers) and enter like the extra text: training split only, own feature caches, normalised with the
+  benchmark's statistics, a fixed share (`extra_speech_share`) of the extra places of every batch.
 
 ## 2. Barycentric visual interlingua with mutual sufficiency (`models/hub.py`, `losses.py:phase_a`)
 

@@ -23,8 +23,9 @@ around a hub that contains no text at all.
 * A language with **speech only** is attached through a few image-prompted utterances (bridge pairs); its
   unpaired speech is used by **hub-space back-translation** with a relay to the text writers.
 * No loss ever pairs two languages, and a caption is visible in one language only during training.
-* The hub language may bring **extra image–text pairs** of its own (Flickr30k captions for English): text only,
-  training only, in no other language.
+* The hub language may bring **extra data** of its own, for training only and in no other language: image–text
+  pairs (Flickr30k captions for English) and image–text–speech triplets (the SpokenCOCO test part: 25,031 captions
+  read aloud by 1,766 speakers).
 
 | Document | Content |
 |---|---|
@@ -96,9 +97,9 @@ The controlled benchmark needs no downloads and trains on a CPU:
 python run.py all --preset synth_fast
 ```
 
-The real benchmark (Flickr8k images, English text + speech, Yorùbá speech, Hindi text; about 7.5 GB, plus 4.4 GB
-of Flickr30k photos and English captions as extra training data for the hub language; downloaded automatically,
-no account needed):
+The real benchmark (Flickr8k images, English text + speech, Yorùbá speech, Hindi text; about 7.5 GB, plus extra
+training data for the hub language: 4.4 GB of Flickr30k photos with English captions and 4.3 GB of SpokenCOCO
+photos with spoken captions; downloaded automatically, no account needed):
 
 ```bash
 python run.py prepare --preset flickr8k_yo
@@ -125,7 +126,7 @@ Any field of `geobridge/config.py:Config` can be overridden, for example
 
 | Preset | Data | Meant for |
 |---|---|---|
-| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images, + about 23,700 Flickr30k photos with English captions | one large GPU |
+| `flickr8k_yo` | Flickr8k-Tri, all 8,091 images, + about 23,700 Flickr30k photos with English captions + 5,000 SpokenCOCO photos with 25,031 spoken captions | one large GPU |
 | `flickr8k_yo_t4` | same | two 16 GB GPUs (Kaggle T4 x2) or one (Colab); 8,000 + 10,000 steps |
 | `flickr8k_yo_cpu` | 1,200-image subset, small model, no extra data | pipeline check on a laptop |
 | `synth` | SynthWorld, 2,400 scenes | controlled study, ablations on a GPU |
@@ -219,6 +220,11 @@ wav, mel, f0 = inf.hub_to_wave(hub, "yo", ref_utt=yo[0])  # English text -> Yor�
   captions; all 8,091 are removed by Flickr photo id, whatever their split, so no test image and no caption that
   the strict protocol gives to Yorùbá or Hindi comes back as English training text. About 23,700 photos remain.
   As many extra caption groups as own ones join every batch; validation and test are untouched.
+* **Extra hub-language speech** (`extra_speech`, on in the full real presets): the test part of SpokenCOCO, 5,000
+  COCO photos whose 25,031 captions were read aloud by 1,766 speakers (Flickr8k's speech has 183). The text of
+  every clip comes from the COCO annotations by the caption id in the clip's name (checked with a recogniser:
+  6.5 % word error against the joined caption on a sample). Training split only; the Flickr8k photo-id rule
+  applies (none of the 5,000 is a Flickr8k photo); a fifth of the extra places of a batch go to spoken captions.
 * **Strict non-parallel training** (default): a caption is visible in one language only, so no sentence of a
   non-hub language has its translation in the training set, and no loss pairs two languages.
 * `bridge_frac` sets the share of island utterances that keep their image; the rest are fed as unpaired speech.

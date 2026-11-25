@@ -496,3 +496,122 @@ def test_extra_image_text_pairs_train_only(tmp_path):
     assert c.n_groups == len(data.groups["train"]) and len(c.img_row) == len({g["img"] for g in data.groups["train"]})
     b = c.batch(batch)                                       # a transport-phase batch with extra groups in it
     assert b["B"] == len(batch) and b["img_lat"].shape[0] == len(batch) and int(b["txt"]["item"].max()) >= cfg.batch_size
+
+
+def test_spokencoco_extras_join_text_and_speaker_by_the_clip_name(tmp_path, monkeypatch):
+    """Extra spoken data: the clip name gives speaker, image and caption id; the text comes from the COCO captions
+    by caption id; a photo that is a Flickr8k photo is dropped by its Flickr address, like everywhere else."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from geobridge.data import flickr8k as F
+
+    cap_dir = tmp_path / "caps"
+    cap_dir.mkdir()
+    (cap_dir / "captions.txt").write_text("image,caption\n111_abc.jpg,a caption\n", encoding="utf8")
+    files = {}
+
+    def table(name, **cols):
+        p = tmp_path / name.replace("/", "__")
+        pq.write_table(pa.table(cols), p)
+        files[name] = str(p)
+
+    url = lambda pid: f"http://farm1.staticflickr.com/1/{pid}_secret_z.jpg"
+    a, b = F.COCO_CAPTIONS.patterns
+    table(a, image_id=[10, 20], flickr_url=[url(999), url(111)], ids=[[5, 7, 6], [8]],
+          captions=[["second  caption .\n", "x" * 500, "first caption ."], ["leak"]])
+    table(b, image_id=[30], flickr_url=[url(888)], ids=[[9]], captions=[["a dog ."]])
+    for k in range(F.SPOKENCOCO_IMAGE_SHARDS):
+        table(f"corpus/test-{k:05d}-of-{F.SPOKENCOCO_IMAGE_SHARDS:05d}.parquet", id=["000000000010", "000000000020"] if k == 0 else ["000000000030"])
+    clips = ["spkA-x1_10_6", "spkB-x2_10_5", "spkA-x3_10_7", "spkC-x4_20_8", "spkC-x5_30_9"]
+    for k in range(F.SPOKENCOCO_AUDIO_SHARDS):
+        table(f"queries/test-{k:05d}-of-{F.SPOKENCOCO_AUDIO_SHARDS:05d}.parquet", id=clips if k == 0 else [])
+    monkeypatch.setattr(F, "download_file", lambda src, name, root, logger=None: files[name])
+    b_ = F.Flickr8kTri.__new__(F.Flickr8kTri)
+    b_.cfg, b_.logger, b_.dirs = Config.preset("flickr8k_yo_cpu"), None, {"captions": str(cap_dir)}
+    m = b_.extra_manifest(-1, speech=True)
+    assert [im["id"] for im in m["images"]] == ["coco_10", "coco_30"]            # image 20 is Flickr8k photo 111
+    assert m["images"][0]["src"] == ["corpus/test-00000-of-00002.parquet", 0] and m["images"][1]["src"][0].startswith("corpus/test-00001")
+    first = [u for u in m["utts"] if u["img"] == 0]
+    assert [(u["text"], u["spk"], u["src"][1]) for u in first] == [("second caption .", "coco_spkB", 1), ("first caption .", "coco_spkA", 0)]
+    assert all(u["has_audio"] and u["lang"] == "en" for u in m["utts"]) and len(m["utts"]) == 3
+    assert m["meta"]["dropped_flickr8k_photos"] == 1 and m["meta"]["dropped_captions_over_max_text_bytes"] == 1 and m["meta"]["speakers"] == 3
+
+
+def test_extra_spoken_data_and_reader_augmentation(tmp_path):
+    """Extra images whose hub-language captions are also spoken: training split only, normalised with the
+    benchmark's statistics.  And the reader's speech augmentation: time-masked encodings in the training cache only."""
+    from geobridge.cache import time_keep
+    from geobridge.data import GeoBridgeData
+    from geobridge.trainer import Trainer
+
+    base = Config.preset("synth_tiny").update({"data_root": str(tmp_path / "data"), "out_root": str(tmp_path / "runs")})
+    plain = GeoBridgeData(base)
+    cfg = base.clone(exp_name="xs", extra_images=20, extra_speech=30, extra_per_batch=6, read_aug=2,
+                     phase_a_steps=6, phase_b_steps=6, eval_every=6, save_every=6)
+    data = GeoBridgeData(cfg)
+    n0, H = len(plain.images), cfg.hub_langs[0]
+    assert len(data.images) == n0 + 50 and [im["id"][:3] for im in data.images[n0:]] == ["xim"] * 20 + ["xsp"] * 30
+    extra = data.groups["train"][data.n_own_groups:]
+    spoken = [g for g in extra if any(v[0] == "aud" for v in g["train_views"])]
+    assert len(spoken) == 30 * cfg.synth_caps_per_image and all(data.images[g["img"]]["id"].startswith("xsp") for g in spoken)
+    assert all(sorted(v[:2] for v in g["train_views"]) == [("aud", H), ("txt", H)] for g in spoken)
+    assert all(data.audio.stats[k] is plain.audio.stats[k] or np.array_equal(data.audio.stats[k], plain.audio.stats[k])
+               for k in ("sem_mean", "sem_std", "mel_mean", "mel_std"))                       # the benchmark's statistics
+    u = data.utts[spoken[0]["train_views"][0][2]]
+    rec = data.audio.get(u["uid"], data.max_frames, cfg.mel_fps)
+    assert rec["sem"].shape[0] > 5 and rec["sem"].shape[1] == plain.sem_dim and "mel" in rec
+    assert data.describe()["extra"]["spoken"] == len(spoken) and data.describe()["images"] == plain.describe()["images"]
+    for split in ("valid", "test"):
+        assert len(data.groups[split]) == len(plain.groups[split]) and all(g["img"] < n0 for g in data.groups[split])
+    # time masking: at most two spans of the given share, valid frames only, the same for the same generator
+    mask = torch.zeros(3, 40, dtype=torch.bool)
+    mask[0, :40], mask[1, :20], mask[2, :8] = True, True, True
+    keep = time_keep(mask, 0.25, torch.Generator().manual_seed(1))
+    assert torch.equal(keep, time_keep(mask, 0.25, torch.Generator().manual_seed(1)))
+    assert all(0 < int((1 - keep[i, : int(n)]).sum()) <= int(0.5 * n) + 2 for i, n in enumerate((40, 20, 8)))
+    tr = Trainer(cfg, data=data)
+    tr.sampler.set_state(0, 0)
+    first = next(iter(tr.sampler))                                    # 16 own groups + 5 written extras + 1 spoken extra
+    is_spoken = lambda i: any(v[0] == "aud" for v in data.groups["train"][i]["train_views"])
+    xs = [i for i in first if i >= data.n_own_groups]
+    n_sp = int(round(cfg.extra_speech_share * 6))                     # a fifth of the extra places by default
+    assert n_sp == 1 and len(first) == cfg.batch_size + 6 and len(xs) == 6
+    assert sum(is_spoken(i) for i in xs) == n_sp == tr.extra_spoken_per_batch
+    half = Trainer(cfg.clone(exp_name="xs_half", extra_speech_share=0.5), data=data)
+    half.sampler.set_state(0, 0)
+    assert sum(is_spoken(i) for i in next(iter(half.sampler)) if i >= data.n_own_groups) == 3 == half.extra_spoken_per_batch
+    # listening speech (cfg.listen_only): the speech of extra groups comes last in the batch and is read into the code
+    # of its transcript; whatever it says, the gradient of everything that shapes the hub stays the same
+    raw = data.collate_groups([tr.train_ds[i] for i in first])
+    hl = raw["aud"]["listen"]
+    assert int(hl.sum()) == n_sp and bool(hl[-n_sp:].all()) and not bool(hl[:-n_sp].any())
+
+    def hub_grads(batch):
+        torch.manual_seed(0)
+        tr.model.zero_grad()
+        loss, logs = tr.loss.phase_a(tr.model, batch, None)
+        loss.backward()
+        named = [(n, p.grad.flatten()) for n, p in tr.model.hub.named_parameters() if p.grad is not None]
+        shape, read = (torch.cat([g for n, g in named if n.startswith("reader.") == r]) for r in (False, True))
+        tr.model.zero_grad()
+        return shape, read, logs
+
+    shape0, read0, logs = hub_grads(raw)
+    garbled = dict(raw, aud=dict(raw["aud"], sem=raw["aud"]["sem"].clone()))
+    garbled["aud"]["sem"][hl] = torch.randn_like(garbled["aud"]["sem"][hl])
+    shape1, read1, _ = hub_grads(garbled)
+    assert "heard" in logs and float(shape0.abs().max()) > 0
+    assert torch.allclose(shape0, shape1, atol=1e-7) and not torch.allclose(read0, read1, atol=1e-7)
+    grounded = data.collate_groups([dict(tr.train_ds[i], listen=False) for i in first])       # listen_only off
+    shape2, _, logs2 = hub_grads(grounded)
+    assert "listen" not in grounded["aud"] and "heard" not in logs2 and not torch.allclose(shape0, shape2, atol=1e-7)
+    tr.fit()
+    assert tr.step == 12
+    c = tr.cache["train"]
+    assert c.z_aug is not None and c.z_aug.shape[:2] == (c.z["aud"].shape[0], 2) and tr.cache["valid"].z_aug is None
+    b = c.batch(list(range(40)))
+    assert "z_read" in b["aud"] and b["aud"]["z_read"].shape == b["aud"]["z"].shape
+    changed = (b["aud"]["z_read"] != b["aud"]["z"]).flatten(1).any(1)
+    assert 0 < int(changed.sum()) < len(changed)                                                # some masked, some clean
+    assert "z_read" not in tr.cache["valid"].batch([0, 1, 2])["aud"]

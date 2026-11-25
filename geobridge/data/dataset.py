@@ -40,7 +40,7 @@ class _GroupDataset(Dataset):
     def __getitem__(self, i: int) -> Dict:
         g = self.groups[i]
         return {"img": g["img"], "cap": g["cap"], "views": g["train_views"] if self.train else g["valid_views"],
-                "train": self.train}
+                "train": self.train, "listen": self.train and self.data.cfg.listen_only and bool(g.get("extra"))}
 
 
 class _Stacked:
@@ -122,8 +122,8 @@ class GeoBridgeData:
                                        os.path.join(vdir, f"anchor_d{cfg.latent_dim}.pt"))
         self.max_frames = int(cfg.max_audio_sec * 25)
         self.n_base_images, self.extra_meta = len(self.images), {}
-        if cfg.extra_images:
-            self._add_extras(device)
+        if cfg.extra_images or cfg.extra_speech:
+            self._add_extras(device, need_mel)
 
         # ---- text units
         bpe_path = None
@@ -137,34 +137,48 @@ class GeoBridgeData:
                                      cfg.max_text_bytes, bpe_path)
         self._build_groups()
 
-    # ------------------------------------------------------------------ extra hub-language image-text pairs
-    def _add_extras(self, device: torch.device) -> None:
-        """Append the extra images and their hub-language captions (training split, text only)."""
+    # ------------------------------------------------------------------ extra hub-language data
+    def _add_extras(self, device: torch.device, need_mel: bool) -> None:
+        """Append extra images with hub-language captions to the training split: as text (``extra_images``), and
+        as text + speech (``extra_speech``).  Each source has its own caches; none touches the benchmark's."""
         cfg = self.cfg
         if not hasattr(self.builder, "extra_manifest"):
-            raise ValueError(f"dataset '{cfg.dataset}' has no extra image-text pairs")
-        os.makedirs(cfg.extra_cache_dir, exist_ok=True)
-        mp = os.path.join(cfg.extra_cache_dir, "manifest.json")
-        if os.path.exists(mp) and cfg.dataset != "synthworld":
-            xm = load_json(mp)
-        else:  # (the procedural benchmark rebuilds its scenes: they are also what its images are drawn from)
-            xm = self.builder.extra_manifest(cfg.extra_images)
-            save_json(xm, mp)
+            raise ValueError(f"dataset '{cfg.dataset}' has no extra data")
         own = {im["id"] for im in self.images}
-        assert not any(im["id"] in own for im in xm["images"]), "an extra image is one of the benchmark's own"
-        n0 = len(self.images)
-        vdir = feats.cache_vision(cfg, self.builder, xm, device, self.log, extra_from=n0)
-        self.vision = _Stacked([self.vision, np.load(os.path.join(vdir, "tokens.npy"), mmap_mode="r")])
-        if self.thumbs is not None:
-            tp = feats.cache_thumbs(cfg, self.builder, xm, vdir, self.log, extra_from=n0)
-            self.thumbs = _Stacked([self.thumbs, np.load(tp, mmap_mode="r")])
-        self.images = self.images + xm["images"]
-        self.utts = self.utts + [dict(u, img=u["img"] + n0) for u in xm["utts"]]
-        self.img_split = self.img_split + ["train"] * len(xm["images"])
-        self.extra_meta = dict(xm.get("meta", {}), images=len(xm["images"]), captions=len(xm["utts"]))
-        self.log.info(f"[extra] {len(xm['images'])} extra images with {len(xm['utts'])} {cfg.hub_langs[0]} captions (text only, "
-                      f"training only)" + (f"; {self.extra_meta['dropped_flickr8k_photos']} Flickr8k photos left out"
-                                           if "dropped_flickr8k_photos" in self.extra_meta else ""))
+        stores = [self.audio]
+        for speech, n, root in ((False, cfg.extra_images, cfg.extra_cache_dir), (True, cfg.extra_speech, cfg.extra_speech_cache_dir)):
+            if not n:
+                continue
+            os.makedirs(root, exist_ok=True)
+            mp, n0 = os.path.join(root, "manifest.json"), len(self.images)
+            if os.path.exists(mp) and cfg.dataset != "synthworld":
+                xm = load_json(mp)
+            else:  # (the procedural benchmark rebuilds its scenes: they are also what its images are drawn from)
+                xm = self.builder.extra_manifest(n, speech=speech, first=n0)
+                save_json(xm, mp)
+            assert not any(im["id"] in own for im in xm["images"]), "an extra image is one of the benchmark's own"
+            own |= {im["id"] for im in xm["images"]}
+            vdir = feats.cache_vision(cfg, self.builder, xm, device, self.log, extra_from=n0, root=root)
+            self.vision = _Stacked([*getattr(self.vision, "parts", [self.vision]), np.load(os.path.join(vdir, "tokens.npy"), mmap_mode="r")])
+            if self.thumbs is not None:
+                tp = feats.cache_thumbs(cfg, self.builder, xm, vdir, self.log, extra_from=n0)
+                self.thumbs = _Stacked([*getattr(self.thumbs, "parts", [self.thumbs]), np.load(tp, mmap_mode="r")])
+            if speech:
+                adir = feats.cache_audio(cfg, self.builder, xm, None, device, self.log, root=root)
+                mdir = feats.cache_mel(cfg, self.builder, xm, None, adir, self.log, root=root) if need_mel and cfg.w_mel > 0 else None
+                stores.append(feats.AudioStore(adir, mdir))
+            self.images = self.images + xm["images"]
+            self.utts = self.utts + [dict(u, img=u["img"] + n0) for u in xm["utts"]]
+            self.img_split = self.img_split + ["train"] * len(xm["images"])
+            meta = dict(xm.get("meta", {}), images=len(xm["images"]), captions=len(xm["utts"]),
+                        spoken=sum(u["has_audio"] for u in xm["utts"]))
+            self.extra_meta["speech" if speech else "text"] = meta
+            self.log.info(f"[extra] {meta['images']} extra images with {meta['captions']} {cfg.hub_langs[0]} captions ("
+                          + (f"text + speech, {meta['speakers']} speakers" if speech and "speakers" in meta
+                             else "text + speech" if speech else "text only") + ", training only)"
+                          + (f"; {meta['dropped_flickr8k_photos']} Flickr8k photos left out" if "dropped_flickr8k_photos" in meta else ""))
+        if len(stores) > 1:
+            self.audio = feats.AudioStores(stores)
 
     # ------------------------------------------------------------------ splits
     def _load_or_make_splits(self) -> Dict:
@@ -281,7 +295,10 @@ class GeoBridgeData:
         own_split = self.img_split[: self.n_base_images]
         out = {"images": {s: own_split.count(s) for s in ("train", "valid", "test")},
                "caption_groups": {"train": self.n_own_groups, "valid": len(self.groups["valid"]), "test": len(self.groups["test"])},
-               "extra": dict(self.extra_meta, caption_groups=len(self.groups["train"]) - self.n_own_groups),
+               "extra": {"images": len(self.images) - self.n_base_images,
+                         "caption_groups": len(self.groups["train"]) - self.n_own_groups,
+                         "spoken": sum(any(v[0] == "aud" for v in g["train_views"]) for g in self.groups["train"][self.n_own_groups:]),
+                         **self.extra_meta},
                "bridge_pairs_train": self.n_bridge, "island_unpaired_train": len(self.island_ids),
                "vision_tokens": [self.n_vis_tokens, self.vision_dim], "speech_dim": self.sem_dim,
                "anchor_explained_var": float(self.anchor["explained"])}
@@ -327,14 +344,21 @@ class GeoBridgeData:
 
     def collate_groups(self, batch: Sequence[Dict]) -> Dict:
         img = torch.from_numpy(np.stack([np.asarray(self.vision[b["img"]], np.float32) for b in batch]))
-        t_ids, t_items, a_ids, a_items = [], [], [], []
+        t_ids, t_items, a_ids, a_items, a_listen = [], [], [], [], []
         for j, b in enumerate(batch):
             for mod, _, ui in b["views"]:
                 (t_ids if mod == "txt" else a_ids).append(ui)
                 (t_items if mod == "txt" else a_items).append(j)
+                if mod == "aud":
+                    a_listen.append(bool(b.get("listen")))
+        if any(a_listen):   # speech views of extra groups (cfg.listen_only) come last: the grounded ones stay in front
+            order = sorted(range(len(a_ids)), key=lambda k: a_listen[k])
+            a_ids, a_items, a_listen = ([x[k] for k in order] for x in (a_ids, a_items, a_listen))
         out = {"B": len(batch), "img": img, "img_idx": torch.tensor([b["img"] for b in batch]),
                "cap": torch.tensor([b["cap"] for b in batch]),
                "txt": self._collate_text(t_ids, t_items), "aud": self._collate_audio(a_ids, a_items)}
+        if any(a_listen):
+            out["aud"]["listen"] = torch.tensor(a_listen)
         train = bool(batch[0].get("train"))
         if self.thumbs is not None and train:
             out["thumb"] = torch.from_numpy(np.stack([np.asarray(self.thumbs[b["img"]]) for b in batch]))

@@ -58,20 +58,23 @@ class ResumableBatchSampler(Sampler):
     ``extra_pool`` (indices of the bridge pairs) contributes ``n_extra`` items to every batch, drawn with a
     generator seeded by (seed, epoch, batch), so the stream is still a pure function of its position.
 
-    ``aux_pool`` (indices of the extra hub-language image-text groups) contributes ``n_aux`` MORE items to every
-    batch.  It is much larger than the main pool and is walked through in its own shuffled order, without
+    ``aux``: pools of extra hub-language caption groups, each as (indices, items per batch).  A pool contributes
+    its items to every batch ON TOP of the main ones.  It is walked through in its own shuffled order, without
     replacement, wrapping around on its own schedule: batch number g = epoch * len(self) + b takes positions
-    [g * n_aux, (g + 1) * n_aux) of that endless stream.  Still a pure function of (seed, epoch, batch)."""
+    [g * n, (g + 1) * n) of that pool's endless stream.  Still a pure function of (seed, epoch, batch).
+    (``aux_pool`` / ``n_aux``: one such pool.)"""
 
     def __init__(self, n: int, batch_size: int, seed: int, extra_pool: Optional[List[int]] = None, n_extra: int = 0,
-                 aux_pool: Optional[Sequence[int]] = None, n_aux: int = 0):
+                 aux_pool: Optional[Sequence[int]] = None, n_aux: int = 0,
+                 aux: Sequence[Tuple[Sequence[int], int]] = ()):
         self.n, self.seed = n, seed
         self.pool = list(extra_pool or [])
         self.k = min(n_extra, batch_size // 2) if self.pool else 0
         self.bs = batch_size - self.k
-        self.aux = np.asarray(aux_pool if aux_pool is not None else [], dtype=np.int64)
-        self.n_aux = min(int(n_aux), len(self.aux)) if len(self.aux) else 0
-        self._aux_perm: Tuple[int, Optional[np.ndarray]] = (-1, None)
+        pools = list(aux) + ([(aux_pool, n_aux)] if aux_pool is not None else [])
+        self.aux = [(np.asarray(p, dtype=np.int64), min(int(k), len(p))) for p, k in pools if len(p) and k > 0]
+        self.n_aux = sum(k for _, k in self.aux)
+        self._aux_perm: Dict[int, Tuple[int, np.ndarray]] = {}
         self.epoch, self.offset = 0, 0
 
     def set_state(self, epoch: int, offset: int) -> None:
@@ -80,15 +83,16 @@ class ResumableBatchSampler(Sampler):
     def __len__(self) -> int:
         return self.n // self.bs
 
-    def _aux_items(self, g: int) -> List[int]:
+    def _aux_items(self, j: int, g: int) -> List[int]:
+        pool, k = self.aux[j]
         out: List[int] = []
-        pos, need, m = g * self.n_aux, self.n_aux, len(self.aux)
+        pos, need, m = g * k, k, len(pool)
         while need:
             lap, at = divmod(pos, m)
-            if self._aux_perm[0] != lap:   # one permutation per lap of the pool, kept until the lap is over
-                self._aux_perm = (lap, np.random.default_rng([self.seed, 104729, lap]).permutation(m))
+            if self._aux_perm.get(j, (-1, None))[0] != lap:   # one permutation per lap of the pool, kept until it is over
+                self._aux_perm[j] = (lap, np.random.default_rng([self.seed, 104729 + j, lap]).permutation(m))
             take = min(need, m - at)
-            out += self.aux[self._aux_perm[1][at: at + take]].tolist()
+            out += pool[self._aux_perm[j][1][at: at + take]].tolist()
             pos, need = pos + take, need - take
         return out
 
@@ -99,8 +103,8 @@ class ResumableBatchSampler(Sampler):
             if self.k:
                 rng = np.random.default_rng([self.seed, self.epoch, b])
                 batch += [self.pool[i] for i in rng.integers(len(self.pool), size=self.k)]
-            if self.n_aux:
-                batch += self._aux_items(self.epoch * len(self) + b)
+            for j in range(len(self.aux)):
+                batch += self._aux_items(j, self.epoch * len(self) + b)
             yield batch
 
 
@@ -222,10 +226,15 @@ class Trainer:
         bridge_idx = [i for i, g in enumerate(self.data.groups["train"])
                       if any(l in cfg.island_langs for _, l, _ in g["train_views"])]
         # the benchmark's own caption groups make the epoch; extra image-text groups are added to every batch
-        n_own = self.data.n_own_groups
+        # extra spoken captions are what speech learns from: they get their own share of the extra places
+        n_own, groups = self.data.n_own_groups, self.data.groups["train"]
+        spoken = [i for i in range(n_own, len(groups)) if any(v[0] == "aud" for v in groups[i]["train_views"])]
+        written = sorted(set(range(n_own, len(groups))) - set(spoken))
+        n_x = cfg.extra_per_batch or cfg.batch_size
+        n_sp = n_x if not written else int(round(cfg.extra_speech_share * n_x)) if spoken else 0
         self.sampler = ResumableBatchSampler(n_own, cfg.batch_size, cfg.seed, bridge_idx, cfg.bridge_per_batch,
-                                             aux_pool=range(n_own, len(self.train_ds)),
-                                             n_aux=cfg.extra_per_batch or cfg.batch_size)
+                                             aux=[(written, n_x - n_sp), (spoken, n_sp)])
+        self.extra_spoken_per_batch = n_sp if spoken and written else 0
         self.isl_sampler = None
         if len(self.data.island_ids) >= 2:
             bs = min(cfg.island_batch_size, len(self.data.island_ids))
@@ -266,9 +275,12 @@ class Trainer:
                       + (f" x{len(self.gpus)} (DataParallel)" if len(self.gpus) > 1 else "")
                       + f" | {self.step_batches} batch(es) of {cfg.batch_size} per step | amp {self.amp}")
         if d["extra"].get("images"):
-            self.log.info(f"[data] extra: {d['extra']['images']} images, {d['extra']['caption_groups']} {cfg.hub_langs[0]} "
-                          f"captions (text only, training only); {cfg.extra_per_batch or cfg.batch_size} of them join "
-                          f"every batch")
+            self.log.info(f"[data] extra (training only): {d['extra']['images']} images, {d['extra']['caption_groups']} "
+                          f"{cfg.hub_langs[0]} captions, {d['extra']['spoken']} of them also spoken; "
+                          f"{self.sampler.n_aux} extra captions join every batch"
+                          + (f" ({self.extra_spoken_per_batch} spoken)" if self.extra_spoken_per_batch else "")
+                          + ("; extra speech listens only (it is read into the hub and does not shape it)"
+                             if d["extra"]["spoken"] and cfg.listen_only else ""))
         save_json(self.param_report, os.path.join(self.run_dir, "params.json"))
 
     @property
@@ -576,7 +588,7 @@ class Trainer:
                         raise
                     raise RuntimeError(
                         f"out of GPU memory at step {self.step} (phase {self.phase}): a batch is {cfg.batch_size} caption "
-                        f"groups" + (f" + {cfg.extra_per_batch or cfg.batch_size} extra image-text groups" if self.sampler.n_aux else "")
+                        f"groups" + (f" + {self.sampler.n_aux} extra caption groups" if self.sampler.n_aux else "")
                         + " per GPU.  Lower 'extra_per_batch' (e.g. half) or 'batch_size', and use a new exp_name: "
                         "the feature caches are kept, only training restarts.") from e
                 logs.update(t_data=got - waited, t_step=time.time() - got)   # seconds waiting for batches / computing

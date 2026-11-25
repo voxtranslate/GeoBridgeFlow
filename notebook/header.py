@@ -19,8 +19,8 @@
 #             saved, instead of being cut off (Kaggle ends a session after 12 hours).  Run it again to continue.
 #    A first look: PRESET = "synth_fast" runs the whole pipeline on the controlled benchmark in minutes, with no
 #             download.
-#    Out of GPU memory?  A batch is 64 caption groups of the benchmark plus 64 extra image-text groups per GPU.
-#             OVERRIDES = {"extra_per_batch": 32} halves the extra part; use a new EXP_NAME with it.
+#    Out of GPU memory?  A batch is 64 caption groups of the benchmark plus 64 extra ones per GPU, 13 of them
+#             spoken.  OVERRIDES = {"extra_per_batch": 32} halves the extra part; use a new EXP_NAME with it.
 #    What to watch: every validation of the transport phase prints one "[text]" line per direction - content F1,
 #             BLEU and chrF++, each next to its chance level (the same outputs scored against the caption of another
 #             image) - and "[sample]" lines (reference | output).  A score is evidence only by its distance from
@@ -37,11 +37,12 @@ from __future__ import annotations
 # ======================================================================================================================
 PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k_yo_t4" (2 x T4), "flickr8k_yo",
                                  # "flickr8k_yo_cpu".  Controlled benchmark: "synth", "synth_fast", "synth_tiny".
-                                 # The full real presets add about 23,700 Flickr30k photos with English captions to
-                                 # the training split (OVERRIDES = {"extra_images": 0} trains on Flickr8k alone).
+                                 # The full real presets add to the training split about 23,700 Flickr30k photos
+                                 # with English captions and 5,000 SpokenCOCO photos with 25,031 spoken captions
+                                 # (OVERRIDES = {"extra_images": 0, "extra_speech": 0} trains on Flickr8k alone).
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = "flickr8k_yo_t4_v4"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+EXP_NAME = "flickr8k_yo_t4_v5"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
                                  # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
@@ -63,7 +64,7 @@ TIME_BUDGET_HOURS = 11.0         # stop cleanly this long after the session star
                                  # the evaluation and the figures before Kaggle's 12-hour limit.
 
 WORK_DIR = ""                    # runs/ (checkpoints, curves, figures, tables).  "" = /kaggle/working, /content or .
-DATA_DIR = ""                    # downloads + feature caches (about 28 GB for the real benchmark).  "" = automatic
+DATA_DIR = ""                    # downloads + feature caches (about 37 GB for the real benchmark).  "" = automatic
 USE_DRIVE = False                # Colab only: put WORK_DIR on Google Drive
 SHOW_FIGURES = True              # display the curves and the inferencer figures below the cell when done
 

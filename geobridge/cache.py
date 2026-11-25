@@ -15,10 +15,26 @@ from .text_units import PAD
 from .utils import to_device
 
 
+def time_keep(mask: torch.Tensor, share: float, gen: torch.Generator, spans: int = 2) -> torch.Tensor:
+    """SpecAugment-style time masking: mask [B, T] of valid frames -> keep [B, T] in {0, 1}, with ``spans`` random
+    spans of up to ``share`` of each utterance hidden.  Drawn from ``gen`` so that a rebuilt cache is the same."""
+    B, T = mask.shape
+    n = mask.sum(1, keepdim=True).float().cpu()
+    pos = torch.arange(T).unsqueeze(0)
+    keep = torch.ones(B, T)
+    for _ in range(spans):
+        width = torch.rand(B, 1, generator=gen) * share * n
+        start = torch.rand(B, 1, generator=gen) * (n - width).clamp_min(0)
+        keep = keep * ((pos < start) | (pos >= start + width)).float()
+    return keep.to(mask.device)
+
+
 class LatentCache:
     def __init__(self, model, data, split: str, device: torch.device, loss: GeoBridgeLoss, chunk: int = 96,
                  island: bool = True):
         cfg = model.cfg
+        n_aug = cfg.read_aug if split == "train" else 0   # augmented encodings of speech, for the reader only
+        z_aug: List[torch.Tensor] = []
         groups = data.groups[split]
         key = "train_views" if split == "train" else "valid_views"
         z = {"txt": [], "aud": []}
@@ -41,6 +57,11 @@ class LatentCache:
                     if g["img"] not in img_lat:
                         img_lat[g["img"]], scene[g["img"]] = lat[j].cpu(), sc[j].cpu()
                 zz = {m: model.encode(m, batch[m]) for m in ("txt", "aud") if batch[m] is not None}
+                if n_aug and batch["aud"] is not None:
+                    a, gen = batch["aud"], torch.Generator().manual_seed(1_000_003 * cfg.seed + s)
+                    z_aug.append(torch.stack([model.audio.encode(a["sem"], a["tone"], a["mask"], a["lang"],
+                                                                 keep=time_keep(a["mask"], cfg.read_aug_span, gen))
+                                              for _ in range(n_aug)], 1).to(torch.float16).cpu())
                 if cfg.hub_mode == "text" and batch.get("pivot") is not None:
                     zz["pivot"] = model.encode("txt", batch["pivot"])
                 pairs = same_lang_pairs(batch["txt"], batch["aud"])
@@ -76,6 +97,7 @@ class LatentCache:
         model.train(was_training)
         self.mods = [m for m in ("txt", "aud") if z[m]]
         self.z = {m: torch.cat(z[m]) for m in self.mods}
+        self.z_aug = torch.cat(z_aug) if z_aug else None   # [speech views, n_aug, N, d]
         self.hub = {m: torch.cat(hub[m]) for m in self.mods}
         self.ok = {m: torch.cat(ok[m]) for m in self.mods}
         self.lang = {m: torch.cat(lang[m]) for m in self.mods}
@@ -107,6 +129,10 @@ class LatentCache:
                 r = torch.tensor(rows)
                 out[m] = {"z": self.z[m][r], "hub": self.hub[m][r], "ok": self.ok[m][r], "lang": self.lang[m][r],
                           "item": torch.tensor(items)}
+                if m == "aud" and self.z_aug is not None:   # what the reader reads: the clean latent or a masked one
+                    k = torch.randint(self.z_aug.shape[1] + 1, (len(r),))
+                    aug = self.z_aug[r, (k - 1).clamp_min(0)].to(out[m]["z"].dtype)
+                    out[m]["z_read"] = torch.where((k > 0).view(-1, 1, 1), aug, out[m]["z"])
                 if m == "txt" and self.bytes is not None:
                     b = self.bytes[r].long()
                     out[m]["bytes"] = b[:, : int((b != PAD).sum(1).max())]   # trim the padding to this batch

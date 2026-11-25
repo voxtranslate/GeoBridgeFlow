@@ -45,6 +45,7 @@ GROUPS: Dict[str, Dict] = {
             ("no sufficiency (no explainer loss, hence no credit either)", {"w_expl": 0.0}),
             ("text code as a fixed target for speech, instead of mutual agreement", {"agree_mode": "teach"}),
             ("independent slots (no inhibition of return)", {"hub_inhibit": 0.0}),
+            ("language-balanced losses (every language the same weight in its modality)", {"lang_balance": True}),
             ("sharp attention from the start (no anneal)", {"hub_temp_start": 1.0}),
             ("global visual pivot (scene-level)", {"hub_mode": "global"}),
             ("text anchor (image-pivoted)", {"hub_mode": "text"}),
@@ -59,6 +60,7 @@ GROUPS: Dict[str, Dict] = {
             ("reader, writers trained without hub jitter", {"hub_jitter": 0.0}),
             ("reader, speech keeps its own code (no canonical text code)", {"canonical_text": False}),
             ("reader never shown written hub-language speech", {"w_reread": 0.0}),
+            ("reader trained on clean speech latents only (no time-masked encodings)", {"read_aug": 0}),
         ]},
     "decoder": {
         "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
@@ -92,10 +94,14 @@ GROUPS: Dict[str, Dict] = {
             ("no paralinguistic bypass", {"use_bypass": False, "w_orth": 0.0}),
         ]},
     "data": {
-        "question": "What do extra image-text pairs in the hub language buy the other languages?",
+        "question": "What does extra data in the hub language (text, speech) buy the other languages?",
         "variants": [
-            ("extra hub-language image-text pairs", {"extra_images": -1}),
-            ("the benchmark's own data only", {"extra_images": 0}),
+            ("extra hub-language text and speech", {"extra_images": -1, "extra_speech": -1}),
+            ("... the extra speech is grounded like the benchmark's own (not listening only)",
+             {"extra_images": -1, "extra_speech": -1, "listen_only": False}),
+            ("extra hub-language text only", {"extra_images": -1, "extra_speech": 0}),
+            ("extra hub-language speech only", {"extra_images": 0, "extra_speech": -1}),
+            ("the benchmark's own data only", {"extra_images": 0, "extra_speech": 0}),
         ]},
     "regularise": {
         "question": "Can the encoders be regularised without losing what the credit loss buys?",

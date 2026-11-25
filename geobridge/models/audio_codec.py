@@ -133,9 +133,14 @@ class AudioCodec(nn.Module):
         return keep
 
     def encode(self, sem: torch.Tensor, tone: torch.Tensor, mask: torch.Tensor, lang: torch.Tensor,
-               sem_is_normed: bool = False, gate_override: Optional[float] = None) -> torch.Tensor:
+               sem_is_normed: bool = False, gate_override: Optional[float] = None,
+               keep: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """``keep`` [B, T] in {0, 1}: frames of the segmental stream the encoder may see (the others are replaced by
+        the feature mean); used to encode time-masked versions of an utterance."""
         x = sem if sem_is_normed else self.norm_sem(sem)
-        if self.training and self.cfg.speech_mask > 0:
+        if keep is not None:
+            x = x * keep.unsqueeze(-1).to(x.dtype)
+        elif self.training and self.cfg.speech_mask > 0:
             x = x * self.time_mask(mask).unsqueeze(-1).to(x.dtype)   # masked frames = the feature mean
         h = self.sem_in(x) + self.aux_in(tone[..., [1, 3]])
         g = self.gate(lang) if gate_override is None else torch.full((x.shape[0],), gate_override, device=x.device)

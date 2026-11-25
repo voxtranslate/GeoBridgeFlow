@@ -17,9 +17,17 @@ Extra hub-language data (``cfg.extra_images``), training only:
                          photo id (flickr8k.py), all of them and whatever their split: otherwise test images and
                          the captions held out for the other languages would come back in through this door.
 
-Licensing note: the two speech mirrors and the Flickr30k mirror carry no licence metadata on the Hub; the photos
-are under Flickr terms of use.  Cite the original corpora and check their terms before redistributing derived
-data.
+Extra hub-language SPEECH (``cfg.extra_speech``), training only:
+    images + en text + en speech ... SpokenCOCO, the 5,000-image test part: 25,031 captions read aloud by 1,766
+                         speakers (Flickr8k's speech has 183)                    [Hsu et al., 2021; CC BY-SA 4.0]
+                         The mirror holds audio and images; the caption text and the Flickr address of every
+                         image come from the COCO annotations, joined by caption id (in the audio file name)
+                         and image id.  A COCO photo that is a Flickr8k photo would be dropped by the same
+                         photo-id rule (none of the 5,000 is).
+
+Licensing note: the two Flickr8k speech mirrors and the Flickr30k mirror carry no licence metadata on the Hub; the
+photos are under Flickr terms of use.  Cite the original corpora and check their terms before redistributing
+derived data.
 """
 from __future__ import annotations
 
@@ -85,6 +93,36 @@ def download_sources(dataset: str, data_root: str, keys: List[str] = None, logge
                 f.write("ok\n")
         out[key] = d
     return out
+
+
+# SpokenCOCO, test part (an audio-to-image retrieval set): "queries" = spoken captions, clips of one image together,
+# file name <speaker>-<assignment>_<COCO image id>_<COCO caption id>; "corpus" = the images.
+SPOKENCOCO = HubSource("whybe-choi/SpokenCOCOA2IRetrieval", "72731c49562b73ea7e1cbd296c40f3924a4e5fad",
+                       ("queries/test-*.parquet", "corpus/test-*.parquet"), "SpokenCOCO test part: spoken captions + images")
+SPOKENCOCO_AUDIO_SHARDS, SPOKENCOCO_IMAGE_SHARDS = 7, 2
+# COCO annotations as two small tables: image id, Flickr address, caption ids, captions.
+COCO_CAPTIONS = HubSource("phiyodr/coco2017", "036f3f8291db64d17faad9b09e59dd30bb65c4d7",
+                          ("data/train-00000-of-00001-0084e041f1902997.parquet",
+                           "data/validation-00000-of-00001-e3c37e369512a3aa.parquet"),
+                          "COCO captions by caption id, and the Flickr address of every image")
+
+
+def download_file(src: HubSource, name: str, data_root: str, logger=None) -> str:
+    """Download one file of a pinned source (idempotent) and return its path."""
+    from huggingface_hub import hf_hub_download
+
+    d = local_dir(data_root, src.repo)
+    path = os.path.join(d, name)
+    if not os.path.exists(path):
+        if logger:
+            logger.info(f"[download] {src.repo}@{src.revision[:8]} {name}  ({src.note})")
+        try:
+            hf_hub_download(src.repo, name, repo_type="dataset", revision=src.revision, local_dir=d)
+        except Exception as e:  # pinned commit gone -> latest
+            if logger:
+                logger.info(f"[download] pinned revision unavailable ({type(e).__name__}); using 'main'")
+            hf_hub_download(src.repo, name, repo_type="dataset", local_dir=d)
+    return path
 
 
 def download_flickr30k(data_root: str, shard: int, logger=None) -> str:

@@ -35,7 +35,22 @@ class Config:
     extra_images: int = 0                # extra image + hub-language TEXT pairs, training only (no speech, no other
                                          # language): -1 = all there are, N = the first N, 0 = none.  flickr8k_yo: the
                                          # Flickr30k photos that are not Flickr8k photos; synthworld: N more scenes
+    extra_speech: int = 0                # extra images with hub-language text AND speech, training only: -1 = all,
+                                         # N = the first N, 0 = none.  flickr8k_yo: the SpokenCOCO test part (5,000
+                                         # images, 25,031 captions read by 1,766 speakers); synthworld: N more scenes
+    lang_balance: bool = False           # every language has the same say in the losses of its modality (grounding,
+                                         # sufficiency, credit, reading), however many of its utterances a batch
+                                         # holds.  Measured on SynthWorld: worse on every count (the few island
+                                         # views become a few very heavy, noisy ones); kept as an ablation only
     extra_per_batch: int = 0             # extra caption groups added to every batch (0 = as many as batch_size)
+    extra_speech_share: float = 0.2      # ... share of them that are spoken ones, when both kinds exist.  A fifth is
+                                         # about what the real pools hold (25k spoken of 143k extra captions).  Measured
+                                         # on SynthWorld: a third is harmless, all of them harms the island language
+    listen_only: bool = True             # extra speech LISTENS: its views are read into the hub code that the text of
+                                         # the same caption and the image define, and take no part in the terms that
+                                         # shape the hub (grounding, sufficiency, credit, minimality, agreement).
+                                         # False: extra speech is grounded like the benchmark's own (measured on
+                                         # SynthWorld: it then costs the island language its translation)
     # Role of every language.  A language can appear in several roles.
     hub_langs: Tuple[str, ...] = ("en",)        # (image, text, audio) triplets
     island_langs: Tuple[str, ...] = ("yo",)     # speech only; text is never seen in training
@@ -148,6 +163,10 @@ class Config:
     p_read: float = 0.5                  # share of paired views written from a read hub instead of the grounded one
     hub_jitter: float = 0.15             # std (upper bound) of the noise added to the hub part of a writer's source
     read_noise: float = 0.0              # std (upper bound) of the noise on the latent the reader is trained on (phase B)
+    read_aug: int = 2                    # time-masked encodings of every spoken training utterance kept in the latent
+                                         # cache; the reader reads a random one of them (or the clean one) and must
+                                         # give the same hub code.  Transport phase only: nothing upstream moves
+    read_aug_span: float = 0.15          # ... each hides two spans of up to this share of the utterance
     w_dec: float = 1.0                   # write-latent exposure: the byte decoder is trained on latents written by the
                                          # text writer (0 = decoder frozen after phase A)
     p_dec_written: float = 0.75          # ... share of those latents that are written (the rest are encoder latents)
@@ -261,6 +280,14 @@ class Config:
         return os.path.join(self.data_root, "cache", f"flickr30k_extra_{n}_b{self.max_text_bytes}")
 
     @property
+    def extra_speech_cache_dir(self) -> str:
+        """Caches of the extra spoken data (images, text, speech features)."""
+        n = "all" if self.extra_speech < 0 else f"n{self.extra_speech}"
+        if self.dataset == "synthworld":
+            return os.path.join(self.cache_dir, f"extra_speech_{n}")
+        return os.path.join(self.data_root, "cache", f"spokencoco_extra_{n}_b{self.max_text_bytes}_s{int(self.max_audio_sec)}")
+
+    @property
     def dataset_tag(self) -> str:
         if self.dataset == "synthworld":
             key = (self.synth_n_images, self.synth_caps_per_image, self.synth_n_colors, self.synth_n_shapes,
@@ -346,7 +373,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "extra_images", "extra_per_batch", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -383,7 +410,12 @@ _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_pric
 # images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
 # are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;
 # as many of their caption groups as of the benchmark's own join every batch.
-_MORE = dict(extra_images=-1)
+# Speech is the weak side (English speech finds its image three times less often than English text, and the
+# speech codec rarely generalised), so the SpokenCOCO test part joins too: 5,000 more images whose 25,031 captions
+# are text AND speech, from 1,766 speakers against Flickr8k's 183.  Spoken captions take a fifth of the extra
+# places of a batch, not more: on SynthWorld extra speech next to extra text improves what speech is grounded on
+# and leaves the rest about where it was, while extra speech alone, filling the batch, halves the island's scores.
+_MORE = dict(extra_images=-1, extra_speech=-1)
 
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)

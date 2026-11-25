@@ -85,11 +85,12 @@ class VisionFrontend:
             return self.net(px).float().cpu().numpy()
 
 
-def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger, extra_from: Optional[int] = None) -> str:
-    """Frozen vision tokens of every image of ``manifest``.  ``extra_from``: the manifest is that of the extra
-    image-text pairs, whose images follow the benchmark's own ``extra_from`` images in the builder's numbering."""
+def cache_vision(cfg, builder, manifest: Dict, device: torch.device, logger, extra_from: Optional[int] = None,
+                 root: Optional[str] = None) -> str:
+    """Frozen vision tokens of every image of ``manifest``.  ``extra_from`` / ``root``: the manifest is that of
+    extra data, cached under ``root``; its images follow the first ``extra_from`` images in the builder's numbering."""
     extra = extra_from is not None
-    out = os.path.join(cfg.extra_cache_dir if extra else cfg.cache_dir, f"vision_{_tag(cfg.vision_encoder)}_g{cfg.vision_grid}")
+    out = os.path.join(root or cfg.cache_dir, f"vision_{_tag(cfg.vision_encoder)}_g{cfg.vision_grid}")
     meta_p = os.path.join(out, "meta.json")
     if os.path.exists(meta_p):
         return out
@@ -291,17 +292,18 @@ def _mel_of_group(i: int) -> List[Tuple[str, np.ndarray]]:
     return [(uid, compute_mel(cfg, prep_wave(cfg, wav, sr), frames[uid])) for uid, wav, sr in _MEL_JOB["groups"][i]["loader"]()]
 
 
-def cache_mel(cfg, builder, manifest: Dict, splits: Dict, adir: str, logger) -> str:
+def cache_mel(cfg, builder, manifest: Dict, splits: Optional[Dict], adir: str, logger, root: Optional[str] = None) -> str:
     """Mel targets of the renderer, in the feature space of the configured vocoder.  A separate, cheap pass
-    (no speech encoder), so switching vocoder never re-extracts the expensive streams."""
-    out = os.path.join(cfg.cache_dir, f"mel_{cfg.mel_spec}_{os.path.basename(adir)[6:]}")
+    (no speech encoder), so switching vocoder never re-extracts the expensive streams.  ``root``: the manifest is
+    that of extra spoken data (training only, cached under ``root``)."""
+    out = os.path.join(root or cfg.cache_dir, f"mel_{cfg.mel_spec}_{os.path.basename(adir)[6:]}")
     if os.path.exists(os.path.join(out, "index.json")):
         return out
     os.makedirs(out, exist_ok=True)
     frames = {k: v[2] for k, v in load_json(os.path.join(adir, "index.json")).items()}
     utts = [u for u in manifest["utts"] if u["has_audio"] and u["uid"] in frames]
     mels, index, off = [], {}, 0
-    groups = builder.audio_groups(utts)
+    groups = builder.extra_audio_groups(utts) if root else builder.audio_groups(utts)
     # Pure CPU work, one source file per task: spread over worker processes where the platform can fork (the tasks
     # are closures over open corpora).  Results come back in order, so the cache is the same as from one process.
     n_proc = min(len(groups), max(1, cfg.num_workers))
@@ -324,8 +326,8 @@ def cache_mel(cfg, builder, manifest: Dict, splits: Dict, adir: str, logger) -> 
     _MEL_JOB.clear()
     arr = np.concatenate(mels)
     np.save(os.path.join(out, "mel.npy"), arr)
-    img_split = splits["images"]
-    train = [index[u["uid"]] for u in utts if img_split[manifest["images"][u["img"]]["id"]] == "train"][:3000] or list(index.values())[:3000]
+    img_split = splits["images"] if splits else {}
+    train = [index[u["uid"]] for u in utts if img_split.get(manifest["images"][u["img"]]["id"], "train") == "train"][:3000] or list(index.values())[:3000]
     sample = np.concatenate([np.asarray(arr[o: o + n], np.float32) for o, n in train])
     save_json({"mel_mean": float(sample.mean()), "mel_std": float(sample.std() + 1e-4), "fps": cfg.mel_fps}, os.path.join(out, "stats.json"))
     save_json(index, os.path.join(out, "index.json"))
@@ -339,15 +341,20 @@ def speech_tag(cfg) -> str:
     return f"{_tag(cfg.speech_encoder)}_L{'-'.join(map(str, cfg.speech_sem_layers))}_p{cfg.speech_pool}"
 
 
-def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device, logger) -> str:
-    out = os.path.join(cfg.cache_dir, f"audio_{speech_tag(cfg)}")
+def cache_audio(cfg, builder, manifest: Dict, splits: Optional[Dict], device: torch.device, logger,
+                root: Optional[str] = None) -> str:
+    """Speech streams of every spoken utterance of ``manifest``.  ``root``: the manifest is that of extra spoken
+    data (training only, cached under ``root``; its own statistics are stored but the model normalises with the
+    benchmark's)."""
+    out = os.path.join(root or cfg.cache_dir, f"audio_{speech_tag(cfg)}")
     if os.path.exists(os.path.join(out, "index.json")):
         return out
     os.makedirs(os.path.join(out, "chunks"), exist_ok=True)
     utts = [u for u in manifest["utts"] if u["has_audio"]]
-    groups = builder.audio_groups(utts)
+    groups = builder.extra_audio_groups(utts) if root else builder.audio_groups(utts)
     fe = None
-    pbar = tqdm(total=sum(len(g["uids"]) for g in groups), desc="speech features", dynamic_ncols=True)
+    pbar = tqdm(total=sum(len(g["uids"]) for g in groups), desc="speech features" + (" (extra speech)" if root else ""),
+                dynamic_ncols=True)
     for grp in groups:
         cp = os.path.join(out, "chunks", _tag(grp["key"]) + ".npz")
         if os.path.exists(cp):
@@ -382,8 +389,9 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
         os.replace(cp + ".tmp.npz", cp)
     pbar.close()
 
-    # ---- consolidate chunks into memory-mapped arrays
-    chunk_files = sorted(os.listdir(os.path.join(out, "chunks")))
+    # ---- consolidate chunks into memory-mapped arrays (the chunks of THIS list of groups: a directory listing
+    #      would also pick up what another process working on the same cache has left or not yet written)
+    chunk_files = sorted(_tag(g["key"]) + ".npz" for g in groups)
     zs = [np.load(os.path.join(out, "chunks", c)) for c in chunk_files]
     total = int(sum(z["lens"].sum() for z in zs))
     n_utt = int(sum(len(z["lens"]) for z in zs))
@@ -407,9 +415,9 @@ def cache_audio(cfg, builder, manifest: Dict, splits: Dict, device: torch.device
     np.save(os.path.join(out, "f0stats.npy"), f0)
 
     # ---- normalisation statistics from the training split only
-    img_split = splits["images"]
+    img_split = splits["images"] if splits else {}
     lang_of = {u["uid"]: (u["lang"], manifest["images"][u["img"]]["id"]) for u in utts}
-    tr_rows = [v for k, v in index.items() if img_split[lang_of[k][1]] == "train"]
+    tr_rows = [v for k, v in index.items() if img_split.get(lang_of[k][1], "train") == "train"]
     rng = np.random.default_rng(0)
     pick = [tr_rows[i] for i in rng.permutation(len(tr_rows))[:3000]] or list(index.values())[:3000]
     xs = np.concatenate([np.asarray(sem[o: o + n], np.float32) for _, o, n in pick])
@@ -453,3 +461,15 @@ class AudioStore:
             mo, mn = self.mel_index[uid]
             out["mel"] = np.array(self.mel[mo: mo + min(mn, int(round(n_use * mel_fps / 25.0)))], dtype=np.float32)
         return out
+
+
+class AudioStores:
+    """The benchmark's own speech cache and those of extra spoken data, read as one.  Normalisation statistics are
+    the benchmark's: the model is built from them and extra data must not move them."""
+
+    def __init__(self, stores: List[AudioStore]) -> None:
+        self.stores, self.stats = list(stores), stores[0].stats
+        self.index: Dict[str, int] = {uid: k for k, st in enumerate(self.stores) for uid in st.index}
+
+    def get(self, uid: str, max_frames: int, mel_fps: float = 50.0) -> Dict[str, np.ndarray]:
+        return self.stores[self.index[uid]].get(uid, max_frames, mel_fps)

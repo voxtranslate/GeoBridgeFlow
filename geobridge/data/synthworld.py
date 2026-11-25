@@ -70,7 +70,8 @@ class SynthWorld:
             "sb": [(float(rng.uniform(110, 210)), float(rng.uniform(0.92, 1.1))) for _ in range(2)],
         }
         self.scenes, self.caps = self._make_scenes(rng, cfg.synth_n_images)
-        self.x_scenes: List = []   # extra scenes (hub-language text only), appended after the benchmark's own
+        self.x_scenes: Dict[int, List] = {}   # extra scenes by image index (they follow the benchmark's own images)
+        self.x_caps: List[Dict] = []          # captions of the extra scenes that are also spoken
 
     # ------------------------------------------------------------------ lexicons
     def _stems(self, rng, n: int, used: set) -> List[List[Tuple[str, str]]]:
@@ -183,21 +184,28 @@ class SynthWorld:
         return {"name": "synthworld", "langs": SYNTH_LANGS, "images": images, "utts": utts,
                 "meta": {"grid": self.g, "colors": COLOR_NAMES[: self.nc], "shapes": SHAPES[: self.ns]}}
 
-    def extra_manifest(self, n: int) -> Dict:
-        """``n`` more scenes with captions in the hub language only, as text: what a high-resource language has
-        plenty of.  Drawn from the same world with their own random stream, so the benchmark itself is untouched."""
-        n = 4 * len(self.scenes) if n < 0 else n
-        H = self.cfg.hub_langs[0]
-        self.x_scenes, caps = self._make_scenes(np.random.default_rng(20261122), n)
-        images = [{"id": f"xim{i:05d}", "scene": sc, "official_split": "train", "extra": True} for i, sc in enumerate(self.x_scenes)]
-        utts = [{"uid": f"{H}/xim{c['img']:05d}/{c['cap']}", "img": c["img"], "cap": c["cap"], "lang": H,
-                 "text": self.text([(o[1], o[2]) for o in c["objs"]], H), "has_audio": False, "spk": "",
-                 "content": [(o[1], o[2]) for o in c["objs"]], "cells": [o[0] for o in c["objs"]]} for c in caps]
-        return {"name": "synthworld_extra", "images": images, "utts": utts, "meta": {"scenes": n}}
+    def extra_manifest(self, n: int, speech: bool = False, first: Optional[int] = None) -> Dict:
+        """``n`` more scenes with captions in the hub language only - as text, and with ``speech`` also spoken:
+        what a high-resource language has plenty of.  Drawn from the same world with their own random streams, so
+        the benchmark itself is untouched.  ``first``: index of the first of these images among all images."""
+        n = (len(self.scenes) if speech else 4 * len(self.scenes)) if n < 0 else n
+        H, tag = self.cfg.hub_langs[0], ("xsp" if speech else "xim")
+        scenes, caps = self._make_scenes(np.random.default_rng(20261123 if speech else 20261122), n)
+        first = len(self.scenes) + len(self.x_scenes) if first is None else first
+        self.x_scenes.update({first + i: sc for i, sc in enumerate(scenes)})
+        row0 = len(self.caps) + len(self.x_caps)
+        if speech:
+            self.x_caps += caps
+        images = [{"id": f"{tag}{i:05d}", "scene": sc, "official_split": "train", "extra": True} for i, sc in enumerate(scenes)]
+        utts = [{"uid": f"{H}/{tag}{c['img']:05d}/{c['cap']}", "img": c["img"], "cap": c["cap"], "lang": H,
+                 "text": self.text([(o[1], o[2]) for o in c["objs"]], H), "has_audio": speech,
+                 "spk": f"{H}{c['spk_' + H]}" if speech else "", "cap_row": row0 + j if speech else -1,
+                 "content": [(o[1], o[2]) for o in c["objs"]], "cells": [o[0] for o in c["objs"]]} for j, c in enumerate(caps)]
+        return {"name": "synthworld_extra" + ("_speech" if speech else ""), "images": images, "utts": utts, "meta": {"scenes": n}}
 
     def _scene(self, img: int) -> List:
         """Scene of an image index: the benchmark's own images first, then the extra ones."""
-        return self.scenes[img] if img < len(self.scenes) else self.x_scenes[img - len(self.scenes)]
+        return self.scenes[img] if img < len(self.scenes) else self.x_scenes[img]
 
     # ------------------------------------------------------------------ vision
     def vision_tokens(self, img: int) -> np.ndarray:
@@ -256,7 +264,7 @@ class SynthWorld:
 
     # ------------------------------------------------------------------ speech synthesis
     def synth(self, cap_row: int, lang: str, sr: int = 16000) -> np.ndarray:
-        c = self.caps[cap_row]
+        c = self.caps[cap_row] if cap_row < len(self.caps) else self.x_caps[cap_row - len(self.caps)]
         rng = np.random.default_rng(c["seed"] + (0 if lang == "sa" else 77))
         f_base, fscale = self.speakers[lang][c["spk_" + lang]]
         words = self.words([(o[1], o[2]) for o in c["objs"]], lang)
@@ -291,6 +299,8 @@ class SynthWorld:
 
             groups.append({"key": f"synth_{i // chunk:05d}", "uids": [u["uid"] for u in part], "loader": loader})
         return groups
+
+    extra_audio_groups = audio_groups   # extra spoken captions are synthesised the same way
 
 
 def _vowel(v: str, f0: float, fscale: float, n: int, sr: int, rng) -> np.ndarray:

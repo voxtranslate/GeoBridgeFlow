@@ -32,9 +32,9 @@ hub" (it leaks less than the ODE read-out, not nothing).
   on real data is unknown, and Yorùbá's validation scores fall while it runs. This is the next thing to measure.
 - Missing for any submission: seeds and the baselines of section 3 on real data. (A recogniser now listens to
   the written speech in `infer`; it has not yet run on a trained model.)
-- The benchmark as trained from now on is **Flickr8k-Tri plus hub-language text**: about 23,700 Flickr30k photos
-  with English captions join the training split (no speech, no other language, no Flickr8k photo; validation
-  and test unchanged). This has to be stated wherever a number is compared with work trained on Flickr8k alone
+- The benchmark as trained from now on is **Flickr8k-Tri plus hub-language data**: about 23,700 Flickr30k photos
+  with English captions (text) and the 5,000 SpokenCOCO test photos with 25,031 spoken captions (text and
+  speech) join the training split (no other language, no Flickr8k photo; validation and test unchanged). This has to be stated wherever a number is compared with work trained on Flickr8k alone
   (Oneata & Kamper 2024 among them), and the `data` ablation (`extra_images = 0`) is the like-for-like row.
 
 Negative result worth a paragraph: entropic Gromov–Wasserstein docking, the roadmap's central proposal, does not
