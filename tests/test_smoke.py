@@ -38,6 +38,45 @@ def test_yin_tracks_pitch():
         assert abs(np.median(f0[f0 > 0]) - f) / f < 0.02
 
 
+def test_highpass_gives_the_trimmer_its_pauses_and_the_pitch_tracker_its_pitch():
+    """Rumble below the voice (as in the YFACC Yoruba recordings) hides both: nothing is trimmed, nothing is voiced."""
+    sr = 16000
+    t = np.arange(4 * sr) / sr
+    seg = slice(sr, 3 * sr)                                              # two seconds of a 150 Hz voice in the middle
+    voice = np.zeros_like(t)
+    voice[seg] = 0.1 * sum(np.sin(2 * np.pi * 150 * k * t[seg]) / k for k in range(1, 6))
+    x = (voice + 0.3 * np.sin(2 * np.pi * 30 * t) + 0.2 * np.sin(2 * np.pi * 45 * t + 1.0)).astype(np.float32)
+    assert len(dsp.trim_silence(x, 35.0, sr)) == len(x) and not (dsp.yin_f0(x[seg], sr)[0] > 0).any()
+    clean = dsp.trim_silence(dsp.highpass(x, 70.0, sr), 35.0, sr)
+    f0 = dsp.yin_f0(clean, sr)[0]
+    assert 1.9 * sr < len(clean) < 2.4 * sr and (f0 > 0).mean() > 0.85 and abs(np.median(f0[f0 > 0]) - 150.0) < 2.0
+    tone = np.sin(2 * np.pi * 200 * t).astype(np.float32)                # the pass band is left alone, 0 switches it off
+    assert np.abs(dsp.highpass(tone, 70.0, sr) - tone).max() < 1e-4 and dsp.highpass(x, 0.0, sr) is x
+    from geobridge.data.features import speech_tag
+    plain, real = Config.preset("synth_tiny"), Config.preset("flickr8k_yo_t4")
+    assert plain.highpass_hz == 0 and speech_tag(plain) == "mfcc" and real.highpass_hz == 70 and speech_tag(real).endswith("_hp70")
+
+
+def test_speech_latent_can_keep_the_order_of_time():
+    """audio_anchor: token k starts from the mean of the k-th span of the utterance, each frame from the tokens
+    around it; reversing an utterance reverses its anchors (a free set of queries has no such order)."""
+    from geobridge.models.audio_codec import AudioCodec
+
+    h = torch.arange(12.0).view(1, 12, 1).repeat(2, 1, 1)
+    mask = torch.ones(2, 12, dtype=torch.bool)
+    mask[1, 8:] = False
+    m = AudioCodec.span_means(h, mask, 4)
+    assert torch.allclose(m[..., 0], torch.tensor([[1.0, 4.0, 7.0, 10.0], [0.5, 2.5, 4.5, 6.5]]))
+    up = AudioCodec.span_upsample(m, mask.sum(1), 12)[..., 0]
+    assert torch.allclose(up[0, [1, 4, 7, 10]], m[0, :, 0]) and bool((up[0, 1:] >= up[0, :-1]).all())
+    assert torch.allclose(up[1, :8], torch.tensor([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 6.5]))
+    x = torch.randn(3, 20, 5)
+    full = torch.ones(3, 20, dtype=torch.bool)
+    assert torch.allclose(AudioCodec.span_means(x.flip(1), full, 5), AudioCodec.span_means(x, full, 5).flip(1), atol=1e-6)
+    short = AudioCodec.span_means(x[:, :3], full[:, :3], 8)               # fewer frames than tokens: empty spans are zero
+    assert short.shape == (3, 8, 5) and torch.isfinite(short).all() and int((short.abs().sum(-1) > 0).sum(1)[0]) == 3
+
+
 def test_fgw_recovers_a_hidden_permutation():
     torch.manual_seed(0)
     x = torch.randn(24, 8)

@@ -195,6 +195,19 @@ def trim_silence(wav: np.ndarray, top_db: float = 35.0, sr: int = 16000, pad_ms:
     return wav[a:b]
 
 
+def highpass(wav: np.ndarray, cutoff_hz: float, sr: int = 16000, ramp_hz: float = 20.0) -> np.ndarray:
+    """Zero-phase high-pass: nothing below ``cutoff - ramp``, everything above ``cutoff``, a raised cosine between.
+    Field recordings can carry most of their energy as rumble below the lowest voice pitch (YFACC Yoruba: half of
+    it below 80 Hz).  That rumble hides the pauses from the silence trimmer and the periodicity from the pitch
+    tracker, and it is what an utterance-normalising speech encoder then normalises by."""
+    if cutoff_hz <= 0 or len(wav) < 32:
+        return wav
+    spec = np.fft.rfft(np.asarray(wav, dtype=np.float64))
+    f = np.fft.rfftfreq(len(wav), 1.0 / sr)
+    g = 0.5 - 0.5 * np.cos(np.pi * np.clip((f - (cutoff_hz - ramp_hz)) / ramp_hz, 0.0, 1.0))
+    return np.fft.irfft(spec * g, len(wav)).astype(np.float32)
+
+
 def resample(wav: np.ndarray, sr_in: int, sr_out: int) -> np.ndarray:
     if sr_in == sr_out:
         return wav.astype(np.float32)

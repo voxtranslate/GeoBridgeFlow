@@ -260,8 +260,9 @@ class SSLFrontend:
 
 
 def prep_wave(cfg, wav: np.ndarray, sr: int) -> np.ndarray:
-    """Resample, trim silence, truncate: the one waveform every stream of an utterance is computed from."""
-    wav = dsp.resample(wav, sr, cfg.sample_rate)
+    """Resample, remove rumble, trim silence, truncate: the one waveform every stream of an utterance is computed
+    from."""
+    wav = dsp.highpass(dsp.resample(wav, sr, cfg.sample_rate), cfg.highpass_hz, cfg.sample_rate)
     wav = dsp.trim_silence(wav, cfg.trim_silence_db, cfg.sample_rate)[: int(cfg.max_audio_sec * cfg.sample_rate)]
     if len(wav) < cfg.sample_rate // 10:
         wav = np.pad(wav, (0, cfg.sample_rate // 10 - len(wav)))
@@ -336,9 +337,10 @@ def cache_mel(cfg, builder, manifest: Dict, splits: Optional[Dict], adir: str, l
 
 
 def speech_tag(cfg) -> str:
+    hp = f"_hp{cfg.highpass_hz:g}" if cfg.highpass_hz > 0 else ""   # another waveform, another cache
     if cfg.speech_encoder == "mfcc":
-        return "mfcc"
-    return f"{_tag(cfg.speech_encoder)}_L{'-'.join(map(str, cfg.speech_sem_layers))}_p{cfg.speech_pool}"
+        return "mfcc" + hp
+    return f"{_tag(cfg.speech_encoder)}_L{'-'.join(map(str, cfg.speech_sem_layers))}_p{cfg.speech_pool}{hp}"
 
 
 def cache_audio(cfg, builder, manifest: Dict, splits: Optional[Dict], device: torch.device, logger,

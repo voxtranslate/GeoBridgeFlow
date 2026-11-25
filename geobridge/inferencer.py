@@ -282,6 +282,7 @@ class Inferencer:
 
         Every rung is vocoded, transcribed by an off-the-shelf English recogniser and scored against the caption:
             vocoder   the real utterance's own log-mel                               (ceiling of mel + vocoder)
+            renderer  the real utterance's own streams -> rendered log-mel           (the renderer, no latent)
             codec     real speech -> speech latent -> decoded streams -> log-mel     (what the speech codec keeps)
             written   caption text -> hub -> written speech latent -> log-mel        (the model's text-to-speech)
             island    island speech -> hub -> written hub-language speech            (speech-to-speech translation)
@@ -302,10 +303,11 @@ class Inferencer:
         ex = self._examples(n, [("txt", H), ("aud", H)])
         refs = [self.evaluator._ref(g, H) for g in ex]
         utts = [self._view_utt(g, "aud", H) for g in ex]
-        wavs: Dict[str, List[np.ndarray]] = {"vocoder": [], "codec": [], "written": []}
+        wavs: Dict[str, List[np.ndarray]] = {"vocoder": [], "renderer": [], "codec": [], "written": []}
         for g, ref, ui in zip(ex, refs, utts):
             sub = _to(self.data._collate_audio([ui], [0]), self.device)
             wavs["vocoder"].append(self.vocode(sub["mel"][0, : int(sub["mel_len"][0])].float().cpu()))
+            wavs["renderer"].append(self.vocode(self.model.audio.render_real(sub)[0, : int(sub["mel_len"][0])].float().cpu()))
             mel, _, streams = self.model.audio.synthesize_mel(self.model.encode("aud", sub), sub["lang"], sub["spk"], sub["f0"])
             wavs["codec"].append(self.vocode(mel[0, : int(streams["mel_len"][0])].float().cpu()))
             wavs["written"].append(self.hub_to_wave(self.text_to_hub([ref], H), H, ui)[0])

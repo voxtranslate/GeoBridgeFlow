@@ -127,8 +127,12 @@ class Resampler(nn.Module):
         self.norm = nn.LayerNorm(dim)
         self.out = nn.Linear(dim, out_dim)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None, anchor: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """``anchor`` [B, n, dim]: what every query starts from in addition to its learned vector (e.g. the mean of
+        its own span of the sequence, which makes the n outputs an ordered summary instead of a free set)."""
         q = self.queries.unsqueeze(0).expand(x.shape[0], -1, -1)
+        if anchor is not None:
+            q = q + anchor
         for blk in self.blocks:
             q = blk(q, ctx=x, ctx_mask=mask)
         return self.out(self.norm(q))

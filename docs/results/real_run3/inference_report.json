@@ -1,0 +1,328 @@
+{
+  "checkpoint_step": 17000,
+  "synthesised_speech": [
+    {
+      "file": "tts_en_0.wav",
+      "lang": "en",
+      "text": "A child is holding a colorful object and overlooking a crowd of people while sitting on the shoulders of an older person .",
+      "seconds": 4.08
+    },
+    {
+      "file": "tts_yo_0.wav",
+      "lang": "yo",
+      "text": "A child is holding a colorful object and overlooking a crowd of people while sitting on the shoulders of an older person .",
+      "seconds": 6.592
+    },
+    {
+      "file": "s2st_yo2en_0.wav",
+      "lang": "en",
+      "text": "A child is holding a colorful object and overlooking a crowd of people while sitting on the shoulders of an older person .",
+      "seconds": 4.288
+    },
+    {
+      "file": "tts_en_1.wav",
+      "lang": "en",
+      "text": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+      "seconds": 3.232
+    },
+    {
+      "file": "tts_yo_1.wav",
+      "lang": "yo",
+      "text": "A young boy in swimming trunks is walking with his arms outstretched on the beach .",
+      "seconds": 7.872
+    },
+    {
+      "file": "tts_en_2.wav",
+      "lang": "en",
+      "text": "A little boy is eating his food off of a spoon while sitting on a patio .",
+      "seconds": 3.488
+    },
+    {
+      "file": "tts_yo_2.wav",
+      "lang": "yo",
+      "text": "A little boy is eating his food off of a spoon while sitting on a patio .",
+      "seconds": 6.64
+    }
+  ],
+  "speech_asr": {
+    "vocoder": {
+      "n": 60,
+      "wer": 4.284323271665044,
+      "content_f1": 94.89043067600974,
+      "chance_content_f1": 6.483801974035868
+    },
+    "codec": {
+      "n": 60,
+      "wer": 203.2132424537488,
+      "content_f1": 0.07906900992206327,
+      "chance_content_f1": 0.09713425377400647
+    },
+    "written": {
+      "n": 60,
+      "wer": 174.29406037000973,
+      "content_f1": 0.23510279917702978,
+      "chance_content_f1": 0.028996232443489398
+    },
+    "island_yo": {
+      "n": 60,
+      "wer": 202.63459335624285,
+      "content_f1": 0.09679532809456101,
+      "chance_content_f1": 0.09679532809456103
+    }
+  },
+  "path_straightness": {
+    "hub -> text (write)": 0.9745469689369202,
+    "speech:yo -> hub (backward ODE)": 0.9847337603569031
+  },
+  "hub_centroid_gap": {
+    "txt:en|txt:hi": 0.06810446083545685,
+    "txt:en|aud:en": 0.06904953718185425,
+    "txt:en|aud:yo": 0.20693227648735046,
+    "txt:en|img:-": 0.0693010613322258,
+    "txt:hi|aud:en": 0.07774758338928223,
+    "txt:hi|aud:yo": 0.20836877822875977,
+    "txt:hi|img:-": 0.09225010126829147,
+    "aud:en|aud:yo": 0.21982982754707336,
+    "aud:en|img:-": 0.10209163278341293,
+    "aud:yo|img:-": 0.21828854084014893
+  },
+  "hub_alignment": {
+    "alpha=0.0": {
+      "match_acc": 2.083333395421505,
+      "mass_on_true_pairs": 0.8288177661597729,
+      "row_entropy": 0.9808834791183472,
+      "max_prob": 0.016937294974923134,
+      "used_cols": 1.0
+    },
+    "alpha=0.5": {
+      "match_acc": 10.41666641831398,
+      "mass_on_true_pairs": 4.671167582273483,
+      "row_entropy": 0.6361231207847595,
+      "max_prob": 0.18735863268375397,
+      "used_cols": 1.0
+    },
+    "alpha=1.0": {
+      "match_acc": 10.41666641831398,
+      "mass_on_true_pairs": 5.983804166316986,
+      "row_entropy": 0.46817120909690857,
+      "max_prob": 0.3049964904785156,
+      "used_cols": 1.0
+    },
+    "relational_isometry_r": 0.4501251475272647
+  },
+  "tone": {
+    "gate": {
+      "en": 0.5572181344032288,
+      "yo": 0.3824722468852997
+    },
+    "pitch_scaling": {
+      "en": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          0.09105143696069717,
+          0.051998987793922424,
+          0.02269807457923889,
+          0.0,
+          0.012643687427043915,
+          0.03348346799612045
+        ],
+        "color_acc": []
+      },
+      "yo": {
+        "scales": [
+          0.0,
+          0.25,
+          0.5,
+          1.0,
+          1.5,
+          2.0
+        ],
+        "hub_displacement": [
+          0.05195741355419159,
+          0.026161015033721924,
+          0.01063016802072525,
+          0.0,
+          0.006040300242602825,
+          0.016413332894444466
+        ],
+        "color_acc": []
+      }
+    },
+    "contour_corr_yo": 0.304790645766391
+  },
+  "speech_attribution": {
+    "en": {
+      "tone_stream_share_of_attribution": 0.011645604856312275
+    },
+    "yo": {
+      "tone_stream_share_of_attribution": 0.0017786301905289292
+    }
+  },
+  "ode": {
+    "score_vs_steps": {
+      "1": 11.209133575734066,
+      "2": 11.629501461906935,
+      "4": 11.522552454325139,
+      "8": 11.50854240221878,
+      "16": 8.631902683555593
+    },
+    "plain_cycle_vs_steps": {
+      "euler": {
+        "1": 0.9353410005569458,
+        "2": 1.0432870388031006,
+        "4": 1.125813603401184,
+        "8": 1.0936121940612793,
+        "16": 0.7904441952705383,
+        "32": 0.3500891327857971
+      },
+      "midpoint": {
+        "1": 1.84891939163208,
+        "2": 1.222487449645996,
+        "4": 0.865305483341217,
+        "8": 0.2736889123916626,
+        "16": 0.01264198124408722,
+        "32": 0.0008566159522160888
+      }
+    }
+  },
+  "fertility": {
+    "grapheme (ours)": {
+      "en": {
+        "units_per_word": 4.636949339207049,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 4.830550866003876,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 0.785958451177081,
+        "bytes_per_grapheme": 1.2723318879036956
+      },
+      "hi": {
+        "units_per_word": 3.219874761775116,
+        "units_per_grapheme": 1.0694288711252578,
+        "units_per_byte": 0.29100885826771655,
+        "bytes_per_grapheme": 3.674901435960502
+      }
+    },
+    "byte": {
+      "en": {
+        "units_per_word": 4.636949339207049,
+        "units_per_grapheme": 1.0,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 6.146063902957544,
+        "units_per_grapheme": 1.2723318879036956,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 1.2723318879036956
+      },
+      "hi": {
+        "units_per_word": 11.064524911516472,
+        "units_per_grapheme": 3.674901435960502,
+        "units_per_byte": 1.0,
+        "bytes_per_grapheme": 3.674901435960502
+      }
+    },
+    "BPE-2000 (hub language only)": {
+      "en": {
+        "units_per_word": 1.1752753303964758,
+        "units_per_grapheme": 0.2534587385846782,
+        "units_per_byte": 0.2534587385846782,
+        "bytes_per_grapheme": 1.0
+      },
+      "yo": {
+        "units_per_word": 4.688613768523729,
+        "units_per_grapheme": 0.9706167885573749,
+        "units_per_byte": 0.7628644678210267,
+        "bytes_per_grapheme": 1.2723318879036956
+      },
+      "hi": {
+        "units_per_word": 11.058480805880752,
+        "units_per_grapheme": 3.672893984880819,
+        "units_per_byte": 0.9994537401574803,
+        "bytes_per_grapheme": 3.674901435960502
+      }
+    }
+  },
+  "hub_agreement": {
+    "txt:en|aud:en": {
+      "same_mean_cos": 0.5666807293891907,
+      "diff_mean_cos": 0.14582566916942596,
+      "auc": 0.8208875
+    },
+    "aud:yo|txt:en": {
+      "same_mean_cos": 0.2841761112213135,
+      "diff_mean_cos": 0.04040355235338211,
+      "auc": 0.74475
+    },
+    "aud:yo|aud:en": {
+      "same_mean_cos": 0.27462995052337646,
+      "diff_mean_cos": 0.020229006186127663,
+      "auc": 0.761025
+    }
+  },
+  "lora_relative_norm": {
+    "txt": {
+      "en": 0.15534420311450958,
+      "yo": 0.0,
+      "hi": 0.20285534858703613
+    },
+    "aud": {
+      "en": 0.15355746448040009,
+      "yo": 0.16025997698307037,
+      "hi": 0.0
+    }
+  },
+  "hub_vs_private_probe": {
+    "en/private_rms": 0.8093830347061157,
+    "yo/private_rms": 0.8642405271530151
+  },
+  "codec_reconstruction": {
+    "en": {
+      "segmental_cosine": 0.3656213581562042,
+      "mel_l1": 0.1692562997341156
+    },
+    "yo": {
+      "segmental_cosine": 0.4845418632030487,
+      "mel_l1": 0.12363437563180923
+    }
+  },
+  "read_write_modes": {
+    "aud:yo": {
+      "read_mode": {
+        "reader (one pass)": 11.89387594003352,
+        "backward ODE": 10.315328268702514
+      },
+      "draft_t0": {
+        "0.0": 11.89387594003352,
+        "0.25": 12.081670689091865,
+        "0.5": 11.966482098953174,
+        "0.75": 12.614298526220008,
+        "1.0": 11.851818338977354
+      }
+    },
+    "aud:en": {
+      "read_mode": {
+        "reader (one pass)": 19.82303879910964,
+        "backward ODE": 14.366284701175069
+      },
+      "draft_t0": {
+        "0.0": 19.82303879910964,
+        "0.25": 19.733858143901745,
+        "0.5": 18.156093424449196,
+        "0.75": 18.715447117097057,
+        "1.0": 18.074059279761705
+      }
+    }
+  }
+}

@@ -153,7 +153,37 @@ class AudioCodec(nn.Module):
         h = h + sincos(torch.arange(h.shape[1], device=h.device), h.shape[-1]) + self.lang_emb(lang).unsqueeze(1)
         for blk in self.enc:
             h = blk(h, mask=mask)
-        return standardize_tokens(self.resampler(h, mask))
+        anchor = self.span_means(h, mask, self.cfg.n_tokens) if self.cfg.audio_anchor else None
+        return standardize_tokens(self.resampler(h, mask, anchor))
+
+    # ------------------------------------------------------------------ a latent that keeps the order of time
+    # Speech, unlike a caption's bytes, is reconstructed by regression, and the regression has a comfortable
+    # resting place: every latent token the utterance mean, every frame decoded to that mean.  On real speech
+    # that is where a set of free queries stays (measured on Flickr8k: reconstructions constant in time, written
+    # speech a hum).  With ``audio_anchor`` token k starts from the mean of the k-th of N equal spans of the
+    # utterance and each frame starts from the tokens of its own span, so the order of time is in the latent
+    # by construction and attention only has to add detail.
+    @staticmethod
+    def span_means(h: torch.Tensor, mask: torch.Tensor, n: int) -> torch.Tensor:
+        """Masked mean of the frames over n equal spans of each utterance's own length: [B, T, W] -> [B, n, W]."""
+        T = h.shape[1]
+        length = mask.sum(1, keepdim=True).clamp_min(1)                                    # [B, 1]
+        span = (torch.arange(T, device=h.device).unsqueeze(0) * n // length).clamp_max(n - 1)   # [B, T]
+        w = F.one_hot(span, n).to(h.dtype) * mask.unsqueeze(-1).to(h.dtype)                 # [B, T, n]
+        return torch.einsum("btn,btw->bnw", w, h) / w.sum(1).clamp_min(1).unsqueeze(-1)
+
+    @staticmethod
+    def span_upsample(ctx: torch.Tensor, n_frames: torch.Tensor, T: int) -> torch.Tensor:
+        """The inverse layout: every frame gets the linear interpolation of the tokens around its own position.
+        [B, n, W] -> [B, T, W]"""
+        n, W = ctx.shape[1], ctx.shape[2]
+        pos = torch.arange(T, device=ctx.device).unsqueeze(0).float()
+        u = ((pos + 0.5) / n_frames.clamp_min(1).unsqueeze(1).float() * n - 0.5).clamp(0, n - 1)   # [B, T]
+        lo = u.floor().long()
+        hi = (lo + 1).clamp_max(n - 1)
+        a = (u - lo.float()).unsqueeze(-1).to(ctx.dtype)
+        take = lambda i: ctx.gather(1, i.unsqueeze(-1).expand(-1, -1, W))
+        return (1 - a) * take(lo) + a * take(hi)
 
     # ------------------------------------------------------------------ decoder
     def _frame_queries(self, n_frames: torch.Tensor, T: int, W: int, device) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -172,12 +202,17 @@ class AudioCodec(nn.Module):
         q, mask = self._frame_queries(n_frames, T, W, z.device)
         ctx = self.lat_in(z) + self.lat_pos
         h = q + byp
+        up = self.span_upsample(ctx, n_frames, T) if self.cfg.audio_anchor else None
+        if up is not None:
+            h = h + up
         for blk in self.dec:
             h = blk(h, mask=mask, ctx=ctx)
         sem = self.sem_out(self.dec_norm(h))
         # prosody head: stop-gradient on the latent (it must not force pitch into the latent)
         ctx_p = self.lat_in(z.detach()).detach() + self.lat_pos.detach()
         hp = q.detach() + self.byp_in(bypass).unsqueeze(1)
+        if up is not None:
+            hp = hp + up.detach()
         for blk in self.pros_dec:
             hp = blk(hp, mask=mask, ctx=ctx_p)
         return {"sem": sem, "pros": self.pros_out(hp), "mask": mask}
@@ -250,6 +285,17 @@ class AudioCodec(nn.Module):
         ratio = self.cfg.mel_fps / 25.0
         mel = self.renderer(out["sem"], tone3, p, int(round(out["sem"].shape[1] * ratio))) * self.mel_std + self.mel_mean
         return mel, n_frames, {"sem": out["sem"], "tone3": tone3, "mel_len": torch.round(n_frames.float() * ratio).long()}
+
+
+    @torch.no_grad()
+    def render_real(self, aud: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """Log-mel rendered from the REAL streams of an utterance (segmental features, contour, bypass code): what
+        the renderer does on its own, with no latent in the way.  -> [B, T_mel, n_mels]"""
+        tone = aud["tone"]
+        tone3 = torch.stack([tone[..., 0], tone[..., 1], tone[..., 3]], -1)
+        n_mel = int(round(aud["sem"].shape[1] * self.cfg.mel_fps / 25.0))
+        mel = self.renderer(self.norm_sem(aud["sem"]), tone3, self.bypass_code(aud["spk"], aud["f0"]), n_mel)
+        return mel * self.mel_std + self.mel_mean
 
 
 def cross_correlation(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:

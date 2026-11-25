@@ -1,0 +1,8 @@
+13:07:34 | [ablation] 3 runs in 2 group(s), 3 without results yet.  Order: the full model, then variants that reuse a representation that exists (one transport phase each), then the others (0 more representation phase(s) to train).
+13:07:34 | [cell] island / hub-space back-translation, transport-rectified (ours) / seed 0  (the main run, /kaggle/working/geobridge/runs/flickr8k_yo_t4_v5)
+13:07:46 | [cell] test scores taken from /kaggle/working/geobridge/runs/flickr8k_yo_t4_v5/eval_test.json
+13:07:46 | [phase A] representation dd20125f0f taken from the main run: /kaggle/working/geobridge/runs/flickr8k_yo_t4_v5/checkpoints/phase_a.pt
+13:07:46 | [cell] island / bridge pairs only (unpaired speech unused in phase B) / seed 0
+15:21:58 | [phase A] representation dd20125f0f taken from the main run: /kaggle/working/geobridge/runs/flickr8k_yo_t4_v5/checkpoints/phase_a.pt
+15:21:58 | [cell] decoder / decoder frozen after the representation phase / seed 0
+17:05:29 | [ablation] tables and plots in /kaggle/working/geobridge/runs/flickr8k_yo_t4_v5_ablation

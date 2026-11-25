@@ -54,6 +54,9 @@ class Config:
                                          # speech that fills every extra place (island speech -> text 33 % -> 58 %),
                                          # but at a fifth of the places grounded speech does no damage and listening
                                          # is the worse of the two (68 % against 77 %).  For large shares; an ablation
+    audio_anchor: bool = False           # speech latent that keeps the order of time (see AudioCodec.span_means)
+    highpass_hz: float = 0.0             # high-pass every recording before trimming, pitch tracking and feature
+                                         # extraction (0 = off; 70 in the real presets: below the lowest voice pitch)
     # Role of every language.  A language can appear in several roles.
     hub_langs: Tuple[str, ...] = ("en",)        # (image, text, audio) triplets
     island_langs: Tuple[str, ...] = ("yo",)     # speech only; text is never seen in training
@@ -376,7 +379,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "audio_anchor", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -408,7 +411,7 @@ _SYNTH = dict(
 # Deliberately NOT here: dropout, anywhere upstream of the hub.  Measured on SynthWorld it destroys the two-object
 # coverage that the credit loss buys: 13 % against 93 % in the codecs, grounder and explainer; 15 % against 97 %
 # confined to the encoders.
-_REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence")
+_REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0)
 # More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training
 # images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
 # are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;

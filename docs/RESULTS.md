@@ -336,7 +336,7 @@ step 9,000; the last state is step 22,000.
   everything a sentence says does not survive noise in the latent it has to explain. The representation phase's
   overfitting on Flickr8k therefore has no remedy in this repository beyond selecting an early state.
 
-**Third round: more data, and the remaining problems of the analysis** (nothing of this has run on a GPU yet).
+**Third round: more data, and the remaining problems of the analysis** (first run on a GPU: the third run, below).
 
 - *More data for the hub language.* The full real presets now add the Flickr30k photos with their English
   captions to the training split, as text (`docs/METHOD.md`, section 1). Flickr30k contains the Flickr8k photos
@@ -395,7 +395,7 @@ step 9,000; the last state is step 22,000.
 - *Preparation:* the mel pass runs in worker processes; the cache it writes is identical to the old one, bit for
   bit (checked on a 60-image subset). A GPU that runs out of memory now says which setting to lower.
 
-**Fourth round: speech** (again nothing on a GPU yet).
+**Fourth round: speech** (first run on a GPU: the third run, below).
 
 - *More real speech for the hub language.* The test part of SpokenCOCO joins the training split: 5,000 COCO
   photos whose 25,031 captions were read aloud by 1,766 speakers (the Flickr8k recordings have 183). The mirror
@@ -493,6 +493,72 @@ step 9,000; the last state is step 22,000.
   With the extra text in place neither this nor the reader's exposure to written speech moves the island's
   translation (73.8 % with both, 73.8 % with neither). Both stay on: they cost nothing there, and each answers
   something seen on Flickr8k that SynthWorld does not reproduce.
+
+**Real data: the third full run. Text is better, the island is where it was, and the model does not speak**
+(Flickr8k-Tri plus Flickr30k text and SpokenCOCO speech, Kaggle 2 × T4, run `flickr8k_yo_t4_v5`: 8,000 + 10,000
+steps, 2.4 h + 1.7 h; test scores at the selected state, step 17,000; files in `docs/results/real_run3/`).
+
+| Test split | second run | third run |
+|---|---|---|
+| Yorùbá speech → English text, BLEU / chrF++ | 3.6 / 18.7 | 4.2 / 19.6 |
+| ... content F1 (chance level) | – | 11.5 (6.7) |
+| English speech → text, word error rate | 85.1 % | 81.5 % |
+| Captioning, multi-reference BLEU | 8.6 | 9.3 |
+| English → Hindi / Hindi → English, BLEU | 5.1 / 6.1 | 5.6 / 7.4 |
+| Text → written image, R@1 | 11.8 % | 23.2 % |
+| Yorùbá speech → image, R@1 | 1.0 % | 1.2 % |
+| Text codec alone, character error rate (validation) | 28.5 % | 2.0 % |
+
+- *The extra text did what text can do.* The text codec is now exact, a caption finds its image twice as often,
+  and every output is a fluent caption. What passes through the hub is still the kind of scene and not the
+  sentence: text read and written again has 73 % word error rate (validation) while the codec alone has 2 % character
+  error rate, so the loss is in the hub, as designed and as before.
+- *Back-translation does nothing that can be measured on real data.* With the unpaired Yorùbá speech left out of
+  the transport phase, Yorùbá speech → English text has content F1 11.2 (chance 6.2) against 11.5 (chance 6.7),
+  BLEU 3.8 against 4.2, and every other direction is equal or slightly better without it (text read and written
+  again 26.6 against 25.3, captioning 10.9 against 9.3). One seed; the central claim about the island has no
+  support on Flickr8k.
+- *The decoder's exposure to written latents is what makes the text readable.* The variant with the decoder
+  frozen after the representation phase was cut by the session limit at step 15,000 and has no test scores,
+  but its validation curve is flat from the start at about 10 content F1 for text read and written again,
+  8 for English speech and 5 to 6 for Yorùbá speech, against 26, 19 and 11 to 12 with exposure. This is the
+  first component with clear support on real data.
+- *Reading in one pass is better than inverting the flow:* Yorùbá speech → text 11.9 against 10.3 content F1,
+  English speech 19.8 against 14.4 (inference sample).
+- *The model does not speak.* A recogniser that was not trained with the model hears the vocoder alone almost
+  word for word (4 % word error rate, content F1 95), and nothing at all in anything that has been through the
+  speech codec: "Mmm", "Shh shh shh" (content F1 0.1 for the codec's own reconstruction of a real utterance,
+  0.2 for speech written from text, 0.1 for Yorùbá speech translated into English speech). The codec's
+  reconstruction of the segmental stream is constant in time (`codec_reconstruction.png`): the 16 latent
+  tokens hold the utterance's mean and nothing about its order. Every score that involved written speech in
+  the first three runs measured that hum.
+- *The same fact explains the listening side.* All eight hub slots of a spoken caption look at the same
+  patches, where those of the written caption differ; held-out speech codec error has not moved since step
+  4,000 (0.82 of the feature variance, training 0.63); the reader's error on held-out speech rises through
+  the transport phase (0.223 to 0.235) while the training error falls, augmentation or not. A speech latent
+  that is one vector can carry the kind of scene and cannot carry more.
+- *The Yorùbá recordings were half noise, and their pitch was never seen.* Half of the energy of the YFACC
+  recordings is rumble below 80 Hz (English: 0.2 %). It hid the pauses from the silence trimmer, so a Yorùbá
+  utterance was 7.3 s long where 4.0 s of it is speech, and it hid the periodicity from the pitch tracker,
+  which marked 9 % of the Yorùbá frames as voiced (English 38 %; three Yorùbá utterances in four had almost no
+  pitch at all). Measured on the recordings themselves (30 utterances per language), not inferred from the
+  run. So the tonality results of all three runs are void: the gate of the tonal language closed further than
+  the English one (0.38 against 0.56), flattening the pitch changed nothing (10.6 against 10.8 content F1) and
+  pitch had 0.2 % of the attribution, because there was no pitch to use.
+- *Unexplained:* written with 16 integration steps and read by the inverted flow the score drops (8.6 against
+  11.5 with 2 to 8 steps). The default path (reader, 4 steps) is not affected; not investigated.
+- *Still no docking* (2 to 10 % of the island utterances matched, chance 2 %), *still one seed*, and the island
+  still sits apart in the hub (centroid gap 0.21 where the other views are 0.07 to 0.10 from each other).
+
+**What was changed after the third run.**
+
+- *Recordings are high-passed at 70 Hz before anything is computed from them* (`highpass_hz`, real presets).
+  On the same 30 + 30 utterances: Yorùbá mean length 7.3 s → 4.0 s, voiced frames 9 % → 35 %, utterances with
+  almost no pitch 63 % → 10 %; English 3.4 s → 3.2 s and 38 % → 39 %. The features have a new cache name, so
+  they are extracted again.
+- *A speech latent that keeps the order of time* (`audio_anchor`): being measured on real speech features (codec-only runs were in progress when this was written).
+- *The recogniser's ladder has a rung for the renderer alone* (the real streams rendered and vocoded), so the
+  next run says whether what is lost is lost in the latent or in the renderer.
 
 **What is not fixed, and why.**
 
