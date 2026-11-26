@@ -105,10 +105,11 @@ fifth round):
   SynthWorld, whose captions of one scene name different objects, it is harmful and it is off; whether it helps
   on real captions, which paraphrase each other, is the first trained ablation after the next run.
 - *Speech read at frame rate with attention* (every retrieval system; mean pooling costs 15 to 20 points of top-1
-  in Krahn & Fosler-Lussier 2026). Now listening tokens.
+  in Krahn & Fosler-Lussier 2026). Built as listening tokens and left off: the gain of a first short run on
+  real speech was not there with a second seed, and with the SigLIP 2 image space they cost 13 points of R@10.
 - *Patch features trained to be dense.* The image space is now SigLIP 2 on an 8 × 8 grid: on the same real
-  subset and short schedule, held-out English speech finds its image in the top ten twice as often as with
-  SigLIP at 7 × 7.
+  subset and short schedule, two seeds, held-out English speech finds its image in the top ten in 38 % of
+  cases against 22 % with SigLIP at 7 × 7, Yorùbá speech in 31 % against 20 %.
 - *A mid layer of a base-size multilingual speech model* is what the low-resource word-level work recommends
   (mHuBERT-147 layer 8 beats HuBERT-Large and WavLM-Large in Pirlogeanu et al. 2026). That is the encoder
   already in use; no change.

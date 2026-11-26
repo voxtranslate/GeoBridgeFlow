@@ -109,7 +109,7 @@ or that aligns fully unpaired speech to a multimodal space by optimal transport.
 | All image pairs of the low-resource language | Oneata & Kamper | `bridge_frac = 1` in the real presets |
 | Several sampled captions per image from a pretrained captioner | Oneata & Kamper | `captioner`, `gen_captions = 5` |
 | Speech → caption supervision through the image | Oneata & Kamper | image-sibling transport, in hub space |
-| Frame-rate reading with attention | SpeechCLIP, Zhou & Li, Krahn & Fosler-Lussier | listening tokens |
+| Frame-rate reading with attention | SpeechCLIP, Zhou & Li, Krahn & Fosler-Lussier | built as listening tokens; off: a first gain on real speech did not repeat with a second seed, and they cost 13 points with SigLIP 2 |
 | Mid layer of a base multilingual speech model | Pirlogeanu et al. | already the encoder (mHuBERT-147, layers 8–9) |
 | Soft targets over the captions of an image | cross-modal denoising | already in the grounding loss (all views of an image are positives) |
 | BLEU with 1 to 5 references, their settings | Oneata & Kamper | `bleu_r1` … `bleu_r5` |

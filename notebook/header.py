@@ -54,7 +54,7 @@ PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k
                                  # "google/siglip-base-patch16-224", "vision_grid": 7} is the tower of the runs so far.
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = "flickr8k_yo_t4_v7"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+EXP_NAME = "flickr8k_yo_t4_v8"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
                                  # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 

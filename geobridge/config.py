@@ -481,17 +481,17 @@ _SYNTH = dict(
 # confined to the encoders.
 _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0,
              audio_anchor="extra", audio_private_slots=24,
-             # the hub also hears speech span by span.  Measured on real speech (1,200-image subset, short run):
-             # English speech finds its image in the top ten in 30 % of held-out cases with them, 19 % without.
-             # On SynthWorld, whose utterances are a few syllables, they slow grounding down and stay off
-             listen_tokens=32,
+             # (listening tokens, `listen_tokens`, are NOT here.  On the 1,200-image subset, two seeds each, short
+             #  runs: with the image space below they cost held-out English speech -> image R@10 about 13 points
+             #  (25 % against 38 %), and the 7-to-11-point gain they showed with the earlier image space in one run
+             #  was 0 to 1 in the second)
              # every island utterance keeps its image (the image-pivoted literature trains on all pairs; 0.2 is the
              # scarce-pairs study and the only setting with unpaired speech for back-translation), and outputs are
              # chosen among 4 candidates by reading them back
              bridge_frac=1.0, select_k=4,
-             # patch tokens of SigLIP 2 (trained for dense features) on an 8 x 8 grid.  Same subset, same short run,
-             # against SigLIP at 7 x 7: English speech finds its image in the top ten in 45 % of held-out cases
-             # instead of 19 % (validation; 39 % against 24 % on the test images), English text in 24 % against 15 %
+             # patch tokens of SigLIP 2 (trained for dense features) on an 8 x 8 grid.  Same subset, same short runs,
+             # two seeds, against SigLIP at 7 x 7: held-out English speech finds its image in the top ten in 38 % of
+             # cases instead of 22 %, Yoruba speech in 31 % instead of 20 %, English text in 22 % instead of 18 %
              vision_encoder="google/siglip2-base-patch16-256", vision_grid=8)
 # what only the full real presets add: data and models that have to be downloaded
 _MORE = dict(extra_images=-1, extra_speech=-1, captioner="microsoft/git-large-coco", gen_captions=5)

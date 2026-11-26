@@ -116,7 +116,7 @@ GROUPS: Dict[str, Dict] = {
         "question": "What does the speech latent need in order to be said again?",
         "variants": [
             ("content tokens + a speaking path with time-ordered tokens", {"audio_anchor": "extra", "audio_private_slots": "speak"}),
-            ("the hub reads the content tokens only (no listening tokens)", {"listen_tokens": 0}),
+            ("the hub also reads 32 listening tokens (the encoder's states, span by span)", {"listen_tokens": 32}),
             ("free queries only (no order of time)", {"audio_anchor": "off", "audio_private_slots": 0}),
             ("every token laid out in time, all read by the hub", {"audio_anchor": "all", "audio_private_slots": 0}),
         ]},

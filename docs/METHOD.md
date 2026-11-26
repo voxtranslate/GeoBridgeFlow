@@ -32,8 +32,8 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   `v_p = s · Wᵀ(x_p − μ)`. It is an isometry up to scale on the top-`d` subspace, fitted in float64 from the
   covariance and never updated. The real presets read images through **SigLIP 2** (`google/siglip2-base-patch16-256`,
   whose training adds dense objectives to the image–text one) on an 8 × 8 grid; the hub's barycentres are
-  barycentres of those 64 patches. On the same subset and schedule this roughly doubles how often held-out
-  English speech finds its image, against SigLIP at 7 × 7 (`RESULTS.md`).
+  barycentres of those 64 patches. On the same subset and schedule, two seeds, held-out English speech finds
+  its image in the top ten in 38 % of cases against 22 % with SigLIP at 7 × 7 (`RESULTS.md`).
 - **Recordings** (`data/features.py:prep_wave`): resampled, **high-passed at 70 Hz** (`highpass_hz`, real
   presets), trimmed of leading and trailing silence, truncated. The high-pass is not cosmetic. Half of the
   energy of the YFACC Yorùbá recordings is rumble below 80 Hz; with it the trimmer found no pauses (an utterance
@@ -92,7 +92,10 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   spans of the utterance, projected to the latent width, appended to the encoded latent. The hub's slot
   queries and the reader attend to content and listening tokens together. Nothing is reconstructed from them
   and no writer writes them (a written latent has none, and the hub then reads its content tokens alone), so
-  grounding and reading are the only things that shape them.
+  grounding and reading are the only things that shape them. **Off in every preset**: a first gain on real
+  speech did not repeat with a second seed, and in the SigLIP 2 image space they cost 13 points of held-out
+  speech → image R@10 in both seeds (`RESULTS.md`, fifth round). They remain an option and a variant of the
+  `speech` ablation group.
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
 - **Extra image–text pairs for the hub language** (`extra_images`; `data/flickr8k.py`, `data/dataset.py`). The

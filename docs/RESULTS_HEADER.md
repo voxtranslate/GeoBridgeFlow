@@ -625,8 +625,9 @@ The published Yorùbá speech → English text result that uses only images (One
 with one reference and 15.82 with five; the third run has 4.2 and 8.4. Their system trains on every image
 pair of Yorùbá, on five sampled captions per image from a pretrained captioner, and directly on speech →
 caption. This one trained on a fifth of the pairs, on the human captions only, and tied the island to the hub
-language by nothing but a shared hub code. Each of those differences is removed, inside the hub and without
-giving up the zero-parallel protocol:
+language by nothing but a shared hub code. Each of those differences was taken up, inside the hub and without
+giving up the zero-parallel protocol; not every answer survived its measurement, and those that did not are
+off:
 
 - *Every island utterance keeps its image* (`bridge_frac = 1` in the real presets): about 5,000 pairs instead
   of 985. The 20 % setting stays as the scarce-pairs study and is the only one with unpaired speech, so
@@ -656,26 +657,13 @@ giving up the zero-parallel protocol:
   published number was obtained with. So it may well help there, and that is what the first transport-phase
   ablation of the notebook measures (weight 0.3, writer and decoder only: the form that costs least here).
 - *Listening tokens* (`listen_tokens`): the hub reads the speech encoder's states span by span, beside the
-  content tokens. SynthWorld and real speech disagree, and the presets follow each. On
-  SynthWorld, whose utterances are two to six syllables, they slow grounding down (validation loss 1.83 against
-  0.87 at step 1,250; run stopped), like every other attempt to let the hub read speech tokens that are laid
-  out in time; they stay off there. On real speech, two representation phases on the 1,200-image subset (600
-  steps, batch 24, no speaking path; `docs/results/real_subset_retrieval_*`), held-out retrieval among 91 or 92
-  images, R@1 / R@5 / R@10:
-
-  | | content tokens only | + 24 listening tokens |
-  |---|---|---|
-  | English speech → image, validation (450 queries) | 1.6 / 10.2 / 18.7 % | 2.9 / 13.6 / **29.6 %** |
-  | English speech → image, test (460 queries) | 2.4 / 12.0 / 23.5 % | 2.8 / 14.1 / **30.7 %** |
-  | Yorùbá speech → image, validation (77 queries) | 1.3 / 15.6 / 26.0 % | 0.0 / 15.6 / 24.7 % |
-  | Yorùbá speech → image, test (78 queries) | 1.3 / 7.7 / 11.5 % | 1.3 / 10.3 / 21.8 % |
-  | English text → image, test (460 queries) | 2.0 / 8.7 / 15.4 % | 3.0 / 11.1 / 19.8 % |
-
-  Chance is 1.1 / 5.5 / 11 %. Both models have barely begun to train, so R@1 says nothing yet; in the top ten,
-  English speech gains 7 to 11 points, where the sampling error of 450 queries is about two, and Yorùbá is
-  within its own error of five. One seed, a seventh of the images, a thirteenth of the steps. A real utterance
-  is long and its free summary is an average (third run); read span by span it is found more often. The real
-  presets use 32 listening tokens.
+  content tokens. **Built, measured twice, and off everywhere.** On SynthWorld, whose utterances are two to six
+  syllables, they slow grounding down (validation loss 1.83 against 0.87 at step 1,250; run stopped), like
+  every other attempt to let the hub read speech tokens that are laid out in time. On real speech a first pair
+  of short runs showed a gain (held-out English speech → image R@10 from 19 to 30 % and from 24 to 31 %), and
+  the real presets used them until the comparison was repeated: with a second training seed the gain is 0 to
+  1 point, and in the image space the presets now use they cost 13 points in both seeds (table in the item on
+  the image space, below). One short run had been read as an effect.
 - *The speaking decoder is trained on written latents* (`w_dec_aud`), written from the utterance's own private
   code so that the latent still belongs to the recording's frames. **On SynthWorld it changes nothing**: text →
   hub-language speech → text through the speaking decoder is 13.3 % exact content with it and 13.3 % without
@@ -721,33 +709,27 @@ giving up the zero-parallel protocol:
   weight 0.3), read-back selection (under 1) and the transport-phase rows of section 2 are to be read.
 - *The image space is SigLIP 2 on an 8 × 8 grid* (`vision_encoder = google/siglip2-base-patch16-256`,
   `vision_grid = 8`; SigLIP at 7 × 7 before). SigLIP 2 adds dense objectives to SigLIP's training and loads
-  through the same classes; the hub's barycentres are then barycentres of 64 patches instead of 49. The same
-  two short representation phases as for the listening tokens (1,200-image subset, 600 steps, batch 24, no
-  speaking path, no listening tokens), held-out retrieval among 91 or 92 images, R@1 / R@5 / R@10
-  (`docs/results/real_subset_retrieval_*`):
+  through the same classes; the hub's barycentres are then barycentres of 64 patches instead of 49. Image space
+  and listening tokens were measured together, each arm twice: a representation phase of 600 steps on the
+  1,200-image subset (batch 24, no speaking path), same data and split, two training seeds (`train_seed`).
+  Held-out retrieval among 91 or 92 images, R@10, seed 0 / seed 1 (chance 11 %; `docs/results/real_subset_retrieval_*`):
 
-  | | SigLIP, 7 × 7 | SigLIP 2, 8 × 8 |
-  |---|---|---|
-  | English speech → image, validation (450 queries) | 1.6 / 10.2 / 18.7 % | 5.1 / 24.9 / **44.7 %** |
-  | English speech → image, test (460 queries) | 2.4 / 12.0 / 23.5 % | 4.3 / 19.3 / **39.3 %** |
-  | Yorùbá speech → image, validation (77 queries) | 1.3 / 15.6 / 26.0 % | 5.2 / 20.8 / 29.9 % |
-  | Yorùbá speech → image, test (78 queries) | 1.3 / 7.7 / 11.5 % | 3.8 / 16.7 / **34.6 %** |
-  | English text → image, validation (455 queries) | 2.0 / 9.0 / 14.9 % | 3.1 / 11.9 / 23.5 % |
-  | English text → image, test (460 queries) | 2.0 / 8.7 / 15.4 % | 2.2 / 12.0 / 23.9 % |
-  | Hindi text → image, test (460 queries) | 1.5 / 6.3 / 13.3 % | 1.5 / 6.1 / 12.0 % |
+  | image space | listening tokens | English speech → image: validation, test (450, 460 queries) | Yorùbá speech → image: validation, test (77, 78) | English text → image: validation, test (455, 460) |
+  |---|---|---|---|---|
+  | SigLIP, 7 × 7 | none | 18.7 / 21.6, 23.5 / 23.3 | 26.0 / 23.4, 11.5 / 19.2 | 14.9 / 18.5, 15.4 / 21.3 |
+  | SigLIP, 7 × 7 | 24 | 29.6 / 22.7, 30.7 / 22.4 | 24.7 / 26.0, 21.8 / 23.1 | 19.3 / 16.9, 19.8 / 15.0 |
+  | **SigLIP 2, 8 × 8** | **none** | **44.7 / 38.0, 39.3 / 31.7** | **29.9 / 28.6, 34.6 / 29.5** | 23.5 / 20.0, 23.9 / 20.7 |
+  | SigLIP 2, 8 × 8 | 24 | 25.1 / 27.6, 24.3 / 22.6 | 19.5 / 20.8, 17.9 / 17.9 | 22.2 / 21.3, 21.3 / 19.6 |
+  | mean of the four numbers: | | 21.8, 26.4, **38.4**, 24.9 % | 20.0, 23.9, **30.7**, 19.0 % | 17.5, 17.8, 22.0, 21.1 % |
 
-  English speech finds its image in the top ten about twice as often (sampling error about two points);
-  Yorùbá gains 23 points on the test images and 4 on the validation images, with an error of five; Hindi
-  text, which has one caption per image and the least to learn from, does not move. Tower and grid were
-  changed together, so which of the two it is has not been separated. One seed, a seventh of the images, a
-  thirteenth of the steps; on real data two runs of one representation phase have differed visibly before,
-  though not by a factor of two.
-
-  **The two gains did not add.** A fourth arm with both (SigLIP 2 and 24 listening tokens) has English speech
-  → image R@10 25.1 % on validation and 24.3 % on test, Yorùbá 19.5 % and 17.9 %, English text 22.2 % and
-  21.3 %: the text side keeps what SigLIP 2 gave it, the speech side has lost it. Either listening tokens
-  hurt on the finer grid, or one of the two speech gains above is the luck of a short single run; the four
-  arms are being repeated with another training seed on the same split to tell (below, when done).
+  SigLIP 2 without listening tokens is the best arm for speech in both seeds and on both splits: English
+  speech finds its image in the top ten in 38 % of cases against 22 %, Yorùbá speech in 31 % against 20 %,
+  English text in 22 % against 18 %. Two runs of one arm differ by up to 8 points on English speech, twice the
+  sampling error, so smaller gaps in this table mean nothing; the two that are larger than that in both seeds
+  are the gain of SigLIP 2 without listening tokens (12 to 21 points) and the loss from adding listening
+  tokens to it (10 to 20). Tower and grid were changed together, so which of the two carries the gain has not
+  been separated. A seventh of the images and a thirteenth of the steps of a full run, R@1 still near chance:
+  this is how fast speech starts to be grounded, not how far it gets.
 - *Read-back selection* (`select_k = 4` in the real presets): several candidates are written and the one that
   reads back closest to its hub code is kept. On a SynthWorld checkpoint, no training involved: island speech →
   text 77.1 % → 77.5 % (four candidates) → 77.9 % (eight), two-object sentences 50.0 → 51.1 → 52.2 %, text →
@@ -774,7 +756,8 @@ giving up the zero-parallel protocol:
   holds its gist (the content tokens are the old codec, left alone on purpose, because every way of putting
   the order of time into them cost the hub its content on SynthWorld). English speech → text will stay near
   80 % word error rate; what the cleaned recordings and the pitch they now carry do for Yorùbá is for the next
-  run to say. The Yorùbá side has no new data: its 5,500 recordings are all there is with images.
+  run to say. The Yorùbá side has no new recordings (its 5,500 are all there is with images); what is new for
+  it is that every one of them keeps its image and that the image space grounds speech faster.
 - *Speech that is written, as opposed to reconstructed.* The speaking path reconstructs real speech with its
   order; whether the flow can write its realisation tokens well enough to be understood is not known on real
   data and is poor on SynthWorld (text → speech → text 13 % through the speaking decoder against 65.8 %
@@ -804,7 +787,7 @@ giving up the zero-parallel protocol:
 - *Speech output.* A recogniser found no content in it in the third run. The speaking path has been heard
   only as a codec on a CPU; no trained model with it, no listener.
 - *Everything changed after the third run* (recordings high-passed, the speaking path, the shorter transport
-  phase, and all of the fifth round: every Yorùbá pair, generated captions, listening tokens, SigLIP 2,
+  phase, and all of the fifth round: every Yorùbá pair, generated captions, SigLIP 2,
   read-back selection, the literature's BLEU) has run on SynthWorld, on small real subsets on a CPU and in the
   tests, not on a GPU and not at full size: the time and memory of the larger model are estimates, and no
   BLEU of the new configuration exists. Whether it reaches the published 6.65 / 15.82 is what the next run

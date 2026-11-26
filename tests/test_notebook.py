@@ -14,7 +14,8 @@ import build_notebook  # noqa: E402
 
 def _settings(cell: str, **values) -> str:
     for name, value in values.items():
-        cell, n = re.subn(rf"(?m)^{name} = .*$", f"{name} = {value!r}", cell, count=1)
+        # (a setting may continue on indented lines: a wrapped tuple, the comment beside it)
+        cell, n = re.subn(rf"(?m)^{name} = .*(?:\n[ \t]+.*)*$", lambda _: f"{name} = {value!r}", cell, count=1)
         assert n == 1, name
     return cell
 
