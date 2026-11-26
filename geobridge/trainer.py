@@ -44,12 +44,12 @@ from .utils import (Averager, OutOfTime, count_named, count_params, get_logger, 
                     seed_everything, time_left, to_device, worker_kwargs)
 
 TQDM_KEYS_A = ("loss", "txt_ce", "txt_acc", "sem_mse", "speak_mse", "mel_l1", "ground", "ground_acc", "unexplained", "read", "seek_txt", "pix_l1", "agree")
-TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "reread", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
+TQDM_KEYS_B = ("loss", "cfm_txt", "cfm_aud", "cfm_img", "read_txt", "read_aud", "dec_ce", "dec_acc", "dec_aud", "sib", "reread", "bt_write", "bt_read", "bt_relay", "bt_shift", "dock")
 # Settings that may differ between a checkpoint and the run that resumes from it (everything else must match).
 RESUME_FREE = {"exp_name", "out_root", "data_root", "device", "amp", "num_workers", "torch_threads", "n_gpu", "step_batches",
                "feat_batch_size", "log_every", "eval_every", "save_every", "keep_last", "milestone_every", "eval_max_items",
                "phase_b_steps", "init_from", "train_only", "ode_steps", "ode_solver", "sample_temp", "eval_temp", "read_mode",
-               "draft_t0", "asr_model"}
+               "draft_t0", "select_k", "asr_model"}
 
 
 class ResumableBatchSampler(Sampler):

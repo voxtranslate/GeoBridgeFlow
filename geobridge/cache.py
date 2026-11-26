@@ -6,7 +6,7 @@ codec, no grounder, no image.  Rebuilding after a resume is deterministic and ta
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -38,6 +38,7 @@ class LatentCache:
         groups = data.groups[split]
         key = "train_views" if split == "train" else "valid_views"
         z = {"txt": [], "aud": []}
+        utt_aud: List[torch.Tensor] = []     # utterance of every speech row (its frames are fetched for the speaking decoder)
         hub = {"txt": [], "aud": []}
         ok = {"txt": [], "aud": []}
         lang = {"txt": [], "aud": []}
@@ -85,6 +86,8 @@ class LatentCache:
                     ok[m].append(vv[m].cpu()); lang[m].append(sub["lang"].cpu())
                     if m == "txt":
                         byte_rows.extend(sub["bytes"].cpu().to(torch.int16))
+                    else:
+                        utt_aud.append(sub["utt"].cpu())
                     for j in sub["item"].tolist():  # views arrive grouped by caption, in order
                         count[m][s + j] += 1
             self.isl_z: Optional[torch.Tensor] = None
@@ -98,6 +101,9 @@ class LatentCache:
         self.mods = [m for m in ("txt", "aud") if z[m]]
         self.z = {m: torch.cat(z[m]) for m in self.mods}
         self.z_aug = torch.cat(z_aug) if z_aug else None   # [speech views, n_aug, N, d]
+        self.utt_aud = torch.cat(utt_aud) if utt_aud else None
+        self.data = data
+        self.n_frames_batch = cfg.dec_aud_batch if (split == "train" and cfg.w_dec_aud > 0 and model.audio.mode == "extra") else 0
         self.hub = {m: torch.cat(hub[m]) for m in self.mods}
         self.ok = {m: torch.cat(ok[m]) for m in self.mods}
         self.lang = {m: torch.cat(lang[m]) for m in self.mods}
@@ -113,6 +119,19 @@ class LatentCache:
         n_own = data.n_own_groups if split == "train" else len(groups)   # extra groups come after the own ones
         self.own_rows = {m: int(self.start[m][n_own]) for m in self.mods}
         self.n_groups = len(groups)
+        # image siblings: for every caption group, the text rows of the OTHER captions of its image
+        self.sib_of_group: List[torch.Tensor] = []
+        weak = [l for l in data.langs if l not in cfg.hub_langs]
+        self.sib_langs = {"all": None, "none": set(), "weak": {data.lang2id[l] for l in weak}}[cfg.sib_views]
+        if split == "train" and cfg.w_sib > 0 and cfg.sib_views != "none" and "txt" in self.mods:
+            by_img: Dict[int, List[Tuple[int, int]]] = {}
+            st = self.start["txt"]
+            for g, grp in enumerate(groups):
+                for r in range(int(st[g]), int(st[g + 1])):
+                    if bool(self.ok["txt"][r]):
+                        by_img.setdefault(grp["img"], []).append((g, r))
+            self.sib_of_group = [torch.tensor([r for g2, r in by_img.get(grp["img"], []) if g2 != g], dtype=torch.long)
+                                 for g, grp in enumerate(groups)]
 
     def batch(self, group_idx: List[int]) -> Dict:
         """Phase-B batch for a list of caption-group indices (same layout as the collated raw batch).
@@ -136,6 +155,28 @@ class LatentCache:
                 if m == "txt" and self.bytes is not None:
                     b = self.bytes[r].long()
                     out[m]["bytes"] = b[:, : int((b != PAD).sum(1).max())]   # trim the padding to this batch
+                if m == "aud" and self.n_frames_batch and self.utt_aud is not None:
+                    # the real frames of a few of these utterances: targets of the speaking decoder's exposure
+                    good = out[m]["ok"].nonzero().squeeze(1)
+                    pick_f = good[torch.randperm(len(good))[: self.n_frames_batch]]
+                    if len(pick_f):
+                        raw = self.data._collate_audio([int(self.utt_aud[r[int(p)]]) for p in pick_f], list(range(len(pick_f))))
+                        out[m]["frames"] = {"idx": pick_f, **{k: raw[k] for k in ("sem", "tone", "mask", "spk", "f0")}}
+                if self.sib_of_group:   # one random sibling caption per view of a language that gets them
+                    lang_ok = torch.ones(len(r), dtype=torch.bool) if self.sib_langs is None else \
+                        torch.tensor([int(l) in self.sib_langs for l in out[m]["lang"].tolist()])
+                    pick = torch.full((len(r),), -1, dtype=torch.long)
+                    for n, j in enumerate(items):
+                        cand = self.sib_of_group[group_idx[j]]
+                        if bool(lang_ok[n]) and len(cand):
+                            pick[n] = cand[int(torch.randint(len(cand), (1,)))]
+                    if bool((pick >= 0).any()):
+                        s = pick.clamp_min(0)
+                        out[m]["sib_ok"] = pick >= 0
+                        out[m]["sib_z"], out[m]["sib_lang"] = self.z["txt"][s], self.lang["txt"][s]
+                        if self.bytes is not None:
+                            sb = self.bytes[s].long()
+                            out[m]["sib_bytes"] = sb[:, : max(1, int((sb[pick >= 0] != PAD).sum(1).max()))]
         return out
 
     def island_batch(self, idx: List[int]) -> Dict:

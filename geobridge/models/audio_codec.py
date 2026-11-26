@@ -291,6 +291,39 @@ class AudioCodec(nn.Module):
         n = torch.exp(self.dur_head(z.mean(1)).squeeze(-1) + math.log(50.0))
         return n.round().clamp(4, int(self.cfg.max_audio_sec * 25)).long()
 
+    @staticmethod
+    def stream_losses(out: Dict[str, torch.Tensor], sem: torch.Tensor, tone: torch.Tensor,
+                      mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Segmental MSE, contour L1 (voiced frames), voicing BCE, energy L1 of decoded streams against the real
+        ones (``sem`` normalised)."""
+        m = mask.unsqueeze(-1).float()
+        denom = m.sum().clamp_min(1)
+        voiced = tone[..., 1:2]
+        sem_ = (((out["sem"] - sem) ** 2) * m).sum() / denom / sem.shape[-1]
+        f0_ = ((out["pros"][..., 0:1] - tone[..., 0:1]).abs() * voiced * m).sum() / (voiced * m).sum().clamp_min(1)
+        voi_ = (F.binary_cross_entropy_with_logits(out["pros"][..., 1:2].float(), voiced, reduction="none") * m).sum() / denom
+        en_ = ((out["pros"][..., 2:3] - tone[..., 3:4]).abs() * m).sum() / denom
+        return sem_, f0_, voi_, en_
+
+    def speaker(self) -> Optional[nn.Module]:
+        """The speaking decoder as one module (a view on the same parameters, as ``TextCodec.decoder``): the
+        transport phase trains it on written latents while everything else of the codec stays frozen."""
+        if self.mode != "extra":
+            return None
+        view = nn.Module()
+        for name in ("speak_in", "speak_q", "speak_byp", "speak_dec", "speak_norm", "speak_out", "speak_pros_dec", "speak_pros"):
+            view.add_module(name, getattr(self, name))
+        view.register_parameter("speak_pos", self.speak_pos)
+        return view
+
+    def speak_loss(self, z: torch.Tensor, aud: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Loss of the speaking decoder on the latents ``z`` (written ones, in the transport phase) against the real
+        streams of the same utterances.  -> (loss, segmental MSE)"""
+        sem, mask = self.norm_sem(aud["sem"]), aud["mask"]
+        out = self._speak(z, mask.sum(1), self.bypass_code(aud["spk"], aud["f0"]), sem.shape[1])
+        s_sem, s_f0, s_voi, s_en = self.stream_losses(out, sem, aud["tone"], mask)
+        return s_sem + 0.5 * (s_f0 + s_voi + s_en), s_sem
+
     # ------------------------------------------------------------------ training loss
     def loss(self, aud: Dict[str, torch.Tensor], n_grounded: Optional[int] = None) -> Dict[str, torch.Tensor]:
         """``n_grounded``: the first n utterances of the batch are image-paired (the rest is unpaired speech);
@@ -305,18 +338,7 @@ class AudioCodec(nn.Module):
             zin = z + sigma * torch.randn_like(z)
         n_frames = mask.sum(1)
         p = self.bypass_code(aud["spk"], aud["f0"])
-        m = mask.unsqueeze(-1).float()
-        denom = m.sum().clamp_min(1)
-        voiced = tone[..., 1:2]
-
-        def stream_losses(out: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-            """Segmental MSE, contour L1 (voiced frames), voicing BCE, energy L1 of decoded streams."""
-            sem_ = (((out["sem"] - sem) ** 2) * m).sum() / denom / sem.shape[-1]
-            f0_ = ((out["pros"][..., 0:1] - tone[..., 0:1]).abs() * voiced * m).sum() / (voiced * m).sum().clamp_min(1)
-            voi_ = (F.binary_cross_entropy_with_logits(out["pros"][..., 1:2].float(), voiced, reduction="none") * m).sum() / denom
-            en_ = ((out["pros"][..., 2:3] - tone[..., 3:4]).abs() * m).sum() / denom
-            return sem_, f0_, voi_, en_
-
+        stream_losses = lambda out: self.stream_losses(out, sem, tone, mask)
         l_sem, l_f0, l_voi, l_en = stream_losses(self.decode(zin, lang, n_frames, p, T=sem.shape[1], content_only=True))
         l_dur = (self.dur_head(z.detach().mean(1)).squeeze(-1) - (torch.log(n_frames.float()) - math.log(50.0))).abs().mean()
         res = {"z": z, "sem_mse": l_sem, "f0_l1": l_f0, "dur_l1": l_dur,

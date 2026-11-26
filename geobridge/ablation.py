@@ -62,11 +62,29 @@ GROUPS: Dict[str, Dict] = {
             ("reader never shown written hub-language speech", {"w_reread": 0.0}),
             ("reader trained on clean speech latents only (no time-masked encodings)", {"read_aug": 0}),
         ]},
+    "sibling": {
+        "question": "Does writing another caption of the same image from a weak view's code help that view's language?",
+        "variants": [
+            ("image-sibling transport for the island and the written-only language", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": True}),
+            ("no image-sibling transport", {"w_sib": 0.0}),
+            ("sibling transport teaches the writer and the decoder only (not the reader)", {"sib_reader_grad": False}),
+            ("sibling transport for every view", {"sib_views": "all"}),
+        ]},
+    "decode": {
+        "question": "What does the way of reading and writing at test time change? (no training: the same model, scored again)",
+        "variants": [
+            ("read-back selection among 4 candidates", {"select_k": 4}),
+            ("one candidate, no selection", {"select_k": 1}),
+            ("read-back selection among 8 candidates", {"select_k": 8}),
+            ("read by inverting the flow instead of the reader", {"read_mode": "ode"}),
+            ("8 integration steps per hop instead of 4", {"ode_steps": 8}),
+        ]},
     "decoder": {
         "question": "Should the byte decoder be trained on the latents the text writer actually writes?",
         "variants": [
             ("decoder trained on written latents (write-latent exposure)", {"w_dec": 1.0}),
             ("decoder frozen after the representation phase", {"w_dec": 0.0}),
+            ("speaking decoder never shown written speech latents", {"w_dec_aud": 0.0}),
         ]},
     "island": {
         "question": "What should be done with the unpaired speech of the island language?",
@@ -179,6 +197,12 @@ COLUMNS: List[Tuple[str, str, bool]] = [
 ]
 
 
+def _eval_keys() -> Tuple[str, ...]:
+    from .metrics import EVAL_KEYS
+
+    return EVAL_KEYS
+
+
 class AblationRunner:
     def __init__(self, base: Config, seeds: Sequence[int] = (0,), test_items: int = 0):
         self.base, self.seeds, self.test_items = base, list(seeds), test_items
@@ -219,11 +243,19 @@ class AblationRunner:
         """A variant whose settings are the base settings is the full model, wherever its group lists it."""
         return all(getattr(self.base, k) == v for k, v in self._resolve(over).items())
 
+    def _eval_only(self, over: Dict) -> bool:
+        """A variant that changes nothing but how the trained model is read and written at test time: it is the
+        full model, scored again with other settings.  Nothing is trained for it."""
+        from .metrics import EVAL_KEYS
+
+        over = self._resolve(over)
+        return bool(over) and not self._is_full(over) and set(over) <= set(EVAL_KEYS)
+
     def _cost(self, group: str, name: str, over: Dict, seed: int) -> int:
-        """0: nothing to train (finished, or the full model); 1: one transport phase (its representation exists);
-        2: a representation phase as well."""
+        """0: nothing to train (finished, the full model, or the full model scored another way); 1: one transport
+        phase (its representation exists); 2: a representation phase as well."""
         cfg, out_dir = self._cell(group, name, over, seed)
-        if os.path.exists(os.path.join(out_dir, "results.json")) or self._is_full(over):
+        if os.path.exists(os.path.join(out_dir, "results.json")) or self._is_full(over) or self._eval_only(over):
             return 0
         if cfg.phase_a_steps == 0 or os.path.exists(os.path.join(cfg.run_dir, "checkpoints", "last.pt")):
             return 1
@@ -241,7 +273,8 @@ class AblationRunner:
         shared, first = Counter(sig), {}
         for i, sg in enumerate(sig):
             first.setdefault(sg, i)
-        order = sorted(range(len(cells)), key=lambda i: (cost[i], -shared[sig[i]] if cost[i] == 2 else 0, first[sig[i]], i))
+        late = [self._eval_only(c[2]) for c in cells]   # (scored from the full model's checkpoint: after it)
+        order = sorted(range(len(cells)), key=lambda i: (cost[i], late[i], -shared[sig[i]] if cost[i] == 2 else 0, first[sig[i]], i))
         return [cells[i] for i in order]
 
     def _cell(self, group: str, name: str, over: Dict, seed: int) -> Tuple[Config, str]:
@@ -256,6 +289,9 @@ class AblationRunner:
             return own, own.run_dir
         slug = "".join(c if c.isalnum() else "_" for c in name).strip("_")[:48]
         cfg = self.base.clone(seed=seed, out_root=os.path.join(self.root, group), exp_name=f"{slug}_s{seed}", **over)
+        if set(over) <= set(_eval_keys()):   # the full model scored another way: its run, these settings, own results
+            full, _ = self._cell(group, name, {}, seed)
+            return full.clone(**over), cfg.run_dir
         return cfg, cfg.run_dir
 
     def _phase_a(self, cfg: Config) -> str:
@@ -285,6 +321,8 @@ class AblationRunner:
         res_path = os.path.join(out_dir, "results.json")
         if os.path.exists(res_path):
             return load_json(res_path)
+        if self._eval_only(over):
+            return self._score_again(group, name, cfg, out_dir, seed)
         is_main = cfg.run_dir == self.base.run_dir
         if cfg.phase_a_steps > 0 and not is_main and not os.path.exists(os.path.join(cfg.run_dir, "checkpoints", "last.pt")):
             cfg.init_from = self._phase_a(cfg)
@@ -307,6 +345,27 @@ class AblationRunner:
         res["params_total"] = tr.param_report["total"]
         res["per_language_pct"] = tr.param_report["per_language_pct_of_spokes"]
         save_json(res, res_path)
+        return res
+
+    def _score_again(self, group: str, name: str, cfg: Config, out_dir: str, seed: int) -> Dict[str, float]:
+        """An evaluation-only variant: the full model's selected state, scored on the test split with ``cfg``'s
+        test-time settings.  The full model is trained first if it is not there yet."""
+        from .data import GeoBridgeData
+        from .inferencer import load_model
+        from .metrics import Evaluator
+        from .utils import resolve_device
+
+        full = self.run_cell(group, "the full model", {}, seed)
+        ck = os.path.join(cfg.run_dir, "checkpoints", "best.pt")
+        self.log.info(f"[cell] {group} / {name} / seed {seed}  (no training: {ck} scored with other test-time settings)")
+        device = resolve_device(cfg.device)
+        data = GeoBridgeData(cfg, self.log, device)
+        model, _ = load_model(cfg, data, device, ck)
+        os.makedirs(out_dir, exist_ok=True)
+        res = Evaluator(cfg, data, device).evaluate(model, "test", self.test_items, quick=False, step=full.get("checkpoint_step"),
+                                                    save_path=os.path.join(out_dir, "eval_test.json"))
+        res.update({k: full[k] for k in ("checkpoint_step", "params_total", "per_language_pct") if k in full})
+        save_json(res, os.path.join(out_dir, "results.json"))
         return res
 
     # ------------------------------------------------------------------ whole study

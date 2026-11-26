@@ -62,6 +62,8 @@ class GeoBridge(nn.Module):
             mods.append(self.hub.explainer)
         if self.cfg.w_dec > 0:   # the byte decoder learns to read what the text writer actually writes
             mods.append(self.text.decoder())
+        if self.cfg.w_dec_aud > 0 and self.audio.speaker() is not None:   # and the speaking decoder, the speech writer
+            mods.append(self.audio.speaker())
         return mods
 
     # ------------------------------------------------------------------ modality latents
@@ -114,16 +116,40 @@ class GeoBridge(nn.Module):
         return self.spokes[mod].write(hub, lang, temp=temp, private=private, steps=steps, draft=draft, t0=t0)
 
     @torch.no_grad()
+    @torch.no_grad()
+    def write_best(self, mod: str, hub: torch.Tensor, lang: Optional[torch.Tensor] = None, temp: Optional[float] = None,
+                   steps: Optional[int] = None, privates: Optional[List[torch.Tensor]] = None, k: Optional[int] = None) -> torch.Tensor:
+        """Read-back selection.  Writing is one-to-many (the private noise decides the wording, the voice, the
+        timing); reading is a function.  So several candidates are written and each is read back: the one whose
+        hub code is closest to the code it was written from says most faithfully what was to be said.  It costs
+        k short ODE solves and k reader passes, and needs nothing but the model.
+        ``privates``: the private codes of the candidates (default: k draws); the first is the plain write."""
+        k = len(privates) if privates is not None else (self.cfg.select_k if k is None else k)
+        if lang is None or mod == "img":
+            lang = torch.zeros(hub.shape[0], dtype=torch.long, device=hub.device)
+        best, best_d = None, None
+        for j in range(max(1, k)):
+            z = self.write(mod, hub, lang, temp=temp, steps=steps, private=None if privates is None else privates[j])
+            if k <= 1 or mod == "img":
+                return z
+            d = ((self.hub.reader(z, mod, lang).float() - hub.float()) ** 2).mean(dim=(1, 2))
+            if best is None:
+                best, best_d = z, d
+            else:
+                better = d < best_d
+                best, best_d = torch.where(better.view(-1, 1, 1), z, best), torch.minimum(d, best_d)
+        return best
+
     def hub_to_text(self, hub: torch.Tensor, lang_name: str, temp: Optional[float] = None) -> List[str]:
         lang = torch.full((hub.shape[0],), self.lang2id[lang_name], dtype=torch.long, device=hub.device)
-        return self.text.generate(self.write("txt", hub, lang, temp=temp), lang)
+        return self.text.generate(self.write_best("txt", hub, lang, temp=temp), lang)
 
     @torch.no_grad()
     def hub_to_speech(self, hub: torch.Tensor, lang_name: str, spk: torch.Tensor, f0: torch.Tensor,
                       temp: Optional[float] = None):
         """hub -> (log-mel, frame counts, speech latent, streams).  ``spk, f0`` give the voice (bypass)."""
         lang = torch.full((hub.shape[0],), self.lang2id[lang_name], dtype=torch.long, device=hub.device)
-        z = self.write("aud", hub, lang, temp=temp)
+        z = self.write_best("aud", hub, lang, temp=temp)
         mel, n_frames, streams = self.audio.synthesize_mel(z, lang, spk, f0)
         return mel, n_frames, z, streams
 

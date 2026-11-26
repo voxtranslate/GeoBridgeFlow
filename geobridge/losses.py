@@ -29,6 +29,8 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
+from .text_units import PAD
+
 from .models import ot
 
 
@@ -347,6 +349,7 @@ class GeoBridgeLoss:
         # ---- the reader keeps training, now on codes that no longer move; its (detached) outputs are the read
         #      hubs for exposure
         reads: Dict[str, torch.Tensor] = {}
+        reads_g: Dict[str, torch.Tensor] = {}   # the same, with their graph (image-sibling transport teaches the reader)
         for mod, sub in views.items():
             ok, target = sub["ok"], hubs[mod].detach()
             z_in = sub.get("z_read", sub["z"])   # speech: possibly a time-masked encoding of the same utterance
@@ -357,7 +360,7 @@ class GeoBridgeLoss:
             per_view = ((r[ok].float() - target[ok].float()) ** 2).mean(dim=(1, 2))
             total = total + cfg.w_read * (per_view * lang_weights(sub["lang"][ok], cfg.lang_balance)).mean()
             logs[f"read_{mod}"] = per_view.mean().item()
-            reads[mod] = r.detach()
+            reads[mod], reads_g[mod] = r.detach(), r
             if cfg.draft_t0 > 0 and cfg.hub_mode == "bary":  # the explainer is refined only if writing starts from its draft
                 l_expl = F.mse_loss(model.hub.explainer(target[ok], model.hub.MODS[mod], sub["lang"][ok]).float(),
                                     sub["z"][ok][:, : cfg.hub_tokens_of(mod)].float())
@@ -422,6 +425,61 @@ class GeoBridgeLoss:
             l_dec, acc = model.text.decode_loss(z_d, t["bytes"], t["lang"])
             total = total + cfg.w_dec * l_dec
             logs.update(dec_ce=l_dec.item(), dec_acc=acc.item())
+
+        # ---- write-latent exposure of the speaking decoder.  It was trained on encoder latents; when the model
+        #      speaks it gets latents the writer wrote.  For text the decoder is simply trained on written latents
+        #      against the caption's bytes.  For speech that would teach a blur: a written latent is ONE way of
+        #      saying the sentence, and the recorded frames are another.  So the latent is written from the
+        #      utterance's own private code - read off its real latent by inverting the flow - and from its hub
+        #      code as the writer gets it.  It is then a latent of THIS recording, with the writer's errors in it.
+        a = views.get("aud")
+        if cfg.w_dec_aud > 0 and a is not None and "frames" in a and model.audio.mode == "extra":
+            fr = a["frames"]
+            idx = fr["idx"]
+            z_real, lang_f = a["z"][idx], a["lang"][idx]
+            with torch.no_grad():
+                x0 = sp["aud"].solve(z_real, lang_f, -1, steps=cfg.train_ode_steps)
+                start = torch.cat([src["aud"][idx].to(x0.dtype), x0[:, sp["aud"].K:]], 1)
+                z_w = sp["aud"].solve(start, lang_f, +1, steps=cfg.train_ode_steps)
+                written = torch.rand(len(idx), device=dev) < cfg.p_dec_written
+                z_d = torch.where(written.view(-1, 1, 1), z_w.to(z_real.dtype), z_real)
+            l_da, s_mse = model.audio.speak_loss(z_d, fr)
+            total = total + cfg.w_dec_aud * l_da
+            logs["dec_aud"] = s_mse.item()
+
+        # ---- image-sibling transport.  A view of a language that has no text of its own speech (the island) or
+        #      no speech (a written-only language) is tied to the hub language by one thing only: its hub code
+        #      should be the one its image gives.  Here the code READ from such a view is asked for something
+        #      concrete: the text writer has to turn it into another caption of the same image, in a language that
+        #      is written.  Never the caption itself, so no sentence meets its translation; what meets is two
+        #      descriptions of one picture, which is all that image-pivoted translation ever has.  The writer learns
+        #      to write from codes as the weak reader gives them, the decoder to decode what it then writes, and
+        #      (sib_reader_grad) the reader to give codes from which a description of the picture can be written.
+        if cfg.w_sib > 0 and "txt" in sp:
+            hs, zs, ls, bs = [], [], [], []
+            for mod, sub in views.items():
+                if "sib_ok" not in sub:
+                    continue
+                pick = sub["sib_ok"] & sub["ok"]
+                if pick.any():
+                    hs.append((reads_g if cfg.sib_reader_grad else reads)[mod][pick])
+                    zs.append(sub["sib_z"][pick])
+                    ls.append(sub["sib_lang"][pick])
+                    if "sib_bytes" in sub:
+                        bs.append(sub["sib_bytes"][pick])
+            if hs:
+                h_s, z_s, l_s = torch.cat(hs), torch.cat(zs), torch.cat(ls)
+                l_sib = sp["txt"].cfm_loss(sp["txt"].source(h_s.to(z_s.dtype)), z_s, l_s)
+                total = total + cfg.w_sib * l_sib
+                logs["sib"] = l_sib.item()
+                if cfg.w_dec > 0 and len(bs) == len(hs):
+                    width = max(b.shape[1] for b in bs)
+                    b_s = torch.cat([F.pad(b, (0, width - b.shape[1]), value=PAD) for b in bs])
+                    with torch.no_grad():
+                        z_w = sp["txt"].write(h_s.detach().to(z_s.dtype), l_s, temp=cfg.eval_temp, steps=cfg.train_ode_steps)
+                    l_sd, _ = model.text.decode_loss(z_w, b_s, l_s)
+                    total = total + cfg.w_sib * cfg.w_dec * l_sd
+                    logs["sib_dec"] = l_sd.item()
 
         # ---- write-latent exposure of the reader.  Back-translation teaches the reader to read island speech that
         #      the speech writer wrote; nothing taught it to read written speech of a hub language, and on Flickr8k

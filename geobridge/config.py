@@ -171,6 +171,9 @@ class Config:
     ode_solver: str = "midpoint"         # euler | midpoint | heun
     sample_temp: float = 0.6             # std of the private noise at generation time
     eval_temp: float = 0.5               # same, for the scored (deterministic-seeded) evaluation
+    select_k: int = 1                    # read-back selection: write this many candidates (different private noise)
+                                         # and keep the one whose hub code, read back by the reader, is closest to
+                                         # the code it was written from.  1 = one candidate, no selection
     asr_model: str = "openai/whisper-base.en"   # recogniser that listens to the written speech in `infer`
                                          # (English hub language and SpeechT5 mel space only; "" = skip)
     draft_t0: float = 0.0                # start writing from the explainer's draft at time t0 (0 = from the source)
@@ -186,6 +189,12 @@ class Config:
     w_dec: float = 1.0                   # write-latent exposure: the byte decoder is trained on latents written by the
                                          # text writer (0 = decoder frozen after phase A)
     p_dec_written: float = 0.75          # ... share of those latents that are written (the rest are encoder latents)
+    w_dec_aud: float = 1.0               # the same for speech (needs a speaking path): the speaking decoder is trained
+                                         # on speech latents the writer wrote.  A written latent is one realisation
+                                         # of many, so it is written from the utterance's OWN private code (read by
+                                         # inverting the flow) and its hub code: it then belongs to that utterance's
+                                         # frames, and carries what the writer gets wrong
+    dec_aud_batch: int = 16              # ... utterances per step whose frames are fetched for it
     w_reread: float = 1.0                # write-latent exposure of the READER: real hub codes are written as speech in
                                          # the spoken hub language(s) and read back (back-translation does this for
                                          # the island language only).  0 = off
@@ -195,6 +204,13 @@ class Config:
     pix_contrast: float = 4.0            # preview loss: extra weight of pixels far from the mean colour (0 = plain L1)
 
     # ------------------------------------------------------------------ unpaired island speech: hub-space back-translation
+    w_sib: float = 1.0                   # image-sibling transport: from the hub code READ out of a view, the text
+                                         # writer writes ANOTHER caption of the same image (never the caption itself,
+                                         # so no sentence is ever paired with its translation).  It is the supervision
+                                         # of image-pivoted speech translation (Oneata & Kamper 2024), inside the hub
+    sib_views: str = "weak"              # which views get it: "weak" = languages without written transcripts of their
+                                         # own speech or without speech (island, text-only), "all", "none"
+    sib_reader_grad: bool = True         # the reader learns from it too (False: only the writer and the decoder do)
     bt_weight: float = 1.0               # 0 = use the bridge pairs only
     bt_relay: float = 1.0                # relay term: text writers learn from codes read off synthetic island speech
     bt_warmup_frac: float = 0.2          # share of phase B before back-translation starts
@@ -442,7 +458,11 @@ _SYNTH = dict(
 # coverage that the credit loss buys: 13 % against 93 % in the codecs, grounder and explainer; 15 % against 97 %
 # confined to the encoders.
 _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0,
-             audio_anchor="extra", audio_private_slots=24)
+             audio_anchor="extra", audio_private_slots=24,
+             # every island utterance keeps its image (the image-pivoted literature trains on all pairs; 0.2 is the
+             # scarce-pairs study and the only setting with unpaired speech for back-translation), and outputs are
+             # chosen among 4 candidates by reading them back
+             bridge_frac=1.0, select_k=4)
 # More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training
 # images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
 # are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;
@@ -470,8 +490,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         text_dec_layers=3, audio_width=192, audio_enc_layers=3, audio_dec_layers=2, hub_width=192,
         flow_width=256, flow_layers=4, flow_heads=4, lora_rank=4, batch_size=48, island_batch_size=48,
         phase_a_steps=2500, phase_b_steps=3500, eval_every=1000, save_every=500, milestone_every=2000,
-        eval_max_items=200, num_workers=2, mel_width=128,
-        bridge_frac=0.2, warmup_steps=200,
+        eval_max_items=200, num_workers=2, mel_width=128, warmup_steps=200,
     ),
     # ---- controlled procedural benchmark (ground truth known for every factor)
     "synth": dict(

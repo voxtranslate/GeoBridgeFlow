@@ -112,9 +112,12 @@ def recall_at_k(scores: torch.Tensor, target: torch.Tensor, ks=(1, 5, 10)) -> Di
     return {f"r{k}": 100.0 * float((rank < k).float().mean()) for k in ks}
 
 
+EVAL_KEYS = ("ode_steps", "ode_solver", "eval_temp", "read_mode", "draft_t0", "select_k")
+
+
 def eval_settings(cfg) -> Dict:
     """The settings that change what an evaluation measures without changing the trained model."""
-    return {k: getattr(cfg, k) for k in ("ode_steps", "ode_solver", "eval_temp", "read_mode", "draft_t0")}
+    return {k: getattr(cfg, k) for k in EVAL_KEYS}
 
 
 # ------------------------------------------------------------------------------------------ evaluator
@@ -208,16 +211,20 @@ class Evaluator:
     def _gen_text(self, model, hub: torch.Tensor, lang: str, bs: int = 64, seed: int = 0) -> List[str]:
         out: List[str] = []
         gen = torch.Generator(device="cpu").manual_seed(seed)
-        d, kp = self.cfg.latent_dim, self.cfg.private_slots
         for i in range(0, len(hub), bs):
             h = hub[i:i + bs].to(self.device)
-            priv = torch.randn(h.shape[0], kp, d, generator=gen).to(self.device) * self.cfg.eval_temp
-            if not self.cfg.private_noise:
-                priv = torch.zeros_like(priv)
             lang_id = torch.full((h.shape[0],), model.lang2id[lang], dtype=torch.long, device=self.device)
-            z = model.write("txt", h, lang_id, private=priv)
+            z = model.write_best("txt", h, lang_id, privates=self._privates(h.shape[0], self.cfg.private_slots, gen))
             out += model.text.generate(z, lang_id)
         return out
+
+    def _privates(self, n: int, slots: int, gen: torch.Generator) -> List[torch.Tensor]:
+        """Private codes of the ``select_k`` candidates of n items, from a seeded generator (the first one is the
+        code a single write would use, so that select_k = 1 is the evaluation it always was)."""
+        cfg = self.cfg
+        k = max(1, cfg.select_k) if cfg.private_noise else 1   # (without private noise all candidates are the same)
+        out = [torch.randn(n, slots, cfg.latent_dim, generator=gen).to(self.device) * cfg.eval_temp for _ in range(k)]
+        return out if cfg.private_noise else [torch.zeros_like(out[0])]
 
     def _score_text(self, hyps: List[str], groups: List[Dict], tgt: str, same_lang: bool) -> Tuple[Dict[str, float], List[Dict]]:
         keep = [i for i, g in enumerate(groups) if self._ref(g, tgt) is not None]
@@ -230,6 +237,13 @@ class Evaluator:
         out = {"bleu": m["bleu"], "chrf": m["chrf"], "cf1": content_f1(hy, flat)}
         multi = [self.data.references(groups[i]["img"], tgt) or refs1[n] for n, i in enumerate(keep)]
         out["bleu_multi"] = bleu_chrf(hy, multi)["bleu"]
+        if getattr(self, "full_scores", False):
+            # the protocol of image-pivoted speech translation (Oneata & Kamper 2024): BLEU-4 against n of the image's
+            # captions, n = 1 .. 5, with the caption of the source itself always among them
+            for n_ref in range(1, 6):
+                refs_n = [[own] + [r for r in others if r != own][: n_ref - 1] for own, others in zip(flat, multi)]
+                if min(len(r) for r in refs_n) == n_ref:
+                    out[f"bleu_r{n_ref}"] = bleu_chrf(hy, refs_n)["bleu"]
         if len({groups[i]["img"] for i in keep}) > 1:   # chance level: the reference of another image
             wrong = [flat[j] for j in other_image([groups[i]["img"] for i in keep])]
             c = bleu_chrf(hy, [[r] for r in wrong])
@@ -278,6 +292,7 @@ class Evaluator:
         cfg, data = self.cfg, self.data
         was_training = model.training
         model.eval()
+        self.full_scores = not quick
         store = self.collect(model, split, max_items, flat_tone=True, steps=steps, read_mode=read_mode)
         groups, views = store["groups"], store["views"]
         M: Dict[str, float] = {}
@@ -432,8 +447,7 @@ class Evaluator:
             lid = torch.full((b,), model.lang2id[S], dtype=torch.long, device=dev)
             pick = torch.randint(len(tgt_ref["spk"]), (b,), generator=gen)  # a real voice of language S
             spk, f0 = tgt_ref["spk"][pick].to(dev), tgt_ref["f0"][pick].to(dev)
-            priv = torch.randn(b, cfg.private_of("aud"), cfg.latent_dim, generator=gen).to(dev) * cfg.eval_temp
-            z = model.write("aud", hub, lid, private=priv if cfg.private_noise else torch.zeros_like(priv))
+            z = model.write_best("aud", hub, lid, privates=self._privates(b, cfg.private_of("aud"), gen))
             n_frames = model.audio.predict_frames(z)
             p = model.audio.bypass_code(spk, f0)
             out = model.audio.decode(z, lid, n_frames, p)
