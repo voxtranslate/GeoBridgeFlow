@@ -78,6 +78,14 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   slots and private noise, like any latent. Laying out *every* token in time, or training ordered and free
   tokens with one decoder, gives the codec the same help and takes the content away from the hub
   (`RESULTS.md`): what is said and how it is said have to be two objectives.
+- **Listening tokens** (`listen_tokens`). What the hub reads of an utterance is, by default, its content tokens:
+  free summaries of the whole utterance. The literature on speech–image retrieval reads speech at frame rate
+  with attention and finds that pooling over frames is what costs the most. Listening tokens give the hub the
+  same without changing what it already reads: the mean of the speech encoder's states over each of `n` equal
+  spans of the utterance, projected to the latent width, appended to the encoded latent. The hub's slot
+  queries and the reader attend to content and listening tokens together. Nothing is reconstructed from them
+  and no writer writes them (a written latent has none, and the hub then reads its content tokens alone), so
+  grounding and reading are the only things that shape them.
 - All modality latents are token-standardised (parameter-free LayerNorm) and their decoders are trained with
   additive noise on the latent, so flows never need to hit a latent exactly.
 - **Extra image–text pairs for the hub language** (`extra_images`; `data/flickr8k.py`, `data/dataset.py`). The
@@ -100,6 +108,15 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   The share matters. On the controlled benchmark a fifth costs the island language nothing and a batch flooded
   with hub-language speech costs it half of its translation: the hub then makes room for the language that
   fills the batch (`docs/RESULTS.md`, fourth round).
+- **Captions written by a pretrained captioner** (`captioner`, `gen_captions`; `data/captioner.py`). The
+  image-pivoted literature trains on nothing else, and finds that several *sampled* captions per image work
+  where one beam-searched caption does not. Here a captioner (GIT) writes five sampled English captions for
+  every training image of the benchmark, once, cached. They are extra text views of images the benchmark
+  already has: grounded like any caption, read by the text codec, and - their main use - sibling targets for
+  the island's speech (section 4). Training images only; validation, test and references are untouched.
+- **Every island utterance keeps its image** in the real presets (`bridge_frac = 1`). The scarce-pairs setting
+  (20 %, with the rest as unpaired speech for back-translation) is the `bridge` ablation; published
+  image-pivoted systems train on all pairs, and a comparison with them has to as well.
 - **Extra speech that only listens** (`listen_only`, off). The speech views of extra spoken captions go through
   the codec and are then only read: the reader regresses them onto the hub code that the text of the same
   caption and the image define (one view, one vote, in the same batch as the benchmark's own speech). They are
@@ -210,6 +227,12 @@ sentences with several valid realisations it is blurred.
 
 Conversion `(m₁, ℓ₁) → (m₂, ℓ₂)`: reader of `m₁`, writer of `m₂`, fresh private tokens. No image is involved.
 
+**Read-back selection** (`select_k`; `GeoBridge.write_best`). Writing is one-to-many: the private noise decides
+the wording, the voice, the timing. Reading is a function. At test time several candidates are therefore
+written from the same hub code and each is read back by the reader; the candidate whose code is closest to the
+code it was written from is kept. It costs `k` short ODE solves and `k` reader passes, needs nothing but the
+model, and is scored as an evaluation-only ablation (the same checkpoint, `k = 1`).
+
 ## 4. Transport phase on a latent cache (`cache.py`, `losses.py:phase_b`)
 
 After phase A the codecs and the grounder are frozen, so every utterance latent and every grounded hub code is a
@@ -249,6 +272,26 @@ tolerate a code that was read with some error. This replaces the roadmap's cycle
 test mismatch of cross-modal conversion and is not satisfied by construction. In the controlled benchmark the
 reader's codes are close enough to the grounded ones that neither exposure nor jitter changes the scores
 measurably (`RESULTS.md`); they are kept because they cost one reader pass that is computed anyway.
+
+**Image-sibling transport** (`w_sib`). A view of a language that has no text of its own speech (the island) or
+no speech (a written-only language) is tied to the hub language by one thing: its hub code should be the one
+its image gives. Image-pivoted speech translation (Oneata & Kamper 2024) ties them more directly, by training
+speech → text on captions of the same image. The same supervision inside the hub: from the code that the
+reader reads out of such a view, the text writer is trained (flow matching) to write **another caption of the
+same image**, human or generated, in a written language; the decoder is trained on what the writer then
+writes, against that caption's bytes; and the gradient reaches the reader. Never the caption itself: under the
+strict protocol the island's caption exists in no other language, so what is paired is two descriptions of one
+picture, not a sentence and its translation. The reader's own target (the grounded code of the utterance)
+stays, so a view is asked both to say what it says and to be something a description of its picture can be
+written from. Views of the hub language, whose reader is trained on transcripts, do not get it.
+
+**Write-latent exposure of the speaking decoder** (`w_dec_aud`; needs the speaking path). The text decoder is
+trained on written latents against the caption's bytes. For speech the same recipe would teach a blur: a
+written latent is one way of saying the sentence and the recorded frames are another. So the latent is written
+from the utterance's **own private code**, read off its real latent by inverting the flow, and from its hub
+code as the writer gets it (read, jittered). It is then a latent of this recording, with the writer's errors
+in it, and the speaking decoder is trained to render the recording's frames from it. A few utterances per step
+have their frames fetched from the feature cache for this.
 
 **Write-latent exposure of the reader** (`w_reread`). The same gap exists on the reading side. Back-translation
 shows the reader speech of the island language that the speech writer wrote; nothing showed it written speech of
@@ -377,6 +420,11 @@ All conversions go through the hub and use no image at test time.
 - Text codec alone (encode, decode, no hub) is scored at every validation: it bounds everything that passes
   through the hub, and the decoder keeps training in the transport phase.
 - Tone: gates, tone-reliance, score with the contour removed, twin-confusion rate on SynthWorld.
+- **BLEU as the image-pivoted literature computes it** (`bleu_r1` … `bleu_r5`): sacrebleu, lower-cased, effective
+  order, corpus level, `. , ? !` removed, against `n` = 1 … 5 of the image's captions with the caption of the
+  source itself always among them (Oneata & Kamper 2024, from their evaluation script). Their published
+  Yorùbá → English numbers are 6.65 (n = 1) to 15.82 (n = 5); the other references are sampled there with five
+  repeats and taken in order here.
 - Protocol: `strict_nonparallel` on by default; `bridge_frac` budgets are nested subsets stored in `splits.json`.
 
 ## 9. Known limits

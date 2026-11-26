@@ -72,7 +72,7 @@ def get_logger(name: str = "geobridge", log_file: Optional[str] = None) -> loggi
 
 def save_json(obj: Any, path: str) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.tmp"   # (its own name: two runs that share a cache directory must not collide)
     with open(tmp, "w", encoding="utf8") as f:
         json.dump(obj, f, indent=2, ensure_ascii=False, default=_json_default)
     os.replace(tmp, path)

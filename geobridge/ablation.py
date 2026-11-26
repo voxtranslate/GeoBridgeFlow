@@ -65,10 +65,10 @@ GROUPS: Dict[str, Dict] = {
     "sibling": {
         "question": "Does writing another caption of the same image from a weak view's code help that view's language?",
         "variants": [
-            ("image-sibling transport for the island and the written-only language", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": True}),
             ("no image-sibling transport", {"w_sib": 0.0}),
-            ("sibling transport teaches the writer and the decoder only (not the reader)", {"sib_reader_grad": False}),
-            ("sibling transport for every view", {"sib_views": "all"}),
+            ("image-sibling transport: writer, decoder and reader", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": True}),
+            ("image-sibling transport: writer and decoder only", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": False}),
+            ("image-sibling transport for every view", {"w_sib": 1.0, "sib_views": "all", "sib_reader_grad": True}),
         ]},
     "decode": {
         "question": "What does the way of reading and writing at test time change? (no training: the same model, scored again)",
@@ -115,6 +115,7 @@ GROUPS: Dict[str, Dict] = {
         "question": "What does the speech latent need in order to be said again?",
         "variants": [
             ("content tokens + a speaking path with time-ordered tokens", {"audio_anchor": "extra", "audio_private_slots": "speak"}),
+            ("the hub reads the content tokens only (no listening tokens)", {"listen_tokens": 0}),
             ("free queries only (no order of time)", {"audio_anchor": "off", "audio_private_slots": 0}),
             ("every token laid out in time, all read by the hub", {"audio_anchor": "all", "audio_private_slots": 0}),
         ]},

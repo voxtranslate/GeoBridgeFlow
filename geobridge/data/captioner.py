@@ -71,6 +71,8 @@ def generated_captions(cfg, builder, images: List[Dict], img_split: List[str], d
     """{image id: its generated captions} for the training images of the benchmark (cached)."""
     if not cfg.captioner or cfg.gen_captions <= 0:
         return {}
+    if cfg.hub_langs[0] != "en":
+        raise ValueError("the captioners write English: the hub language must be 'en'")
     path = os.path.join(cfg.cache_dir, f"captions_{_tag(cfg.captioner)}_k{cfg.gen_captions}_b{cfg.max_text_bytes}.json")
     if os.path.exists(path):
         return load_json(path)["captions"]

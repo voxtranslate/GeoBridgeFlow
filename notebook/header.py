@@ -21,6 +21,11 @@
 #             download.
 #    Out of GPU memory?  A batch is 64 caption groups of the benchmark plus 64 extra ones per GPU, 13 of them
 #             spoken.  OVERRIDES = {"extra_per_batch": 32} halves the extra part; use a new EXP_NAME with it.
+#    Order of the cell: prepare (downloads, captions by a pretrained captioner, frozen features) -> train -> eval
+#             -> infer (figures, saved outputs, what a recogniser hears) -> ablation study.  The ablations run
+#             by themselves after training and inference: first the variants that need no training (the same
+#             model read and written in other ways), then those that train a transport phase.  What does not fit
+#             in the session continues when the cell is run again.
 #    What to watch: every validation of the transport phase prints one "[text]" line per direction - content F1,
 #             BLEU and chrF++, each next to its chance level (the same outputs scored against the caption of another
 #             image) - and "[sample]" lines (reference | output).  A score is evidence only by its distance from
@@ -41,27 +46,32 @@ from __future__ import annotations
 PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k_yo_t4" (2 x T4), "flickr8k_yo",
                                  # "flickr8k_yo_cpu".  Controlled benchmark: "synth", "synth_fast", "synth_tiny".
                                  # The full real presets add to the training split about 23,700 Flickr30k photos
-                                 # with English captions and 5,000 SpokenCOCO photos with 25,031 spoken captions
-                                 # (OVERRIDES = {"extra_images": 0, "extra_speech": 0} trains on Flickr8k alone).
+                                 # with English captions, 5,000 SpokenCOCO photos with 25,031 spoken captions, and
+                                 # five English captions per Flickr8k training image written by a pretrained
+                                 # captioner (GIT).  OVERRIDES = {"extra_images": 0, "extra_speech": 0,
+                                 # "captioner": ""} trains on Flickr8k alone.
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
-EXP_NAME = "flickr8k_yo_t4_v6"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
+EXP_NAME = "flickr8k_yo_t4_v7"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
                                  # with the settings it was started with: new settings need a new name.
 EVAL_SPLIT = "test"              # split scored by "eval" and drawn by "infer"
 
 ABLATION_PRESET = PRESET         # benchmark of the ablation study, run after the stages above ("" = none).
                                  # PRESET ablates the run above: that run is the full model and provides the
-                                 # representation, so only variants are trained, cheapest first.  On 2 x T4 a
-                                 # variant that keeps the representation costs about 2 h (groups read, decoder, island,
-                                 # private, lora), one that changes it about 4.5 h (hub, tone, speech, data,
-                                 # text_unit, bridge).
+                                 # representation.  Three kinds of variant, run in this order:
+                                 #   no training   - the same model read and written another way (group decode)
+                                 #   about 2 h     - a new transport phase on the same representation (groups
+                                 #                   sibling, decoder, read, island, private, lora)
+                                 #   about 5 h     - a new representation too (hub, tone, speech, data, bridge,
+                                 #                   text_unit)
                                  # "synth_fast" / "synth": the controlled benchmark, minutes per variant.
-ABLATION_GROUPS = ("island", "decoder")   # () = all groups
-ABLATION_ONLY = ("bridge pairs only", "decoder frozen")   # () = every variant of those groups; else parts of names.
-                                 # These two fit in the session after the main run.  In the last run the first
-                                 # showed no effect of back-translation and the second was cut by the session
-                                 # limit before it had test scores; both are worth measuring again now that the
-                                 # Yoruba recordings are cleaned and the speech latent keeps the order of time.
+ABLATION_GROUPS = ("decode", "sibling", "decoder")   # () = all groups
+ABLATION_ONLY = ("one candidate", "8 candidates", "inverting the flow",
+                 "no image-sibling transport", "never shown written speech", "decoder frozen")
+                                 # () = every variant of those groups; else parts of variant names.  These answer,
+                                 # for the components added since the last run: what read-back selection and the
+                                 # one-pass reader are worth (no training), what image-sibling transport is worth,
+                                 # and what the two decoders' exposure to written latents is worth.
 ABLATION_SEEDS = (0,)            # e.g. (0, 1, 2) for mean +- std in the tables
 ABLATION_OVERRIDES = {}          # Config fields of the ablation runs (on top of OVERRIDES when the preset is PRESET)
 

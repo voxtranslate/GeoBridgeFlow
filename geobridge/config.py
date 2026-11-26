@@ -213,10 +213,14 @@ class Config:
     pix_contrast: float = 4.0            # preview loss: extra weight of pixels far from the mean colour (0 = plain L1)
 
     # ------------------------------------------------------------------ unpaired island speech: hub-space back-translation
-    w_sib: float = 1.0                   # image-sibling transport: from the hub code READ out of a view, the text
+    w_sib: float = 0.0                   # image-sibling transport: from the hub code READ out of a view, the text
                                          # writer writes ANOTHER caption of the same image (never the caption itself,
                                          # so no sentence is ever paired with its translation).  It is the supervision
-                                         # of image-pivoted speech translation (Oneata & Kamper 2024), inside the hub
+                                         # of image-pivoted speech translation (Oneata & Kamper 2024), inside the hub.
+                                         # Off: on SynthWorld, where the captions of a scene name different objects,
+                                         # it teaches the writer to ignore what was said (island speech -> text
+                                         # 77 % -> 52 %).  Captions of a real photo paraphrase each other; whether it
+                                         # helps there is an ablation variant
     sib_views: str = "weak"              # which views get it: "weak" = languages without written transcripts of their
                                          # own speech or without speech (island, text-only), "all", "none"
     sib_reader_grad: bool = True         # the reader learns from it too (False: only the writer and the decoder do)
@@ -469,6 +473,10 @@ _SYNTH = dict(
 # confined to the encoders.
 _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_price="evidence", highpass_hz=70.0,
              audio_anchor="extra", audio_private_slots=24,
+             # the hub also hears speech span by span.  Measured on real speech (1,200-image subset, short run):
+             # English speech finds its image in the top ten in 30 % of held-out cases with them, 19 % without.
+             # On SynthWorld, whose utterances are a few syllables, they slow grounding down and stay off
+             listen_tokens=32,
              # every island utterance keeps its image (the image-pivoted literature trains on all pairs; 0.2 is the
              # scarce-pairs study and the only setting with unpaired speech for back-translation), and outputs are
              # chosen among 4 candidates by reading them back

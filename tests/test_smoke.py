@@ -115,7 +115,7 @@ def tiny_run(tmp_path_factory):
     # (with the speech options of the real presets: a speech latent that keeps the order of time and is longer
     #  than the text latent, so that every end-to-end test below also runs through them)
     cfg = Config.preset("synth_tiny").update({"data_root": str(root / "data"), "out_root": str(root / "runs"),
-                                              "exp_name": "t", "audio_anchor": "extra", "audio_private_slots": 5, "listen_tokens": 4})
+                                              "exp_name": "t", "audio_anchor": "extra", "audio_private_slots": 5, "listen_tokens": 4, "w_sib": 1.0})
     assert cfg.tokens_of("aud") == 8 and cfg.tokens_of("txt") == cfg.n_tokens == 6 and cfg.max_tokens == 10
     assert cfg.hub_tokens_of("aud") == cfg.hub_tokens_of("txt") == 6          # the hub never reads the two time-ordered tokens
     tr = Trainer(cfg)
@@ -710,3 +710,85 @@ def test_extra_spoken_data_and_reader_augmentation(tmp_path):
     changed = (b["aud"]["z_read"] != b["aud"]["z"]).flatten(1).any(1)
     assert 0 < int(changed.sum()) < len(changed)                                                # some masked, some clean
     assert "z_read" not in tr.cache["valid"].batch([0, 1, 2])["aud"]
+
+
+def test_image_sibling_transport_pairs_two_captions_of_one_image(tiny_run):
+    """A weak view (island speech, written-only language) is given ANOTHER caption of its image as a writing target:
+    never its own caption, so no sentence meets its translation, and only languages that need it get one."""
+    cfg, tr = tiny_run
+    c, groups = tr.cache["train"], tr.data.groups["train"]
+    st, n_pairs = c.start["txt"], 0
+    for g, sib in enumerate(c.sib_of_group):
+        for r in sib.tolist():
+            g2 = int((st > r).nonzero()[0]) - 1
+            assert groups[g2]["img"] == groups[g]["img"] and groups[g2]["cap"] != groups[g]["cap"]
+            n_pairs += 1
+    assert n_pairs > 0
+    weak = {tr.data.lang2id[l] for l in tr.data.langs if l not in cfg.hub_langs}
+    b = c.batch(list(range(60)))
+    got = set()
+    for m in ("txt", "aud"):
+        if "sib_ok" in b[m]:
+            got |= {int(l) for l, ok in zip(b[m]["lang"].tolist(), b[m]["sib_ok"].tolist()) if ok}
+            assert b[m]["sib_z"].shape[1:] == (cfg.n_tokens, cfg.latent_dim) and b[m]["sib_bytes"].shape[0] == len(b[m]["lang"])
+    assert got and got <= weak                                            # the hub language's own views get none
+    assert any("sib" in h and "sib_dec" in h for h in tr.history["train"] if h["phase"] == "B")
+    assert any("dec_aud" in h for h in tr.history["train"] if h["phase"] == "B")       # the speaking decoder's exposure ran too
+
+
+def test_read_back_selection_keeps_the_candidate_that_reads_back_closest(tiny_run):
+    from geobridge.ablation import GROUPS, AblationRunner
+    from geobridge.metrics import bleu_image_pivot, eval_settings
+
+    cfg, tr = tiny_run
+    m = tr.model.eval()
+    hub = tr.cache["train"].sample_hubs(6)
+    lang = torch.zeros(6, dtype=torch.long)
+    privs = [torch.randn(6, cfg.private_slots, cfg.latent_dim) * 0.5 for _ in range(4)]
+    with torch.no_grad():
+        one = m.write_best("txt", hub, lang, privates=privs[:1])
+        assert torch.equal(one, m.write("txt", hub, lang, private=privs[0]))          # one candidate = the plain write
+        best = m.write_best("txt", hub, lang, privates=privs)
+        cands = [m.write("txt", hub, lang, private=p) for p in privs]
+        dist = torch.stack([((m.hub.reader(z, "txt", lang) - hub) ** 2).mean(dim=(1, 2)) for z in cands])   # [4, 6]
+        pick = dist.argmin(0)
+        assert all(torch.equal(best[i], cands[int(pick[i])][i]) for i in range(6))
+        assert m.write_best("aud", hub, lang, k=3).shape[1] == cfg.tokens_of("aud")
+    assert "select_k" in eval_settings(cfg)
+    # a variant that only changes how the model is read and written at test time is never trained
+    runner = AblationRunner(cfg, seeds=[cfg.seed])
+    assert runner._eval_only({"select_k": 8}) and runner._eval_only({"read_mode": "ode"})
+    assert not runner._eval_only({"w_sib": 0.0}) and not runner._eval_only({"select_k": cfg.select_k})
+    name, over = next((n, o) for n, o in GROUPS["decode"]["variants"] if o.get("select_k") == 8)
+    scored, out_dir = runner._cell("decode", name, over, cfg.seed)
+    assert scored.run_dir == runner._cell("decode", "full", {}, cfg.seed)[0].run_dir and scored.select_k == 8
+    assert out_dir != scored.run_dir and runner._cost("decode", name, over, cfg.seed) == 0
+    # the literature's BLEU: lower-cased, punctuation removed, the same number of references for every output
+    assert bleu_image_pivot(["A dog runs in the snow ."], [["a dog runs in the snow"]]) == pytest.approx(100.0)
+    assert bleu_image_pivot(["two boys play football"], [["a dog", "Two boys play football !"]]) == pytest.approx(100.0)
+
+
+def test_generated_captions_are_extra_text_views_of_training_images(tmp_path, monkeypatch):
+    """Captions written by a captioner: text only, training images only, after the benchmark's own groups; they are
+    siblings for the island's speech and never references."""
+    from geobridge.data import GeoBridgeData
+    from geobridge.data import captioner as cap_mod
+
+    base = Config.preset("synth_tiny").update({"data_root": str(tmp_path / "data"), "out_root": str(tmp_path / "runs")})
+    plain = GeoBridgeData(base)
+    H = base.hub_langs[0]
+
+    def fake(cfg, builder, images, img_split, device, logger):   # two "generated" captions per training image
+        return {im["id"]: [builder.text([(0, 0)], H), builder.text([(1, 1)], H)] for im, s in zip(images, img_split) if s == "train"}
+
+    monkeypatch.setattr(cap_mod, "generated_captions", fake)
+    data = GeoBridgeData(base.clone(captioner="fake/captioner", gen_captions=2))
+    n_train = sum(s == "train" for s in plain.img_split)
+    gen = [g for g in data.groups["train"] if g["cap"] >= 100]
+    assert len(gen) == 2 * n_train and all(g["extra"] and [v[:2] for v in g["train_views"]] == [("txt", H)] for g in gen)
+    assert data.n_own_groups == plain.n_own_groups and data.groups["train"][: data.n_own_groups] == plain.groups["train"]
+    assert all(data.img_split[g["img"]] == "train" and g["img"] < data.n_base_images for g in gen)
+    for split in ("valid", "test"):
+        assert data.groups[split] == plain.groups[split]
+        assert all(data.references(g["img"], H) == plain.references(g["img"], H) for g in data.groups[split])
+    assert data.describe()["extra"]["generated"]["captions"] == len(gen) and len(data.images) == len(plain.images)

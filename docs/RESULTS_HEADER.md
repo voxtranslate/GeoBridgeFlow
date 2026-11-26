@@ -618,6 +618,64 @@ steps, 2.4 h + 1.7 h; test scores at the selected state, step 17,000; files in `
 - *The recogniser's ladder has a rung for the renderer alone* (the real streams rendered and vocoded), so the
   next run says whether what is lost is lost in the latent or in the renderer.
 
+**Fifth round: what the published systems have that this one did not** (literature scan of 26 November 2026,
+`docs/LITERATURE.md`; nothing of this has run on a GPU yet).
+
+The published Yorùbá speech → English text result that uses only images (Oneata & Kamper 2024) is BLEU 6.65
+with one reference and 15.82 with five; the third run has 4.2 and 8.4. Their system trains on every image
+pair of Yorùbá, on five sampled captions per image from a pretrained captioner, and directly on speech →
+caption. This one trained on a fifth of the pairs, on the human captions only, and tied the island to the hub
+language by nothing but a shared hub code. Each of those differences is removed, inside the hub and without
+giving up the zero-parallel protocol:
+
+- *Every island utterance keeps its image* (`bridge_frac = 1` in the real presets): about 5,000 pairs instead
+  of 985. The 20 % setting stays as the scarce-pairs study and is the only one with unpaired speech, so
+  back-translation is inactive in the headline configuration.
+- *Captions from a pretrained captioner* (`captioner = microsoft/git-large-coco`, five sampled captions per
+  training image; `data/captioner.py`). Checked on real images with the base model: 150 captions for the 50
+  training images of a 60-image subset, none dropped ("A fluffy dog running outside on a grassy field ."), and
+  a model trained end to end with them.
+- *Image-sibling transport* (`w_sib`): from the code read out of an island or written-only view, the text
+  writer writes another caption of the same image, the decoder is exposed to what it writes, and the reader
+  learns from it. Never the caption itself. @@SIB@@
+- *Listening tokens* (`listen_tokens`): the hub reads the speech encoder's states span by span, beside the
+  content tokens. SynthWorld and real speech disagree, and the presets follow each. On
+  SynthWorld, whose utterances are two to six syllables, they slow grounding down (validation loss 1.83 against
+  0.87 at step 1,250; run stopped), like every other attempt to let the hub read speech tokens that are laid
+  out in time; they stay off there. On real speech, two representation phases on the 1,200-image subset (600
+  steps, batch 24, no speaking path; `docs/results/real_subset_retrieval_*`), held-out retrieval among 91 or 92
+  images, R@1 / R@5 / R@10:
+
+  | | content tokens only | + 24 listening tokens |
+  |---|---|---|
+  | English speech → image, validation (450 queries) | 1.6 / 10.2 / 18.7 % | 2.9 / 13.6 / **29.6 %** |
+  | English speech → image, test (460 queries) | 2.4 / 12.0 / 23.5 % | 2.8 / 14.1 / **30.7 %** |
+  | Yorùbá speech → image, validation (77 queries) | 1.3 / 15.6 / 26.0 % | 0.0 / 15.6 / 24.7 % |
+  | Yorùbá speech → image, test (78 queries) | 1.3 / 7.7 / 11.5 % | 1.3 / 10.3 / 21.8 % |
+  | English text → image, test (460 queries) | 2.0 / 8.7 / 15.4 % | 3.0 / 11.1 / 19.8 % |
+
+  Chance is 1.1 / 5.5 / 11 %. Both models have barely begun to train, so R@1 says nothing yet; in the top ten,
+  English speech gains 7 to 11 points, where the sampling error of 450 queries is about two, and Yorùbá is
+  within its own error of five. One seed, a seventh of the images, a thirteenth of the steps. A real utterance
+  is long and its free summary is an average (third run); read span by span it is found more often. The real
+  presets use 32 listening tokens.
+- *The speaking decoder is trained on written latents* (`w_dec_aud`), written from the utterance's own private
+  code so that the latent still belongs to the recording's frames. @@SPEAK@@
+- *Read-back selection* (`select_k = 4` in the real presets): several candidates are written and the one that
+  reads back closest to its hub code is kept. On a SynthWorld checkpoint, no training involved: island speech →
+  text 77.1 % → 77.5 % (four candidates) → 77.9 % (eight), two-object sentences 50.0 → 51.1 → 52.2 %, text →
+  hub-language speech → text 65.8 → 69.6 → 68.8 %; one candidate reproduces the stored evaluation exactly.
+  Small, never negative on text.
+- *BLEU as that literature computes it* (`bleu_r1` … `bleu_r5`): lower-cased, punctuation removed, one to five
+  references with the source's own caption among them, so the next run's numbers can be set beside theirs.
+- *Ablations run by themselves after training and inference*, cheapest first: variants that only change how
+  the trained model is read and written are scored from the main run's checkpoint with no training (group
+  `decode`), then the transport-phase variants (`sibling`, `decoder`).
+- *Not adopted, and why:* the large frozen towers of the retrieval systems (HuBERT-Large, ViT-L/14) and of the
+  baseline (XLS-R 2B, GPT-2). The speech encoder in use, a mid layer of mHuBERT-147, is what the low-resource
+  word-level literature now recommends over the large models; the rest would change what this model is. So the
+  published retrieval numbers (speech → image R@1 39 to 44 %) are not a target.
+
 **What is not fixed, and why.**
 
 - *Wording is not carried across.* A hub of image barycentres passes what can be pointed at. Between two

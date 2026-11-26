@@ -146,8 +146,6 @@ class GeoBridgeData:
         from .captioner import generated_captions
 
         cfg, H = self.cfg, self.cfg.hub_langs[0]
-        if H != "en":
-            raise ValueError("generated captions are English: the hub language must be 'en'")
         caps = generated_captions(cfg, self.builder, self.images, self.img_split, device, self.log)
         index = {im["id"]: i for i, im in enumerate(self.images)}
         new = [{"uid": f"gen/{H}/{iid}/{k}", "img": index[iid], "cap": 100 + k, "lang": H, "text": c, "has_audio": False,

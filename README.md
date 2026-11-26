@@ -56,9 +56,11 @@ then the run. Paste the cell into a notebook and run it.
   it again continues. A session that is cut off instead can lose everything written after the last checkpoint.
 * `ABLATION_PRESET = PRESET` ablates the run of the cell: that run is the full model and provides the
   representation, so only the variants are trained, cheapest first (`ABLATION_GROUPS`, `ABLATION_ONLY` choose
-  which). On real data a variant costs 1.5 to 2 hours on 2 × T4, about four if it changes the representation, so a
-  study spans several sessions. The cell's defaults run the two variants that the last run left open: without
-  back-translation, and with the decoder frozen.
+  which). The study starts by itself after training and inference. Variants that only change how the trained
+  model is read and written at test time are scored from its checkpoint with no training; a variant that trains
+  a transport phase costs about two hours on 2 × T4, one that changes the representation about five, so a study
+  spans several sessions. The cell's defaults: the test-time variants (one candidate, eight candidates, the
+  inverted flow), then image-sibling transport, then the two decoders without exposure to written latents.
 
 **Status on real data** (`docs/RESULTS.md`, section 0; one seed). The second full Flickr8k run on 2 × T4 writes
 fluent captions that are right about the kind of scene and wrong about most details: English text → hub → English
@@ -257,6 +259,17 @@ wav, mel, f0 = inf.hub_to_wave(hub, "yo", ref_utt=yo[0])  # English text -> Yor�
   summarises the k-th span of the utterance) and a second decoder are added for saying it again, with no
   gradient back into the codec. With free tokens alone the speech codec reconstructed a constant and the model
   could not speak; with every token laid out in time the hub could no longer find the content.
+* **Every island utterance keeps its image** in the real presets (`bridge_frac = 1`, about 5,000 pairs; 20 % is
+  the scarce-pairs study and the only setting with unpaired speech for back-translation).
+* **Captions by a pretrained captioner** (`captioner`, `gen_captions`; full real presets): five sampled English
+  captions per training image, written once by GIT and cached. Extra text views of images the benchmark already
+  has; training images only.
+* **Test-time choices** that need no training: read-back selection (`select_k`: write several candidates, keep
+  the one that reads back closest to its hub code), the reader or the inverted flow (`read_mode`), integration
+  steps (`ode_steps`). The ablation group `decode` scores them from the trained model.
+* **Options measured on the controlled benchmark and left off**: image-sibling transport (`w_sib`), listening
+  tokens (`listen_tokens`), every speech token laid out in time (`audio_anchor = all`). `docs/RESULTS.md`, fifth
+  round, says what each did; the first two are ablation variants for real data.
 * **Strict non-parallel training** (default): a caption is visible in one language only, so no sentence of a
   non-hub language has its translation in the training set, and no loss pairs two languages.
 * `bridge_frac` sets the share of island utterances that keep their image; the rest are fed as unpaired speech.

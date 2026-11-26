@@ -78,6 +78,45 @@ Do not claim: "first to couple GW with flows" (GENOT), "cycle-consistency loss" 
 or optimal transport as such, script-fair tokenisation as a contribution, or that contrastive alignment erases
 tone (the documented loss is at quantisation).
 
+## 1b. Where the literature stands (scan of 26 November 2026) and what has to be beaten
+
+The field around this exact task is small and has barely moved since 2024. Sources are linked in
+`docs/LITERATURE.md`; numbers are as reported there, protocols differ and are given.
+
+| Task | Best published | Protocol | Ours so far (third run) |
+|---|---|---|---|
+| Yorùbá speech → English text, images only (YFACC test, 500 utterances) | BLEU 6.65 (1 reference, beam captions) to 15.82 (5 references, diverse captions); Oneata & Kamper 2024 | sacrebleu, lower-cased, punctuation removed, own caption always a reference | 4.2 (1 reference, another tokenisation), 8.4 (5 references, validation) |
+| ... with real translations (their topline) | 15.23 / 22.01 | same | – |
+| English speech → English text, images only (FACC) | 6.56 / 17.46 | same | 7.5 / 15.4 (validation; trained with transcripts, so not the same task) |
+| English speech → image, Flickr8k 1k test, frozen encoders | R@1 43.8 (Zhou & Li 2024), 43.1 (SpeechCLIP+), 39.1 (SpeechCLIP large), 26.7 (SpeechCLIP base) | 5 spoken captions per image | about 5 (second run) |
+| Yorùbá speech ↔ image on YFACC | none published | – | 1.2 |
+| Image → English speech captioning, Flickr8k | BLEU-4 21.1 (TMT), 20.6 (Kim et al. 2024) | recogniser, then caption metrics | not intelligible |
+| Speech into Yorùbá without Yorùbá text; any-to-any on Flickr8k/YFACC | none published | – | not intelligible |
+
+What the systems that hold these numbers have that this model did not, and what was done about each (`RESULTS.md`,
+fifth round):
+
+- *All image pairs of the low-resource language, and a model warm-started on the hub language.* The real presets
+  now use every pair; the hub language and the island share every module from the first step.
+- *Captions from a pretrained captioner as targets, several sampled ones per image* (GIT; fewer than three hurt).
+  Now generated for the training images and used as text views and sibling targets.
+- *Direct speech → caption supervision through the image.* Now inside the hub as image-sibling transport.
+- *Speech read at frame rate with attention* (every retrieval system; mean pooling costs 15 to 20 points of top-1
+  in Krahn & Fosler-Lussier 2026). Now listening tokens.
+- *A mid layer of a base-size multilingual speech model* is what the low-resource word-level work recommends
+  (mHuBERT-147 layer 8 beats HuBERT-Large and WavLM-Large in Pirlogeanu et al. 2026). That is the encoder
+  already in use; no change.
+- *Large frozen towers* (HuBERT-Large with CLIP or BLIP-2 ViT-L/14, XLS-R 2B with GPT-2). Not adopted: the model
+  stays at tens of millions of trained parameters on two T4s, and that is part of what it is for. It also
+  means the retrieval numbers above are out of reach by design and are not a target.
+
+Nearest neighbours of the method, to cite and to be distinguished from: **FlowBind** (ICLR 2026: a learned shared
+latent with one invertible flow per modality, partially paired data; no speech, no languages, no grounding of
+the hub), **CrossFlow** / **FlowTok** (flow matching directly between two modality latents), **OmniFlow**. What
+none of them has: a hub that is made of the patches of an image (barycentric, inspectable), languages as
+modalities with zero parallel data, and an asymmetric read and write. No 2025–2026 paper was found that uses a
+flow or a bridge as a hub across languages or for speech.
+
 ## 2. Experiments
 
 ### 2.1 Benchmarks
