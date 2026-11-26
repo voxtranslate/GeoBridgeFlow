@@ -171,6 +171,8 @@ COLUMNS: List[Tuple[str, str, bool]] = [
     ("aud_{L}>txt_{H}/cf1", "island ST content F1", True),
     ("aud_{L}>txt_{H}/chance_cf1", "  ... chance level", False),
     ("aud_{L}>txt_{H}/bleu", "island ST BLEU", True),
+    ("aud_{L}>txt_{H}/bleu_r1", "  ... as the image-pivot literature scores it, 1 reference", True),
+    ("aud_{L}>txt_{H}/bleu_r5", "  ... 5 references", True),
     ("aud_{L}>txt_{H}/chrf", "island ST chrF++", True),
     ("aud_{L}>txt_{H}/content_acc", "island ST content acc", True),
     ("aud_{L}>txt_{H}/content2_acc", "  ... two-object sentences", True),

@@ -740,6 +740,14 @@ off:
 - *Ablations run by themselves after training and inference*, cheapest first: variants that only change how
   the trained model is read and written are scored from the main run's checkpoint with no training (group
   `decode`), then the transport-phase variants (`sibling`, `decoder`).
+- *Checked end to end with the final presets:* the test suite (31 tests, and the notebook's cell executed as a
+  script), and a 60-image real-data run through everything the notebook does: captions written by the
+  captioner (the base model), SigLIP 2 features, both training phases with the speaking path and its
+  exposure, evaluation with the literature's BLEU, inference with the recogniser's ladder, then the six
+  ablation cells by themselves in their order (three scored with no training, three transport phases) and
+  their tables. Forty training steps: it shows that the pipeline runs, nothing about scores.
+- *A seed for training alone* (`train_seed`): the model's initialisation, batch order and noise, on the same
+  data and split. `seed` also draws the split (and, on SynthWorld, the world).
 - *Not adopted, and why:* the large frozen towers of the retrieval systems (HuBERT-Large, ViT-L/14) and of the
   baseline (XLS-R 2B, GPT-2). The speech encoder in use, a mid layer of mHuBERT-147, is what the low-resource
   word-level literature now recommends over the large models; the rest would change what this model is. So the
