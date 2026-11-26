@@ -274,9 +274,12 @@ class Trainer:
                       f"unpaired island {d['island_unpaired_train']} | device {self.device}"
                       + (f" x{len(self.gpus)} (DataParallel)" if len(self.gpus) > 1 else "")
                       + f" | {self.step_batches} batch(es) of {cfg.batch_size} per step | amp {self.amp}")
-        if d["extra"].get("images"):
+        if d["extra"].get("caption_groups"):
+            gen = d["extra"].get("generated", {}).get("captions", 0)
             self.log.info(f"[data] extra (training only): {d['extra']['images']} images, {d['extra']['caption_groups']} "
-                          f"{cfg.hub_langs[0]} captions, {d['extra']['spoken']} of them also spoken; "
+                          f"{cfg.hub_langs[0]} captions"
+                          + (f" ({gen} of them written by {cfg.captioner} for the benchmark's own training images)" if gen else "")
+                          + f", {d['extra']['spoken']} of them also spoken; "
                           f"{self.sampler.n_aux} extra captions join every batch"
                           + (f" ({self.extra_spoken_per_batch} spoken)" if self.extra_spoken_per_batch else "")
                           + ("; extra speech listens only (it is read into the hub and does not shape it)"

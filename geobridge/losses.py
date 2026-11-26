@@ -436,7 +436,7 @@ class GeoBridgeLoss:
         if cfg.w_dec_aud > 0 and a is not None and "frames" in a and model.audio.mode == "extra":
             fr = a["frames"]
             idx = fr["idx"]
-            z_real, lang_f = a["z"][idx], a["lang"][idx]
+            z_real, lang_f = a["z"][idx][:, : cfg.tokens_of("aud")], a["lang"][idx]
             with torch.no_grad():
                 x0 = sp["aud"].solve(z_real, lang_f, -1, steps=cfg.train_ode_steps)
                 start = torch.cat([src["aud"][idx].to(x0.dtype), x0[:, sp["aud"].K:]], 1)

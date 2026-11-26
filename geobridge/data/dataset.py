@@ -122,6 +122,8 @@ class GeoBridgeData:
                                        os.path.join(vdir, f"anchor_d{cfg.latent_dim}.pt"))
         self.max_frames = int(cfg.max_audio_sec * 25)
         self.n_base_images, self.extra_meta = len(self.images), {}
+        if cfg.captioner and cfg.gen_captions > 0:
+            self._add_generated_captions(device)
         if cfg.extra_images or cfg.extra_speech:
             self._add_extras(device, need_mel)
 
@@ -136,6 +138,25 @@ class GeoBridgeData:
         self.unitizer = TextUnitizer(cfg.text_unit, cfg.max_graphemes, cfg.max_bytes_per_grapheme,
                                      cfg.max_text_bytes, bpe_path)
         self._build_groups()
+
+    # ------------------------------------------------------------------ captions written by a pretrained captioner
+    def _add_generated_captions(self, device: torch.device) -> None:
+        """Hub-language captions of the benchmark's own TRAINING images, generated once by a pretrained captioner:
+        extra text views of those images (caption indices from 100 on, so that no language role claims them)."""
+        from .captioner import generated_captions
+
+        cfg, H = self.cfg, self.cfg.hub_langs[0]
+        if H != "en":
+            raise ValueError("generated captions are English: the hub language must be 'en'")
+        caps = generated_captions(cfg, self.builder, self.images, self.img_split, device, self.log)
+        index = {im["id"]: i for i, im in enumerate(self.images)}
+        new = [{"uid": f"gen/{H}/{iid}/{k}", "img": index[iid], "cap": 100 + k, "lang": H, "text": c, "has_audio": False,
+                "spk": "", "generated": True}
+               for iid, cs in caps.items() if iid in index and self.img_split[index[iid]] == "train" for k, c in enumerate(cs)]
+        self.utts = self.utts + new
+        self.extra_meta["generated"] = {"captioner": cfg.captioner, "images": len({u["img"] for u in new}), "captions": len(new)}
+        self.log.info(f"[extra] {len(new)} generated {H} captions of {self.extra_meta['generated']['images']} training images "
+                      f"({cfg.captioner}; text only, training only)")
 
     # ------------------------------------------------------------------ extra hub-language data
     def _add_extras(self, device: torch.device, need_mel: bool) -> None:
@@ -229,7 +250,7 @@ class GeoBridgeData:
                 continue
             g = by_key.setdefault((u["img"], u["cap"]), {"img": u["img"], "cap": u["cap"], "utts": {},
                                                          "train_views": [], "all_views": [],
-                                                         "extra": u["img"] >= self.n_base_images})
+                                                         "extra": u["img"] >= self.n_base_images or bool(u.get("generated"))})
             g["utts"][u["lang"]] = ui
             if u.get("text"):
                 g["all_views"].append(("txt", u["lang"], ui))
@@ -240,7 +261,7 @@ class GeoBridgeData:
         self.n_bridge = 0
         self.groups: Dict[str, List[Dict]] = {"train": [], "valid": [], "test": []}
         self.pivots: Dict[int, List[Tuple[int, int]]] = {}
-        for key in sorted(by_key):
+        for key in sorted(by_key, key=lambda k: (by_key[k]["extra"], k)):   # the benchmark's own groups first
             g = by_key[key]
             split, cap = self.img_split[g["img"]], g["cap"]
             has = lambda m, l: any(v[0] == m and v[1] == l for v in g["all_views"])
@@ -281,7 +302,7 @@ class GeoBridgeData:
                 if not g["train_views"]:
                     continue
             self.groups[split].append(g)
-        # extra groups sort after the benchmark's own (their image indices are larger): train = [own ..., extra ...]
+        # extra groups (extra images, generated captions) come after the benchmark's own: train = [own ..., extra ...]
         self.n_own_groups = sum(not g["extra"] for g in self.groups["train"])
         assert all(g["extra"] for g in self.groups["train"][self.n_own_groups:])
         assert not any(g["extra"] for s in ("valid", "test") for g in self.groups[s])

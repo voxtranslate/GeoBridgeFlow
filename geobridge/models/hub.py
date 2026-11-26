@@ -41,6 +41,13 @@ from ..utils import grid_factor
 from .layers import Block
 
 
+def hub_view(z: torch.Tensor, n_content: int, n_written: int) -> torch.Tensor:
+    """[content | (realisation) | (listening)] -> [content | listening]: the tokens of a latent that the hub reads."""
+    if z.shape[1] > n_written:
+        return torch.cat([z[:, :n_content], z[:, n_written:]], 1)
+    return z[:, :n_content]
+
+
 class VisualInterlingua(nn.Module):
     MODS = {"txt": 0, "aud": 1}
 
@@ -54,6 +61,7 @@ class VisualInterlingua(nn.Module):
         self.lat_in = nn.Linear(d, W)
         self.lat_pos = nn.Parameter(torch.randn(cfg.max_tokens, W) * 0.02)   # (latents can differ in length)
         self.visible = {m: cfg.hub_tokens_of(m) for m in self.MODS}   # tokens of each latent that the hub reads
+        self.written = {m: cfg.tokens_of(m) for m in self.MODS}       # ... tokens a writer writes (listening tokens follow)
         self.mod_emb = nn.Embedding(2, W)
         self.lang_emb = nn.Embedding(n_lang, W)
         self.slots = nn.Parameter(torch.randn(self.K, W))  # unit scale: slots must start out *different*
@@ -92,8 +100,13 @@ class VisualInterlingua(nn.Module):
         return torch.cat([V[:, -1:], self.image_latent(V, self.K - 1)], 1)
 
     # ------------------------------------------------------------------ utterance -> slot queries
+    def view(self, z: torch.Tensor, mod: str) -> torch.Tensor:
+        """What the hub reads of a modality latent: its content tokens, and the listening tokens when the latent
+        carries them (an encoded utterance does; a written one does not)."""
+        return hub_view(z, self.visible[mod], self.written[mod])
+
     def slot_features(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:
-        z = z[:, : self.visible[mod]]
+        z = self.view(z, mod)
         ctx = self.lat_in(z) + self.lat_pos[: z.shape[1]] + self.mod_emb.weight[self.MODS[mod]] + self.lang_emb(lang).unsqueeze(1)
         h = self.slots.unsqueeze(0).expand(z.shape[0], -1, -1)
         for blk in self.blocks:
@@ -223,6 +236,7 @@ class HubReader(_SlotTransformer):
     def __init__(self, cfg, n_lang: int):
         super().__init__(cfg, n_lang, cfg.max_tokens, cfg.hub_slots, cfg.hub_layers)
         self.visible = {m: cfg.hub_tokens_of(m) for m in VisualInterlingua.MODS}
+        self.written = {m: cfg.tokens_of(m) for m in VisualInterlingua.MODS}
 
     def forward(self, z: torch.Tensor, mod: str, lang: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
-        return super().forward(z[:, : self.visible[mod]], VisualInterlingua.MODS[mod], lang)
+        return super().forward(hub_view(z, self.visible[mod], self.written[mod]), VisualInterlingua.MODS[mod], lang)

@@ -38,6 +38,10 @@ class Config:
     extra_speech: int = 0                # extra images with hub-language text AND speech, training only: -1 = all,
                                          # N = the first N, 0 = none.  flickr8k_yo: the SpokenCOCO test part (5,000
                                          # images, 25,031 captions read by 1,766 speakers); synthworld: N more scenes
+    captioner: str = ""                  # pretrained image captioner (a GIT or BLIP checkpoint) that writes extra
+                                         # hub-language captions for the benchmark's TRAINING images ("" = none).
+                                         # They are text views of those images and sibling targets for the island
+    gen_captions: int = 5                # ... sampled captions per image (the literature: fewer than 3 hurt)
     lang_balance: bool = False           # every language has the same say in the losses of its modality (grounding,
                                          # sufficiency, credit, reading), however many of its utterances a batch
                                          # holds.  Measured on SynthWorld: worse on every count (the few island
@@ -65,6 +69,11 @@ class Config:
     audio_private_slots: int = 0         # private tokens of the SPEECH latent (0 = private_slots).  An utterance has
                                          # more that no picture determines than a caption has - how every sound is
                                          # timed and said - and has to carry it to be said again
+    listen_tokens: int = 0               # LISTENING tokens: this many time-ordered summaries of the speech encoder's
+                                         # states (the mean of each of n equal spans), which the hub reads beside the
+                                         # content tokens.  They are not reconstructed from and not written: only
+                                         # grounding and the reader shape them.  The content tokens hold what an
+                                         # utterance is about as a whole; these let the hub hear it span by span
     highpass_hz: float = 0.0             # high-pass every recording before trimming, pitch tracking and feature
                                          # extraction (0 = off; 70 in the real presets: below the lowest voice pitch)
     # Role of every language.  A language can appear in several roles.
@@ -289,7 +298,8 @@ class Config:
 
     @property
     def max_tokens(self) -> int:
-        return max(self.n_tokens, self.tokens_of("aud"))
+        """Longest token sequence a hub module or a writer handles."""
+        return max(self.n_tokens, self.tokens_of("aud"), self.hub_tokens_of("aud") + self.listen_tokens)
 
     def hub_tokens_of(self, mod: str) -> int:
         """Tokens of a modality's latent that the hub reads, grounds and explains (the rest is for its decoder)."""
@@ -425,7 +435,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "lang_balance", "audio_anchor", "audio_private_slots", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "captioner", "gen_captions", "lang_balance", "audio_anchor", "audio_private_slots", "listen_tokens", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -463,6 +473,8 @@ _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_pric
              # scarce-pairs study and the only setting with unpaired speech for back-translation), and outputs are
              # chosen among 4 candidates by reading them back
              bridge_frac=1.0, select_k=4)
+# what only the full real presets add: data and models that have to be downloaded
+_MORE = dict(extra_images=-1, extra_speech=-1, captioner="microsoft/git-large-coco", gen_captions=5)
 # More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training
 # images every encoder, trained from scratch, memorises the captions within 15 epochs.  All Flickr30k photos that
 # are not Flickr8k photos (about 23,700, five English captions each, text only) are added to the training split;
@@ -472,7 +484,6 @@ _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_pric
 # are text AND speech, from 1,766 speakers against Flickr8k's 183.  Spoken captions take a fifth of the extra
 # places of a batch, not more: on SynthWorld extra speech next to extra text improves what speech is grounded on
 # and leaves the rest about where it was, while extra speech alone, filling the batch, halves the island's scores.
-_MORE = dict(extra_images=-1, extra_speech=-1)
 
 PRESETS: Dict[str, Dict[str, Any]] = {
     # ---- real benchmark: Flickr8k images + English text/speech + Yoruba speech (+ Hindi text)

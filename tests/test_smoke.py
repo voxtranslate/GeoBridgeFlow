@@ -115,8 +115,8 @@ def tiny_run(tmp_path_factory):
     # (with the speech options of the real presets: a speech latent that keeps the order of time and is longer
     #  than the text latent, so that every end-to-end test below also runs through them)
     cfg = Config.preset("synth_tiny").update({"data_root": str(root / "data"), "out_root": str(root / "runs"),
-                                              "exp_name": "t", "audio_anchor": "extra", "audio_private_slots": 5})
-    assert cfg.tokens_of("aud") == 8 and cfg.tokens_of("txt") == cfg.n_tokens == 6 and cfg.max_tokens == 8
+                                              "exp_name": "t", "audio_anchor": "extra", "audio_private_slots": 5, "listen_tokens": 4})
+    assert cfg.tokens_of("aud") == 8 and cfg.tokens_of("txt") == cfg.n_tokens == 6 and cfg.max_tokens == 10
     assert cfg.hub_tokens_of("aud") == cfg.hub_tokens_of("txt") == 6          # the hub never reads the two time-ordered tokens
     tr = Trainer(cfg)
     tr.fit()
@@ -203,16 +203,23 @@ def test_hub_never_reads_the_time_ordered_tokens_and_the_decoder_does(tiny_run):
     cfg, tr = tiny_run
     m = tr.model.eval()
     vis, n = cfg.hub_tokens_of("aud"), cfg.tokens_of("aud")
-    assert m.audio.n_ordered == n - vis == 2
-    z = torch.randn(4, n, cfg.latent_dim)
+    assert m.audio.n_ordered == n - vis == 2 and m.audio.n_listen == cfg.listen_tokens == 4
+    z = torch.randn(4, n + cfg.listen_tokens, cfg.latent_dim)             # [content | realisation | listening]
     other = z.clone()
-    other[:, vis:] = torch.randn(4, n - vis, cfg.latent_dim)             # the same content tokens, said differently
+    other[:, vis:n] = torch.randn(4, n - vis, cfg.latent_dim)             # the same content, said differently
+    heard = z.clone()
+    heard[:, n:] = torch.randn(4, cfg.listen_tokens, cfg.latent_dim)      # the same latent, heard differently
     lang = torch.zeros(4, dtype=torch.long)
     with torch.no_grad():
         assert torch.equal(m.hub.reader(z, "aud", lang), m.hub.reader(other, "aud", lang))
         assert torch.equal(m.hub.queries(z, "aud", lang), m.hub.queries(other, "aud", lang))
+        # the hub does read the listening tokens; decoders and writers do not, and a written latent has none
+        assert not torch.allclose(m.hub.reader(z, "aud", lang), m.hub.reader(heard, "aud", lang))
+        assert m.hub.view(z, "aud").shape[1] == vis + cfg.listen_tokens and m.hub.view(z[:, :n], "aud").shape[1] == vis
+        assert m.hub.reader(z[:, :n], "aud", lang).shape == m.hub.reader(z, "aud", lang).shape
         frames, byp = torch.full((4,), 20), torch.zeros(4, cfg.bypass_dim)
         assert not torch.allclose(m.audio.decode(z, lang, frames, byp)["sem"], m.audio.decode(other, lang, frames, byp)["sem"])
+        assert torch.equal(m.audio.decode(z, lang, frames, byp)["sem"], m.audio.decode(heard, lang, frames, byp)["sem"])
         code = torch.randn(4, cfg.hub_slots, cfg.latent_dim)
         assert m.hub.explainer(code, m.hub.MODS["aud"], lang).shape[1] == vis      # sufficiency is asked of what the hub reads
         assert m.write("aud", code, lang).shape[1] == n and m.write("txt", code, lang).shape[1] == cfg.n_tokens

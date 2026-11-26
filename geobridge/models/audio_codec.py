@@ -65,6 +65,7 @@ class AudioCodec(nn.Module):
         # tokens laid out in time: none, those beyond the n_tokens every latent has (they come last), or all
         self.n_ordered = {"off": 0, "extra": N - cfg.n_tokens, "all": N}[mode]
         self.n_content = N - self.n_ordered if mode == "extra" else N   # tokens of the codec the hub reads
+        self.n_listen = cfg.listen_tokens                               # + listening tokens, appended after the N written
         assert mode != "extra" or self.n_ordered > 0, "audio_anchor = extra needs audio_private_slots > private_slots"
         self.sem_dim = sem_dim
         t = lambda k: torch.as_tensor(stats[k], dtype=torch.float32)
@@ -89,6 +90,8 @@ class AudioCodec(nn.Module):
         p_enc = max(cfg.dropout, cfg.enc_dropout)
         self.enc = nn.ModuleList([Block(W, cfg.audio_heads, dropout=p_enc) for _ in range(cfg.audio_enc_layers)])
         self.resampler = Resampler(W, self.n_content, d, layers=2, heads=cfg.audio_heads, dropout=cfg.enc_dropout)
+        if self.n_listen:
+            self.listen_out = nn.Linear(W, d)
         # ---- paralinguistic bypass
         self.bypass = MLP(spk_dim + 2, 2 * cfg.bypass_dim, cfg.bypass_dim)
         self.byp_in = nn.Linear(cfg.bypass_dim, W)
@@ -180,14 +183,17 @@ class AudioCodec(nn.Module):
         for blk in self.enc:
             h = blk(h, mask=mask)
         if self.mode == "all":
-            return standardize_tokens(self.resampler(h, mask, self.span_means(h, mask, self.n_tokens)))
-        z = standardize_tokens(self.resampler(h, mask))                       # content tokens: free queries
+            z = standardize_tokens(self.resampler(h, mask, self.span_means(h, mask, self.n_tokens)))
+        else:
+            z = standardize_tokens(self.resampler(h, mask))                   # content tokens: free queries
         if self.mode == "extra":                                               # + how it is said, laid out in time
             e = self.speak_feat(torch.cat([x, tone.to(x.dtype)], -1))
             e = e + sincos(torch.arange(e.shape[1], device=e.device), e.shape[-1]) + self.speak_lang(lang).unsqueeze(1)
             for blk in self.speak_enc:
                 e = blk(e, mask=mask)
             z = torch.cat([z, standardize_tokens(self.time_resampler(e, mask, self.span_means(e, mask, self.n_ordered)))], 1)
+        if self.n_listen:   # + what the hub listens to: the encoder's own states, span by span (neither decoded nor written)
+            z = torch.cat([z, standardize_tokens(self.listen_out(self.span_means(h, mask, self.n_listen)))], 1)
         return z
 
     # ------------------------------------------------------------------ tokens that keep the order of time
@@ -244,6 +250,7 @@ class AudioCodec(nn.Module):
         With a speaking path (audio_anchor = extra) this is the speaking decoder, which reads all tokens;
         ``content_only`` gives the content decoder instead, which reads the content tokens alone."""
         T = T or int(n_frames.max())
+        z = z[:, : self.n_tokens]   # (listening tokens, if the latent carries them, are not for a decoder)
         if self.mode == "extra" and not content_only:
             return self._speak(z, n_frames, bypass, T)
         z = z[:, : self.n_content]
@@ -271,7 +278,7 @@ class AudioCodec(nn.Module):
         """The speaking decoder: every frame starts from the time-ordered tokens around it and attends to all
         tokens.  The content tokens and the bypass code come in with a stop-gradient."""
         W = self.speak_in.out_features
-        z = torch.cat([z[:, : self.n_content].detach(), z[:, self.n_content:]], 1)
+        z = torch.cat([z[:, : self.n_content].detach(), z[:, self.n_content: self.n_tokens]], 1)
         pos = torch.arange(T, device=z.device).unsqueeze(0)
         mask = pos < n_frames.unsqueeze(1)
         rel = pos.float() / n_frames.clamp_min(1).unsqueeze(1).float() * 1000.0
@@ -288,7 +295,7 @@ class AudioCodec(nn.Module):
         return {"sem": self.speak_out(h), "pros": self.speak_pros(hp), "mask": mask}
 
     def predict_frames(self, z: torch.Tensor) -> torch.Tensor:
-        n = torch.exp(self.dur_head(z.mean(1)).squeeze(-1) + math.log(50.0))
+        n = torch.exp(self.dur_head(z[:, : self.n_tokens].mean(1)).squeeze(-1) + math.log(50.0))
         return n.round().clamp(4, int(self.cfg.max_audio_sec * 25)).long()
 
     @staticmethod
@@ -340,7 +347,7 @@ class AudioCodec(nn.Module):
         p = self.bypass_code(aud["spk"], aud["f0"])
         stream_losses = lambda out: self.stream_losses(out, sem, tone, mask)
         l_sem, l_f0, l_voi, l_en = stream_losses(self.decode(zin, lang, n_frames, p, T=sem.shape[1], content_only=True))
-        l_dur = (self.dur_head(z.detach().mean(1)).squeeze(-1) - (torch.log(n_frames.float()) - math.log(50.0))).abs().mean()
+        l_dur = (self.dur_head(z[:, : self.n_tokens].detach().mean(1)).squeeze(-1) - (torch.log(n_frames.float()) - math.log(50.0))).abs().mean()
         res = {"z": z, "sem_mse": l_sem, "f0_l1": l_f0, "dur_l1": l_dur,
                "loss": l_sem + 0.5 * (l_f0 + l_voi + l_en) + 0.5 * l_dur}
         if self.mode == "extra":   # the speaking path: its own objective, no gradient into anything above

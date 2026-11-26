@@ -66,6 +66,21 @@ def bleu_chrf(hyps: Sequence[str], refs: Sequence[Sequence[str]]) -> Dict[str, f
     return {"bleu": float(bleu.score), "chrf": float(chrf.score)}
 
 
+def bleu_image_pivot(hyps: Sequence[str], refs: Sequence[Sequence[str]]) -> float:
+    """BLEU-4 as the image-pivoted speech translation literature computes it (Oneata & Kamper 2024, their
+    ``show_bleu_metrics.py``): sacrebleu, lower-cased, effective order, corpus level, with . , ? ! removed from
+    hypotheses and references.  ``refs``: the same number of references for every hypothesis."""
+    import sacrebleu
+
+    strip = lambda s: " ".join(normalize_text(s).translate(_PUNCT).split())
+    hyps = [strip(h) or "." for h in hyps]
+    streams = [[strip(r[k]) for r in refs] for k in range(len(refs[0]))]
+    return float(sacrebleu.BLEU(lowercase=True, effective_order=True).corpus_score(hyps, streams).score)
+
+
+_PUNCT = str.maketrans("", "", ".,?!")
+
+
 def words(s: str) -> List[str]:
     """Lower-cased words of any script: letters with their combining marks (Devanagari vowel signs, Yoruba tone
     marks) and digits; punctuation is dropped."""
@@ -243,7 +258,7 @@ class Evaluator:
             for n_ref in range(1, 6):
                 refs_n = [[own] + [r for r in others if r != own][: n_ref - 1] for own, others in zip(flat, multi)]
                 if min(len(r) for r in refs_n) == n_ref:
-                    out[f"bleu_r{n_ref}"] = bleu_chrf(hy, refs_n)["bleu"]
+                    out[f"bleu_r{n_ref}"] = bleu_image_pivot(hy, refs_n)
         if len({groups[i]["img"] for i in keep}) > 1:   # chance level: the reference of another image
             wrong = [flat[j] for j in other_image([groups[i]["img"] for i in keep])]
             c = bleu_chrf(hy, [[r] for r in wrong])

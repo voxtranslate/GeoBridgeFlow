@@ -76,6 +76,7 @@ class Spoke(nn.Module):
             t = torch.sigmoid(torch.randn(B, device=x0.device))
         else:
             t = torch.rand(B, device=x0.device)
+        x1 = x1[:, : x0.shape[1]]   # (a speech latent can carry listening tokens after the ones that are written)
         tt = t.view(B, 1, 1).to(x0.dtype)
         v = self.vel((1 - tt) * x0 + tt * x1, t, lang)
         per = ((v.float() - (x1 - x0).float()) ** 2).mean(dim=(1, 2))
@@ -90,6 +91,7 @@ class Spoke(nn.Module):
         """direction = +1: t t_start -> 1 (hub -> modality; t_start defaults to 0);
         direction = -1: t t_start -> 0 (modality -> hub; t_start defaults to 1)."""
         steps, solver = steps or self.cfg.ode_steps, solver or self.cfg.ode_solver
+        x = x[:, : self.K + self.n_private]   # the written part of a latent
         t0 = (0.0 if direction > 0 else 1.0) if t_start is None else float(t_start)
         h = direction * ((1.0 - t0) if direction > 0 else t0) / steps
         t = torch.full((x.shape[0],), t0, device=x.device)
