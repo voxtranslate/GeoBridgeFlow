@@ -114,6 +114,7 @@ or that aligns fully unpaired speech to a multimodal space by optimal transport.
 | Soft targets over the captions of an image | cross-modal denoising | already in the grounding loss (all views of an image are positives) |
 | BLEU with 1 to 5 references, their settings | Oneata & Kamper | `bleu_r1` … `bleu_r5` |
 | Recogniser on generated speech | text-free speech translation | the recogniser ladder of `infer` |
+| Patch features of a tower trained for dense features | SigLIP 2 | the vision tower of the real presets (`google/siglip2-base-patch16-256`, 8 × 8 grid) |
 | Queue of image negatives, hard-negative matching head, re-ranking | Zhou & Li | not adopted (retrieval is not the target; the hub code is not a single embedding) |
 | Large frozen towers (HuBERT-Large, ViT-L/14, XLS-R 2B, GPT-2) | all of the above | not adopted: the model stays small enough for two T4s |
 | Discrete units and a unit vocoder for speech output | Lee et al. | not adopted: speech is written as a continuous latent by a flow |

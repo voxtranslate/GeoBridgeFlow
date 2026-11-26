@@ -72,9 +72,17 @@ class VisionFrontend:
         from transformers import AutoImageProcessor, AutoModel
 
         self.device, self.amp = device, bool(cfg.amp and device.type == "cuda")
-        with quiet_transformers():
-            self.proc = AutoImageProcessor.from_pretrained(cfg.vision_encoder)
-            model = AutoModel.from_pretrained(cfg.vision_encoder)
+        try:
+            with quiet_transformers():
+                self.proc = AutoImageProcessor.from_pretrained(cfg.vision_encoder)
+                model = AutoModel.from_pretrained(cfg.vision_encoder)
+        except (ValueError, KeyError, ImportError) as e:   # e.g. SigLIP 2 with transformers older than 4.49
+            import transformers
+
+            raise RuntimeError(
+                f"the vision tower {cfg.vision_encoder!r} could not be loaded with transformers {transformers.__version__} "
+                f"({type(e).__name__}: {e}).  SigLIP 2 needs transformers 4.49 or newer: upgrade it, or use the earlier "
+                f"tower with vision_encoder=google/siglip-base-patch16-224 vision_grid=7 (and a new exp_name).") from e
         tower = getattr(model, "vision_model", model)  # SigLIP / CLIP: keep the vision tower only
         self.net = on_all_gpus(_VisionTokens(tower, cfg.vision_grid), cfg, device)
 

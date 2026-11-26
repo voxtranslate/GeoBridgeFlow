@@ -637,7 +637,24 @@ giving up the zero-parallel protocol:
   a model trained end to end with them.
 - *Image-sibling transport* (`w_sib`): from the code read out of an island or written-only view, the text
   writer writes another caption of the same image, the decoder is exposed to what it writes, and the reader
-  learns from it. Never the caption itself. @@SIB@@
+  learns from it. Never the caption itself. **On SynthWorld it is harmful, and it is off.** Transport phase alone, same
+  representation, island speech → text / text read and written again / hub-language speech → text, exact
+  content (`docs/results/synth_image_sibling_transport_*`):
+
+  | | island speech → text | text → text | hub speech → text |
+  |---|---|---|---|
+  | without | **77.1 %** | 100 % | 93.8 % |
+  | weight 1, the reader learns too | 52.1 % | 86.3 % | 74.2 % |
+  | weight 1, writer and decoder only | 61.7 % | 74.6 % | 67.1 % |
+  | weight 0.3, writer and decoder only | 74.2 % | 98.3 % | 88.8 % |
+
+  On SynthWorld the captions of one scene name different objects, so "write another caption of this picture"
+  teaches the writer to write about the scene and not about what was said, also for the hub language, whose
+  codes look the same to it. The captions of a real photo paraphrase each other, the model's own fidelity to a
+  sentence is no better on Flickr8k than that of a sibling caption (text read and written again scores 11.8
+  BLEU against its own caption; one annotator scores 8.3 against another), and this supervision is what the
+  published number was obtained with. So it may well help there, and that is what the first transport-phase
+  ablation of the notebook measures (weight 0.3, writer and decoder only: the form that costs least here).
 - *Listening tokens* (`listen_tokens`): the hub reads the speech encoder's states span by span, beside the
   content tokens. SynthWorld and real speech disagree, and the presets follow each. On
   SynthWorld, whose utterances are two to six syllables, they slow grounding down (validation loss 1.83 against
@@ -660,7 +677,77 @@ giving up the zero-parallel protocol:
   is long and its free summary is an average (third run); read span by span it is found more often. The real
   presets use 32 listening tokens.
 - *The speaking decoder is trained on written latents* (`w_dec_aud`), written from the utterance's own private
-  code so that the latent still belongs to the recording's frames. @@SPEAK@@
+  code so that the latent still belongs to the recording's frames. **On SynthWorld it changes nothing**: text →
+  hub-language speech → text through the speaking decoder is 13.3 % exact content with it and 13.3 % without
+  (12.5 % before either existed), against 65.8 % through the content decoder
+  (`docs/results/synth_speaking_path_own_encoder_*`). What limits written speech is what the flow writes into
+  the time-ordered tokens, not what the decoder has seen. It stays on in the real presets, where the content
+  decoder's output is constant in time and is no alternative, and the notebook's `decoder` ablation measures
+  it there.
+- *How far two runs of one configuration differ on SynthWorld: about 20 points.* The two runs just mentioned
+  scored 53.8 % and 57.1 % on island speech → text where the reference has 77.1 %. The speaking path is not
+  the cause, and three checks say so. Its loss changes no gradient outside its own parameters (same batch and
+  random state, with and without it: the largest difference is exactly 0 over 549 tensors). With the same
+  listening weights, a model with it and one without give the same value of every loss term of the
+  representation phase and the same gradient on every shared parameter (now a test). And clipping its
+  gradient apart from the rest (`clip_apart`, now the default) leaves the validation curve where it was (1.42
+  against 1.43 at step 500). A run with a speaking path is the reference model with other random numbers; so
+  the reference configuration was run again with another seed (which also draws another world), and the
+  speaking configuration with it:
+
+  | same settings, other random numbers | validation grounding, end of the representation phase | island speech → text | two-object sentences | hub speech → text | text → text |
+  |---|---|---|---|---|---|
+  | reference, seed 0 | 0.87 | 77.1 % | 50.0 % | 93.8 % | 100 % |
+  | reference, seed 1 | 0.85 | 59.6 % | 21.7 % | 84.2 % | 99.2 % |
+  | first speaking path, seed 0 | 0.89 | 76.7 % | 42.4 % | 89.6 % | 97.9 % |
+  | speaking path, seed 0 | 1.13 | 53.8 % | 4.3 % | 75.0 % | 85.0 % |
+
+  (The speaking configuration with seed 1 was stopped during its representation phase: validation grounding
+  1.29 / 1.51 / 1.05 at steps 500 / 750 / 1,000, where the reference with that seed has 1.11 / 1.26 / 0.97.)
+
+  One configuration covers 54 % to 77 % on this benchmark's headline number (two-object island sentences 4 % to
+  50 %, both objects covered for island speech 24 % to 77 %), and a good validation loss of the representation
+  phase does not predict where a run lands (0.85 gave 59.6 %). What is stable across these runs is the text
+  side: both objects are covered for 97 to 99 % of text captions in all of them. What follows for every
+  comparison in this document between single SynthWorld runs *with different representation phases*: on
+  island-speech scores a gap is evidence only when it is far larger than 20 points (time-ordered tokens read
+  by the hub: 1 to 5 %; extra speech alone: 33 %). Gaps inside it, read above as gains or as costs, are
+  unproven either way: more hub-language data (61.7 % → 73.8 % → 77.1 %), listening-only extras (68.3 %), the
+  share of spoken extras (62.5 to 67.5 %), and the credit loss's effect on island two-object sentences (4.3 %
+  against 26.1 %; its effect on text coverage, 36 % without it and 97 to 100 % with it in every run since, is
+  not in question). Comparisons that share one representation phase are a different matter: the two
+  decoder-exposure runs above differ by 3 points with nothing but the random numbers of the transport phase
+  between them, and that is the scale against which image-sibling transport (15 to 25 points at weight 1, 3 at
+  weight 0.3), read-back selection (under 1) and the transport-phase rows of section 2 are to be read.
+- *The image space is SigLIP 2 on an 8 × 8 grid* (`vision_encoder = google/siglip2-base-patch16-256`,
+  `vision_grid = 8`; SigLIP at 7 × 7 before). SigLIP 2 adds dense objectives to SigLIP's training and loads
+  through the same classes; the hub's barycentres are then barycentres of 64 patches instead of 49. The same
+  two short representation phases as for the listening tokens (1,200-image subset, 600 steps, batch 24, no
+  speaking path, no listening tokens), held-out retrieval among 91 or 92 images, R@1 / R@5 / R@10
+  (`docs/results/real_subset_retrieval_*`):
+
+  | | SigLIP, 7 × 7 | SigLIP 2, 8 × 8 |
+  |---|---|---|
+  | English speech → image, validation (450 queries) | 1.6 / 10.2 / 18.7 % | 5.1 / 24.9 / **44.7 %** |
+  | English speech → image, test (460 queries) | 2.4 / 12.0 / 23.5 % | 4.3 / 19.3 / **39.3 %** |
+  | Yorùbá speech → image, validation (77 queries) | 1.3 / 15.6 / 26.0 % | 5.2 / 20.8 / 29.9 % |
+  | Yorùbá speech → image, test (78 queries) | 1.3 / 7.7 / 11.5 % | 3.8 / 16.7 / **34.6 %** |
+  | English text → image, validation (455 queries) | 2.0 / 9.0 / 14.9 % | 3.1 / 11.9 / 23.5 % |
+  | English text → image, test (460 queries) | 2.0 / 8.7 / 15.4 % | 2.2 / 12.0 / 23.9 % |
+  | Hindi text → image, test (460 queries) | 1.5 / 6.3 / 13.3 % | 1.5 / 6.1 / 12.0 % |
+
+  English speech finds its image in the top ten about twice as often (sampling error about two points);
+  Yorùbá gains 23 points on the test images and 4 on the validation images, with an error of five; Hindi
+  text, which has one caption per image and the least to learn from, does not move. Tower and grid were
+  changed together, so which of the two it is has not been separated. One seed, a seventh of the images, a
+  thirteenth of the steps; on real data two runs of one representation phase have differed visibly before,
+  though not by a factor of two.
+
+  **The two gains did not add.** A fourth arm with both (SigLIP 2 and 24 listening tokens) has English speech
+  → image R@10 25.1 % on validation and 24.3 % on test, Yorùbá 19.5 % and 17.9 %, English text 22.2 % and
+  21.3 %: the text side keeps what SigLIP 2 gave it, the speech side has lost it. Either listening tokens
+  hurt on the finer grid, or one of the two speech gains above is the luck of a short single run; the four
+  arms are being repeated with another training seed on the same split to tell (below, when done).
 - *Read-back selection* (`select_k = 4` in the real presets): several candidates are written and the one that
   reads back closest to its hub code is kept. On a SynthWorld checkpoint, no training involved: island speech →
   text 77.1 % → 77.5 % (four candidates) → 77.9 % (eight), two-object sentences 50.0 → 51.1 → 52.2 %, text →
@@ -690,10 +777,12 @@ giving up the zero-parallel protocol:
   run to say. The Yorùbá side has no new data: its 5,500 recordings are all there is with images.
 - *Speech that is written, as opposed to reconstructed.* The speaking path reconstructs real speech with its
   order; whether the flow can write its realisation tokens well enough to be understood is not known on real
-  data and is poor on SynthWorld (text → speech → text 12.5 % through the speaking decoder against 65.8 %
-  through the content decoder). The decoder has never seen written realisation tokens. The fix that worked
-  for text, training the decoder on written latents, needs the speech frames in the transport phase, which
-  runs on a latent cache; not built yet.
+  data and is poor on SynthWorld (text → speech → text 13 % through the speaking decoder against 65.8 %
+  through the content decoder). Training the speaking decoder on written latents, the fix that worked for
+  text, is built and changes nothing there. What is missing is upstream: the flow has to produce, from four
+  hub slots and noise, tokens that say *when* each thing is said, and nothing in its objective rewards that
+  beyond matching the latents. On real data intelligible speech output should not be expected from the next
+  run; the recogniser ladder will say at which rung it is lost.
 - *How much extra speech is right on real data.* The share (a fifth) was chosen on SynthWorld, where a third
   already cost the island language and where the extra speech has no new voices to offer. On Flickr8k the
   right share may be another; `extra_speech_share` and the `data` ablation group are there to find out.
@@ -705,13 +794,18 @@ giving up the zero-parallel protocol:
 
 **Not verified.**
 
-- *Seeds.* Everything is one seed, on both benchmarks. Two runs of the same representation phase have differed
-  visibly on real data.
+- *Seeds.* Everything on real data is one seed. On SynthWorld a second seed of the reference configuration now
+  exists and lands 17 points below the first on island speech → text (fifth round); the tables of section 2
+  are single runs and have to be read with that in mind. Two runs of the same representation phase have
+  differed visibly on real data too.
 - *Credit, minimality, the tonality gate on real data.* One ablation variant has finished on Flickr8k (without
   back-translation: no difference); the decoder variant has validation curves only.
 - *Baselines on real data.* No cascade, no supervised topline, no published system has been run on this split.
 - *Speech output.* A recogniser found no content in it in the third run. The speaking path has been heard
   only as a codec on a CPU; no trained model with it, no listener.
 - *Everything changed after the third run* (recordings high-passed, the speaking path, the shorter transport
-  phase) has run on SynthWorld, on small real subsets on a CPU and in the tests, not on a GPU and not at full
-  size: the time and memory of the larger speech model are estimates.
+  phase, and all of the fifth round: every Yorùbá pair, generated captions, listening tokens, SigLIP 2,
+  read-back selection, the literature's BLEU) has run on SynthWorld, on small real subsets on a CPU and in the
+  tests, not on a GPU and not at full size: the time and memory of the larger model are estimates, and no
+  BLEU of the new configuration exists. Whether it reaches the published 6.65 / 15.82 is what the next run
+  measures; nothing here shows that it does.

@@ -49,7 +49,9 @@ PRESET = "flickr8k_yo_t4"        # benchmark + model size.  Real data: "flickr8k
                                  # with English captions, 5,000 SpokenCOCO photos with 25,031 spoken captions, and
                                  # five English captions per Flickr8k training image written by a pretrained
                                  # captioner (GIT).  OVERRIDES = {"extra_images": 0, "extra_speech": 0,
-                                 # "captioner": ""} trains on Flickr8k alone.
+                                 # "captioner": ""} trains on Flickr8k alone.  Images are read through the frozen
+                                 # SigLIP 2 tower on an 8 x 8 grid; {"vision_encoder":
+                                 # "google/siglip-base-patch16-224", "vision_grid": 7} is the tower of the runs so far.
 STAGES = ("prepare", "train", "eval", "infer")   # any of: prepare, train, eval, infer, ablate  (run in this order)
 OVERRIDES = {}                   # any Config field, e.g. {"phase_a_steps": 8000, "bridge_frac": 0.05, "seed": 1}
 EXP_NAME = "flickr8k_yo_t4_v7"   # name of the run folder ("" = the preset name).  A run folder is only ever resumed
@@ -67,11 +69,12 @@ ABLATION_PRESET = PRESET         # benchmark of the ablation study, run after th
                                  # "synth_fast" / "synth": the controlled benchmark, minutes per variant.
 ABLATION_GROUPS = ("decode", "sibling", "decoder")   # () = all groups
 ABLATION_ONLY = ("one candidate", "8 candidates", "inverting the flow",
-                 "no image-sibling transport", "never shown written speech", "decoder frozen")
+                 "weight 0.3, writer and decoder only", "never shown written speech", "decoder frozen")
                                  # () = every variant of those groups; else parts of variant names.  These answer,
                                  # for the components added since the last run: what read-back selection and the
-                                 # one-pass reader are worth (no training), what image-sibling transport is worth,
-                                 # and what the two decoders' exposure to written latents is worth.
+                                 # one-pass reader are worth (no training); whether image-sibling transport, which
+                                 # hurts on the controlled benchmark and is off, helps on real captions; and what
+                                 # the two decoders' exposure to written latents is worth.
 ABLATION_SEEDS = (0,)            # e.g. (0, 1, 2) for mean +- std in the tables
 ABLATION_OVERRIDES = {}          # Config fields of the ablation runs (on top of OVERRIDES when the preset is PRESET)
 
@@ -155,3 +158,13 @@ _missing = [pip for mod, pip in _NEEDED.items() if _ilu.find_spec(mod) is None]
 if _missing:
     print(f"[setup] installing {_missing}")
     _sp.run([_sys.executable, "-m", "pip", "install", "-q", *_missing], check=True)
+if _NEEDS_HUB:   # the vision tower of the real presets (SigLIP 2) is in transformers from 4.49 on
+    from importlib.metadata import version as _version
+
+    try:
+        _too_old = tuple(int(x) for x in _version("transformers").split(".")[:2]) < (4, 49)
+    except Exception:
+        _too_old = False
+    if _too_old:
+        print("[setup] upgrading transformers (the SigLIP 2 vision tower needs 4.49 or newer)")
+        _sp.run([_sys.executable, "-m", "pip", "install", "-q", "-U", "transformers>=4.49"], check=True)

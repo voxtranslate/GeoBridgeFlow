@@ -194,7 +194,7 @@ class Trainer:
         self.log = get_logger(f"gb.{cfg.exp_name}", os.path.join(self.run_dir, "train.log"))
         if cfg.torch_threads:
             torch.set_num_threads(cfg.torch_threads)
-        seed_everything(cfg.seed)
+        seed_everything(cfg.run_seed)
         self.device = resolve_device(cfg.device)
         self.data = data or GeoBridgeData(cfg, self.log, self.device)
         self.spec = build_spec(self.data)
@@ -221,6 +221,7 @@ class Trainer:
              {"params": [p for n, p in b_named.items() if no_decay(n, p)], "weight_decay": 0.0}],
             lr=cfg.lr_flow, betas=(0.9, 0.98))
         self.ema = EMA(b_named, cfg.ema_decay)
+        self.clip_apart = {id(p) for p in self.model.audio.speaking_parameters()} if cfg.clip_apart else set()
 
         self.train_ds = _GroupDataset(self.data, self.data.groups["train"], train=True)
         bridge_idx = [i for i, g in enumerate(self.data.groups["train"])
@@ -232,13 +233,13 @@ class Trainer:
         written = sorted(set(range(n_own, len(groups))) - set(spoken))
         n_x = cfg.extra_per_batch or cfg.batch_size
         n_sp = n_x if not written else int(round(cfg.extra_speech_share * n_x)) if spoken else 0
-        self.sampler = ResumableBatchSampler(n_own, cfg.batch_size, cfg.seed, bridge_idx, cfg.bridge_per_batch,
+        self.sampler = ResumableBatchSampler(n_own, cfg.batch_size, cfg.run_seed, bridge_idx, cfg.bridge_per_batch,
                                              aux=[(written, n_x - n_sp), (spoken, n_sp)])
         self.extra_spoken_per_batch = n_sp if spoken and written else 0
         self.isl_sampler = None
         if len(self.data.island_ids) >= 2:
             bs = min(cfg.island_batch_size, len(self.data.island_ids))
-            self.isl_sampler = ResumableBatchSampler(len(self.data.island_ids), bs, cfg.seed + 7)
+            self.isl_sampler = ResumableBatchSampler(len(self.data.island_ids), bs, cfg.run_seed + 7)
         self.step, self.epoch, self.offset = 0, 0, 0
         self.isl_epoch, self.isl_offset = 0, 0
         self.cache: Dict[str, LatentCache] = {}
@@ -510,6 +511,10 @@ class Trainer:
         self.scaler.scale(loss).backward()
         self.scaler.unscale_(opt)
         params = [p for g in opt.param_groups for p in g["params"] if p.grad is not None]
+        apart = [p for p in params if id(p) in self.clip_apart]   # gradient-disjoint path: its own clipping budget
+        if apart:
+            logs["grad_norm_speak"] = float(torch.nn.utils.clip_grad_norm_(apart, cfg.grad_clip))
+            params = [p for p in params if id(p) not in self.clip_apart]
         logs["grad_norm"] = float(torch.nn.utils.clip_grad_norm_(params, cfg.grad_clip))
         self.scaler.step(opt)
         self.scaler.update()

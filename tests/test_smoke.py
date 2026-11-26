@@ -246,6 +246,50 @@ def test_hub_never_reads_the_time_ordered_tokens_and_the_decoder_does(tiny_run):
         v.requires_grad_(False)
 
 
+def test_speaking_path_leaves_the_listening_side_the_same_function(tiny_run):
+    """Same listening weights, same batch, every noise source off: a model with a speaking path and one without
+    give the same value of every loss term of the representation phase and the same gradient on every shared
+    parameter (the duration head apart: it reads all written tokens, behind a stop-gradient).  So what differs
+    between two such runs is their random numbers, and the trainer clips the two paths apart."""
+    import copy
+
+    from geobridge.losses import GeoBridgeLoss
+    from geobridge.models.geobridge import GeoBridge
+
+    cfg, tr = tiny_run
+    quiet = {"latent_noise_max": 0.0, "speech_mask": 0.0, "dropout": 0.0, "enc_dropout": 0.0}
+    cfgs = {"with": copy.deepcopy(cfg).update(quiet),
+            "without": copy.deepcopy(cfg).update(dict(quiet, audio_anchor="off", audio_private_slots=0))}
+    torch.manual_seed(3)
+    models = {k: GeoBridge(c, tr.spec).train() for k, c in cfgs.items()}
+    state, lead = models["with"].state_dict(), lambda v: tuple(slice(0, n) for n in v.shape)
+    for k, v in models["without"].state_dict().items():    # the listening weights, copied into the model that also speaks
+        if state[k].shape == v.shape:
+            state[k] = v.clone()
+        else:                                               # (tables that are only longer: writers, positions)
+            state[k] = state[k].clone()
+            state[k][lead(v)] = v
+    models["with"].load_state_dict(state)
+    g = tr.data.groups["train"][:8]
+    batch = tr.data.collate_groups([{"img": x["img"], "cap": x["cap"], "views": x["train_views"]} for x in g])
+    logs, grads = {}, {}
+    for k, m in models.items():
+        torch.manual_seed(0)
+        loss, logs[k] = GeoBridgeLoss(cfgs[k], m.lang2id).phase_a(m, batch, None)
+        loss.backward()
+        grads[k] = {n: p.grad for n, p in m.named_parameters() if p.grad is not None}
+    assert "speak_mse" in logs["with"] and "speak_mse" not in logs["without"]
+    for name, value in logs["without"].items():
+        if name not in ("loss", "dur_l1"):
+            assert logs["with"][name] == pytest.approx(value, rel=1e-4, abs=1e-6), name
+    shared = [n for n in grads["without"] if not n.startswith("audio.dur_head.")]
+    assert len(shared) > 100 and all(n in grads["with"] for n in shared)
+    for n in shared:
+        assert torch.allclose(grads["with"][n][lead(grads["without"][n])], grads["without"][n], rtol=1e-4, atol=1e-7), n
+    speaking = {id(p) for p in tr.model.audio.speaking_parameters()}
+    assert speaking and tr.clip_apart == speaking          # a gradient-disjoint path has its own clipping budget
+
+
 def test_inference_and_evaluation(tiny_run):
     from geobridge.inferencer import Inferencer
 

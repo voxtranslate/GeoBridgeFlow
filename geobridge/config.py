@@ -21,6 +21,8 @@ class Config:
     exp_name: str = "geobridge"
     out_root: str = "runs"
     seed: int = 0
+    train_seed: int = -1                # random numbers of the model and of training alone (-1 = seed): repeats
+                                        # a run on the same data and split, which `seed` would draw again
     device: str = "auto"                 # auto | cpu | cuda | cuda:0 | mps
     n_gpu: int = 0                       # GPUs used for training and feature extraction (0 = every visible one)
     step_batches: int = 0                # batches per optimisation step (0 = one per GPU; >1 on one device = accumulation)
@@ -277,6 +279,7 @@ class Config:
     weight_decay: float = 0.01
     warmup_steps: int = 500
     grad_clip: float = 1.0
+    clip_apart: bool = True             # the speaking path (no loss in common with the rest) is clipped on its own
     ema_decay: float = 0.999
     log_every: int = 50
     eval_every: int = 2000
@@ -299,6 +302,11 @@ class Config:
     def tokens_of(self, mod: str) -> int:
         """Tokens of a modality's latent: the hub slots and its private ones."""
         return self.hub_slots + self.private_of(mod)
+
+    @property
+    def run_seed(self) -> int:
+        """Seed of the model's initialisation, the batch order and the training noise."""
+        return self.seed if self.train_seed < 0 else self.train_seed
 
     @property
     def max_tokens(self) -> int:
@@ -439,7 +447,7 @@ def _coerce(value: Any, ref: Any) -> Any:
 # Fields that determine phase A (codecs + grounder).  Two configs with the same signature over these
 # fields can share one phase-A checkpoint, which makes phase-B ablations several times cheaper.
 PHASE_A_KEYS: Tuple[str, ...] = (
-    "seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "captioner", "gen_captions", "lang_balance", "audio_anchor", "audio_private_slots", "listen_tokens", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
+    "seed", "train_seed", "dataset", "max_images", "extra_images", "extra_speech", "extra_per_batch", "extra_speech_share", "listen_only", "captioner", "gen_captions", "lang_balance", "audio_anchor", "audio_private_slots", "listen_tokens", "highpass_hz", "hub_langs", "island_langs", "text_only_langs", "bridge_frac",
     "use_island_text", "island_unpaired", "strict_nonparallel", "island_caps", "text_only_caps", "vision_encoder", "vision_grid", "speech_encoder", "speech_sem_layers",
     "speech_pool", "latent_dim", "hub_slots", "private_slots", "text_unit", "bpe_vocab", "text_width",
     "text_enc_layers", "text_dec_layers", "latent_noise_max", "audio_width", "audio_enc_layers",
@@ -480,7 +488,11 @@ _REAL = dict(mel_spec="speecht5", phase_a_select=True, read_noise=0.2, gate_pric
              # every island utterance keeps its image (the image-pivoted literature trains on all pairs; 0.2 is the
              # scarce-pairs study and the only setting with unpaired speech for back-translation), and outputs are
              # chosen among 4 candidates by reading them back
-             bridge_frac=1.0, select_k=4)
+             bridge_frac=1.0, select_k=4,
+             # patch tokens of SigLIP 2 (trained for dense features) on an 8 x 8 grid.  Same subset, same short run,
+             # against SigLIP at 7 x 7: English speech finds its image in the top ten in 45 % of held-out cases
+             # instead of 19 % (validation; 39 % against 24 % on the test images), English text in 24 % against 15 %
+             vision_encoder="google/siglip2-base-patch16-256", vision_grid=8)
 # what only the full real presets add: data and models that have to be downloaded
 _MORE = dict(extra_images=-1, extra_speech=-1, captioner="microsoft/git-large-coco", gen_captions=5)
 # More data for the hub language is the answer to the overfitting of the representation phase: with 6,847 training

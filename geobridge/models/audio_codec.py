@@ -26,7 +26,7 @@ lexical contour; for a non-tonal language it falls back to a neutral contour, wh
 from __future__ import annotations
 
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 import torch
 import torch.nn as nn
@@ -322,6 +322,14 @@ class AudioCodec(nn.Module):
             view.add_module(name, getattr(self, name))
         view.register_parameter("speak_pos", self.speak_pos)
         return view
+
+    def speaking_parameters(self) -> List[nn.Parameter]:
+        """Every parameter of the speaking path (its encoder, its tokens, its decoder).  No loss connects them to
+        the rest of the model, so the trainer clips their gradient on its own: under one global norm the speaking
+        path would take a share of the listening path's step whenever its own gradient is large."""
+        if self.mode != "extra":
+            return []
+        return [p for n, p in self.named_parameters() if n.startswith(("speak_", "time_resampler."))]
 
     def speak_loss(self, z: torch.Tensor, aud: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Loss of the speaking decoder on the latents ``z`` (written ones, in the transport phase) against the real

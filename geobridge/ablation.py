@@ -66,9 +66,10 @@ GROUPS: Dict[str, Dict] = {
         "question": "Does writing another caption of the same image from a weak view's code help that view's language?",
         "variants": [
             ("no image-sibling transport", {"w_sib": 0.0}),
-            ("image-sibling transport: writer, decoder and reader", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": True}),
-            ("image-sibling transport: writer and decoder only", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": False}),
-            ("image-sibling transport for every view", {"w_sib": 1.0, "sib_views": "all", "sib_reader_grad": True}),
+            ("image-sibling transport, weight 0.3, writer and decoder only", {"w_sib": 0.3, "sib_views": "weak", "sib_reader_grad": False}),
+            ("image-sibling transport, weight 1, writer and decoder only", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": False}),
+            ("image-sibling transport, weight 1, the reader too", {"w_sib": 1.0, "sib_views": "weak", "sib_reader_grad": True}),
+            ("image-sibling transport for every view (weight 0.3)", {"w_sib": 0.3, "sib_views": "all", "sib_reader_grad": False}),
         ]},
     "decode": {
         "question": "What does the way of reading and writing at test time change? (no training: the same model, scored again)",

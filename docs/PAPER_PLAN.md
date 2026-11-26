@@ -39,8 +39,9 @@ hub" (it leaks less than the ODE read-out, not nothing).
   cause is located (a latent of free queries that rests at the utterance mean) and addressed on real features
   (content tokens for the hub plus a speaking path with time-ordered realisation tokens, `audio_anchor = extra`):
   reconstruction with the order of time, yes; speech written by the flow, not yet (on SynthWorld it is read
-  back worse through the speaking decoder, which has never seen written tokens). Whether either becomes
-  intelligible at full scale is for the next run's recogniser ladder. If it does, "what is
+  back worse through the speaking decoder, 13 % against 66 %, and training that decoder on written latents
+  does not change it: the limit is what the flow writes into the ordered tokens). Whether either becomes
+  intelligible at full scale is for the next run's recogniser ladder; it should not be expected. If it does, "what is
   said in free slots, how it is said in ordered ones, two objectives" is a component worth its own ablation
   row: the obvious alternatives fail, each on one side (free only: no speech out; ordered only, or both in one
   codec: no content in).
@@ -100,9 +101,14 @@ fifth round):
   now use every pair; the hub language and the island share every module from the first step.
 - *Captions from a pretrained captioner as targets, several sampled ones per image* (GIT; fewer than three hurt).
   Now generated for the training images and used as text views and sibling targets.
-- *Direct speech → caption supervision through the image.* Now inside the hub as image-sibling transport.
+- *Direct speech → caption supervision through the image.* Built inside the hub as image-sibling transport. On
+  SynthWorld, whose captions of one scene name different objects, it is harmful and it is off; whether it helps
+  on real captions, which paraphrase each other, is the first trained ablation after the next run.
 - *Speech read at frame rate with attention* (every retrieval system; mean pooling costs 15 to 20 points of top-1
   in Krahn & Fosler-Lussier 2026). Now listening tokens.
+- *Patch features trained to be dense.* The image space is now SigLIP 2 on an 8 × 8 grid: on the same real
+  subset and short schedule, held-out English speech finds its image in the top ten twice as often as with
+  SigLIP at 7 × 7.
 - *A mid layer of a base-size multilingual speech model* is what the low-resource word-level work recommends
   (mHuBERT-147 layer 8 beats HuBERT-Large and WavLM-Large in Pirlogeanu et al. 2026). That is the encoder
   already in use; no change.
@@ -164,7 +170,10 @@ script; speaker probes on reader hub vs ODE read-out; read / write modes; genera
    hub-space retrieval between yo and en speech and, if possible, add multi-speaker island data.
 5. **Round-trip speech metric.** It uses the model's own recogniser. Add an external ASR for English output and
    an MOS or a learned quality score for a camera-ready.
-6. **Seeds and significance.** Three seeds minimum; paired bootstrap on BLEU for the main comparisons.
+6. **Seeds and significance.** Three seeds minimum; paired bootstrap on BLEU for the main comparisons. This is
+   not a formality here: on SynthWorld two seeds of the reference configuration differ by 17 points on island
+   speech → text (77.1 % and 59.6 %), so no single-run ablation gap below about 20 points on an island-speech
+   score can go into a table without its seeds.
 7. **Compute fairness.** Baseline anchors share codecs, flows, data and steps; only the hub differs.
 
 ## 4. Risks

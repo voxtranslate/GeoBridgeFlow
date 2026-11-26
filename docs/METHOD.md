@@ -30,7 +30,10 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
 - **Vision** (`data/features.py:VisionFrontend`): a frozen tower gives a `g×g` grid of patch tokens plus a global
   token. They are mapped once by a frozen **anchor projection**: PCA to `d` dimensions with a single global scale,
   `v_p = s · Wᵀ(x_p − μ)`. It is an isometry up to scale on the top-`d` subspace, fitted in float64 from the
-  covariance and never updated.
+  covariance and never updated. The real presets read images through **SigLIP 2** (`google/siglip2-base-patch16-256`,
+  whose training adds dense objectives to the image–text one) on an 8 × 8 grid; the hub's barycentres are
+  barycentres of those 64 patches. On the same subset and schedule this roughly doubles how often held-out
+  English speech finds its image, against SigLIP at 7 × 7 (`RESULTS.md`).
 - **Recordings** (`data/features.py:prep_wave`): resampled, **high-passed at 70 Hz** (`highpass_hz`, real
   presets), trimmed of leading and trailing silence, truncated. The high-pass is not cosmetic. Half of the
   energy of the YFACC Yorùbá recordings is rumble below 80 Hz; with it the trimmer found no pauses (an utterance
@@ -77,7 +80,11 @@ modality `m ∈ {txt, aud}` and one language `ℓ`. Code pointers are given as `
   of the frames.) The flow writes both kinds of token from the hub
   slots and private noise, like any latent. Laying out *every* token in time, or training ordered and free
   tokens with one decoder, gives the codec the same help and takes the content away from the hub
-  (`RESULTS.md`): what is said and how it is said have to be two objectives.
+  (`RESULTS.md`): what is said and how it is said have to be two objectives. The separation is exact and
+  tested: with the same listening weights, a model with the speaking path and one without give the same value
+  of every loss term of the representation phase and the same gradient on every shared parameter, and the
+  trainer clips the speaking path's gradient on its own (`clip_apart`), so the two paths do not even share a
+  clipping budget. A run with a speaking path is the same listening model with other random numbers.
 - **Listening tokens** (`listen_tokens`). What the hub reads of an utterance is, by default, its content tokens:
   free summaries of the whole utterance. The literature on speech–image retrieval reads speech at frame rate
   with attention and finds that pooling over frames is what costs the most. Listening tokens give the hub the
