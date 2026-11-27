@@ -46,3 +46,22 @@ def test_single_cell_runs_end_to_end(tmp_path):
     assert "[time]" not in out.stdout + out.stderr
     # the full model's test scores are the ones the "eval" stage stored: the same state is not evaluated twice
     assert "test scores taken from" in out.stdout + out.stderr
+
+
+def test_every_module_and_every_lazy_import_is_in_the_cell():
+    """The end-to-end test above runs the small benchmark, which never reaches code imported lazily for real data
+    (the captioner was once left out and the first real run stopped on a NameError).  So: every module of the
+    package is in the cell, and every name that a module imports from inside the package is defined in it."""
+    import ast
+
+    assert build_notebook.missing_modules() == []
+    cell = ast.parse(build_notebook.build())
+    defined = {n.name for n in cell.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    defined |= {x.id for n in cell.body if isinstance(n, ast.Assign) for t in n.targets for x in ast.walk(t) if isinstance(x, ast.Name)}
+    defined |= {t.target.id for t in cell.body if isinstance(t, ast.AnnAssign) and isinstance(t.target, ast.Name)}
+    wanted = set()
+    for path, _ in build_notebook.MODULES:
+        for node in ast.walk(ast.parse(open(os.path.join(ROOT, path), encoding="utf8").read())):
+            if isinstance(node, ast.ImportFrom) and node.level > 0 and node.module is not None:   # from .x import name
+                wanted.update(a.name for a in node.names if a.name not in ("ot", "features", "audio_dsp"))
+    assert not (wanted - defined), sorted(wanted - defined)

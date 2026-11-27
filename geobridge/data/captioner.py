@@ -21,7 +21,7 @@ from tqdm.auto import tqdm
 from ..utils import load_json, quiet_transformers, save_json
 
 
-def _tag(name: str) -> str:
+def _caption_tag(name: str) -> str:
     return "".join(c if c.isalnum() else "-" for c in name)
 
 
@@ -73,7 +73,7 @@ def generated_captions(cfg, builder, images: List[Dict], img_split: List[str], d
         return {}
     if cfg.hub_langs[0] != "en":
         raise ValueError("the captioners write English: the hub language must be 'en'")
-    path = os.path.join(cfg.cache_dir, f"captions_{_tag(cfg.captioner)}_k{cfg.gen_captions}_b{cfg.max_text_bytes}.json")
+    path = os.path.join(cfg.cache_dir, f"captions_{_caption_tag(cfg.captioner)}_k{cfg.gen_captions}_b{cfg.max_text_bytes}.json")
     if os.path.exists(path):
         return load_json(path)["captions"]
     if not hasattr(builder, "image_groups"):
@@ -84,7 +84,7 @@ def generated_captions(cfg, builder, images: List[Dict], img_split: List[str], d
     model, out, dropped = None, {}, 0
     groups = builder.image_groups(todo)
     for gi, grp in enumerate(tqdm(groups, desc=f"captions ({cfg.captioner})", dynamic_ncols=True)):
-        part = os.path.join(parts, _tag(grp["key"]) + ".json")
+        part = os.path.join(parts, _caption_tag(grp["key"]) + ".json")
         if os.path.exists(part):
             out.update(load_json(part))
             continue

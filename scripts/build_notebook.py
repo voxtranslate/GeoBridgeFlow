@@ -36,6 +36,7 @@ MODULES: List[Tuple[str, str]] = [
     ("geobridge/data/synthworld.py", "DATA: SynthWorld (controlled benchmark)"),
     ("geobridge/data/flickr8k.py", "DATA: Flickr8k-Tri (real benchmark)"),
     ("geobridge/data/features.py", "DATA: frozen front-ends and the one-time feature cache"),
+    ("geobridge/data/captioner.py", "DATA: extra captions written by a pretrained captioner"),
     ("geobridge/data/dataset.py", "DATA: dataset, persistent splits, loaders"),
     ("geobridge/models/layers.py", "MODEL: layers"),
     ("geobridge/models/ot.py", "MODEL: entropic optimal transport"),
@@ -160,7 +161,23 @@ def import_block(imports: Dict[str, Set]) -> str:
     return "\n".join(out + [""] + third) + "\n"
 
 
+def missing_modules() -> List[str]:
+    """Modules of the package that the cell would leave out.  A module that is only imported inside a function
+    (lazily) is never needed by the tests on the small benchmark, so a gap here shows up only on real data."""
+    listed = {p for p, _ in MODULES}
+    found = []
+    for d, _, files in os.walk(os.path.join(ROOT, "geobridge")):
+        for f in files:
+            rel = os.path.relpath(os.path.join(d, f), ROOT).replace(os.sep, "/")
+            if f.endswith(".py") and f != "__init__.py" and "__pycache__" not in rel and rel not in listed:
+                found.append(rel)
+    return sorted(found)
+
+
 def build() -> str:
+    gap = missing_modules()
+    if gap:
+        raise SystemExit(f"modules of the package missing from MODULES (the cell would not define their names): {gap}")
     imports: Dict[str, Set] = {"import": set(), "from": set()}
     owners: Dict[str, str] = {}
     sections = [flatten(p, t, i + 1, imports, owners) for i, (p, t) in enumerate(MODULES)]
